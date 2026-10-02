@@ -1,0 +1,264 @@
+/* ─────────────────────────────────────────────────────────────
+   Keuanganku — design tokens (v1.4, tema putih)
+   Kanvas putih bersih, garis rambut netral, satu warna merek (hijau hutan #263E35)
+   untuk aksi utama & sorotan. Judul memakai serif; angka memakai sans tabular.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-display: var(--font-sans);
+  --font-serif: 'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  /* Peran huruf: judul halaman/modal (serif, bernuansa editorial) & angka nominal (sans, tabular) */
+  --font-title: var(--font-serif);
+  --font-num: var(--font-sans);
+
+  --radius-xs: 6px;
+  --radius-sm: 7px;
+  --radius: 9px;
+  --radius-md: 11px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+
+  --sidebar-w: 264px;
+  --sidebar-w-collapsed: 60px;
+  --gutter: 0px;
+  --topbar-h: 56px;
+  --content-max: 1320px;
+  --page-x: 36px;
+
+  --pad-card: 20px;
+  --row-h: 56px;
+  --ctl-h: 36px;
+
+  /* Skala ikon & huruf — satu garis, empat ukuran ikon, tiga ukuran huruf antarmuka */
+  --icon-stroke: 1.75;
+  --icon-stroke-bold: 2.5; /* hanya untuk glyph kecil di atas warna (centang, +) */
+  --icon-xs: 14px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+
+  /* Warna status sistem (dipakai terbatas) */
+  --sys-red: #c0392b;
+  --sys-orange: #d9772b;
+  --sys-yellow: #c99a1c;
+  --sys-green: #1f8a57;
+  --sys-mint: #3fa37f;
+  --sys-teal: #1f7f82;
+  --sys-blue: #2d68b0;
+  --sys-indigo: #5160b8;
+  --sys-purple: #8250a6;
+  --sys-pink: #c2547a;
+
+  /* Nada domain (hutang, piutang, transfer) */
+  --tone-payable: #c46a1f;
+  --tone-receivable: #1f7f82;
+  --tone-transfer: #2d68b0;
+}
+
+/* ───────── Terang (putih) ───────── */
+:root,
+:root[data-theme='light'] {
+  color-scheme: light;
+  --canvas: #ffffff;
+  --canvas-deep: #f7f7f6;
+  --surface: #ffffff;
+  --surface-2: #fafaf9;
+  --surface-3: #f4f4f3;
+  --surface-sunken: #f3f3f2;
+  --popover: #ffffff;
+  --sidebar-bg: #fafaf9;
+  --glass: color-mix(in srgb, #ffffff 84%, transparent);
+  --glass-strong: var(--popover);
+  --glass-edge: transparent;
+  --glass-hi: transparent;
+  --overlay: rgba(17, 17, 16, 0.32);
+
+  --text: #111110;
+  --text-2: #3d3d3a;
+  --text-3: #6b6b67;
+  --text-4: #82827d; /* ≥ 3,8:1 di atas putih — placeholder & teks dekoratif */
+  --text-inverse: #ffffff;
+
+  --line: rgba(17, 17, 16, 0.08);
+  --line-2: rgba(17, 17, 16, 0.12);
+  --line-strong: rgba(17, 17, 16, 0.2);
+  --fill: rgba(17, 17, 16, 0.035);
+  --fill-2: rgba(17, 17, 16, 0.06);
+  --fill-3: rgba(17, 17, 16, 0.1);
+
+  --pos: #16794a;
+  --pos-soft: rgba(22, 121, 74, 0.1);
+  --neg: #bf3a2b;
+  --neg-soft: rgba(191, 58, 43, 0.09);
+  --warn: #8f5d09; /* kontras ≥ 4,5:1 di atas --warn-soft */
+  --warn-soft: rgba(217, 150, 20, 0.15);
+  --info: #2459a0;
+  --info-soft: rgba(36, 89, 160, 0.09);
+
+  --shadow-xs: 0 1px 1px rgba(17, 17, 16, 0.04);
+  --shadow-sm: 0 0 0 1px var(--line), 0 1px 2px rgba(17, 17, 16, 0.04);
+  --shadow-md: 0 0 0 1px var(--line), 0 8px 24px -10px rgba(17, 17, 16, 0.14), 0 2px 6px -2px rgba(17, 17, 16, 0.05);
+  --shadow-lg: 0 0 0 1px rgba(17, 17, 16, 0.06), 0 30px 70px -20px rgba(17, 17, 16, 0.26), 0 12px 28px -12px rgba(17, 17, 16, 0.12);
+  --shadow-pop: 0 0 0 1px var(--line-2), 0 16px 40px -12px rgba(17, 17, 16, 0.18), 0 4px 10px -4px rgba(17, 17, 16, 0.06);
+  --glass-shadow: var(--shadow-sm);
+
+  --chart-inc: #1f8a57;
+  --chart-exp: #e2704f;
+  --chart-net: #111110;
+  --chart-nw: #1f6b4a;
+  --ambient-1: transparent;
+  --ambient-2: transparent;
+  --ambient-3: transparent;
+}
+
+/* ───────── Gelap (grafit netral) ───────── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --canvas: #111112;
+  --canvas-deep: #0c0c0d;
+  --surface: #18181a;
+  --surface-2: #1c1c1e;
+  --surface-3: #242427;
+  --surface-sunken: #141416;
+  --popover: #1f1f22;
+  --sidebar-bg: #0e0e0f;
+  --glass: color-mix(in srgb, var(--canvas) 84%, transparent);
+  --glass-strong: var(--popover);
+  --overlay: rgba(0, 0, 0, 0.58);
+
+  --text: #ededeb;
+  --text-2: #c6c6c2;
+  --text-3: #979792;
+  --text-4: #85857f; /* ≥ 4:1 di permukaan gelap */
+  --text-inverse: #111112;
+
+  --line: rgba(237, 237, 235, 0.075);
+  --line-2: rgba(237, 237, 235, 0.12);
+  --line-strong: rgba(237, 237, 235, 0.2);
+  --fill: rgba(237, 237, 235, 0.045);
+  --fill-2: rgba(237, 237, 235, 0.08);
+  --fill-3: rgba(237, 237, 235, 0.12);
+
+  --pos: #6fcf97;
+  --pos-soft: rgba(111, 207, 151, 0.14);
+  --neg: #f08a78;
+  --neg-soft: rgba(240, 138, 120, 0.14);
+  --warn: #e8bb62;
+  --warn-soft: rgba(232, 187, 98, 0.15);
+  --info: #8ab8e6;
+  --info-soft: rgba(138, 184, 230, 0.14);
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 0 0 1px var(--line-2), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 0 0 1px rgba(237, 237, 235, 0.08), 0 32px 80px -20px rgba(0, 0, 0, 0.8);
+  --shadow-pop: 0 0 0 1px var(--line-2), 0 20px 50px -12px rgba(0, 0, 0, 0.72);
+  --glass-shadow: var(--shadow-sm);
+
+  --chart-inc: #5cbf8a;
+  --chart-exp: #f0876a;
+  --chart-net: #ededeb;
+  --chart-nw: #7fc9a4;
+
+  --tone-payable: #e39b5c;
+  --tone-receivable: #62b8ba;
+  --tone-transfer: #86b1e0;
+}
+
+/* ───────── Warna utama (aksen) ───────── */
+:root,
+:root[data-accent='forest'] {
+  --accent: #263e35;
+  --accent-strong: #1b2e27;
+  --accent-ink: #1f6b4a;
+  --on-accent: #ffffff;
+}
+:root[data-accent='ocean'] {
+  --accent: #1f3f5c;
+  --accent-strong: #172f46;
+  --accent-ink: #235d93;
+}
+:root[data-accent='plum'] {
+  --accent: #4a2f48;
+  --accent-strong: #3a2439;
+  --accent-ink: #7a4476;
+}
+:root[data-accent='clay'] {
+  --accent: #8a4428;
+  --accent-strong: #733820;
+  --accent-ink: #9a4a29;
+}
+:root[data-accent='graphite'] {
+  --accent: #1c1c1b;
+  --accent-strong: #000000;
+  --accent-ink: #3a3a37;
+}
+:root[data-theme='dark'],
+:root[data-theme='dark'][data-accent='forest'] {
+  --accent: #2f6a52;
+  --accent-strong: #37775d;
+  --accent-ink: #8fd0ae;
+  --on-accent: #ffffff;
+}
+:root[data-theme='dark'][data-accent='ocean'] {
+  --accent: #2f5f86;
+  --accent-strong: #396c95;
+  --accent-ink: #9cc4ea;
+}
+:root[data-theme='dark'][data-accent='plum'] {
+  --accent: #6a4866;
+  --accent-strong: #775474;
+  --accent-ink: #d7b2d0;
+}
+:root[data-theme='dark'][data-accent='clay'] {
+  --accent: #a45a3b;
+  --accent-strong: #b06545;
+  --accent-ink: #f0ae8e;
+}
+:root[data-theme='dark'][data-accent='graphite'] {
+  --accent: #e6e6e3;
+  --accent-strong: #ffffff;
+  --accent-ink: #e6e6e3;
+  --on-accent: #111112;
+}
+
+:root {
+  --accent-soft: color-mix(in srgb, var(--accent-ink) 10%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent-ink) 6%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent-ink) 22%, transparent);
+  --accent-grad: var(--accent);
+  /* Navigasi sidebar: sorotan netral, ikon aktif berwarna merek */
+  --nav-hover: var(--fill-2);
+  --nav-active: rgba(17, 17, 16, 0.07);
+}
+:root[data-theme='dark'] {
+  --accent-soft: color-mix(in srgb, var(--accent-ink) 14%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent-ink) 7%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent-ink) 34%, transparent);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent-ink) 30%, transparent);
+  --nav-active: rgba(237, 237, 235, 0.09);
+}
+
+/* ───────── Kepadatan ───────── */
+:root[data-density='compact'] {
+  --pad-card: 16px;
+  --row-h: 46px;
+  --ctl-h: 32px;
+  --topbar-h: 50px;
+}

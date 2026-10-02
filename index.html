@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Keuanganku — catatan keuangan pribadi dengan pembukuan double-entry, laporan keuangan lengkap, dan ekspor Excel." />
+    <meta name="application-name" content="Keuanganku" />
+    <meta name="apple-mobile-web-app-title" content="Keuanganku" />
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111112" media="(prefers-color-scheme: dark)" />
+    <title>Keuanganku</title>
+    <script>
+      (function () {
+        try {
+          // Kunci penyimpanan lama dipertahankan agar data pengguna tidak hilang.
+          var p = JSON.parse(localStorage.getItem('neraca.prefs') || '{}');
+          var s = (p && p.state) || {};
+          var mode = s.theme || 'system';
+          var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var r = document.documentElement;
+          var accents = ['forest', 'ocean', 'plum', 'clay', 'graphite'];
+          r.dataset.theme = dark ? 'dark' : 'light';
+          r.dataset.accent = accents.indexOf(s.accent) >= 0 ? s.accent : 'forest';
+          if (s.density) r.dataset.density = s.density;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
