@@ -15,6 +15,7 @@ import { DashCtx, type DashData } from '../components/dashboard/common';
 import { WIDGETS, widgetSettings } from '../components/dashboard/registry';
 import { EditBar, GallerySheet, WidgetFrame, useWidgetDrag } from '../components/dashboard/Customize';
 import { Onboarding } from '../components/dashboard/Onboarding';
+import { AttentionStrip, QuickActions } from '../components/dashboard/Focus';
 import { useGoalModal } from '../components/goals/GoalModal';
 
 const stagger = {
@@ -200,6 +201,13 @@ export default function Dashboard() {
       />
 
       <AnimatePresence>{editing && <EditBar dirty={dirty} onGallery={() => setGallery(true)} onCancel={cancel} onDone={done} />}</AnimatePresence>
+
+      {!editing && !firstRun && (
+        <>
+          <QuickActions />
+          <AttentionStrip />
+        </>
+      )}
 
       {!editing && <Onboarding onGoal={goalModal.openNew} first={firstRun} />}
 

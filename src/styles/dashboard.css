@@ -34,6 +34,92 @@
   flex: 1;
 }
 
+/* ───────── Aksi cepat & perhatian ───────── */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+@media (max-width: 640px) {
+  .quick-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: calc(var(--page-x) * -1);
+    padding-inline: var(--page-x);
+    scrollbar-width: none;
+  }
+  .quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .quick-actions .btn {
+    flex: none;
+  }
+}
+.attention {
+  margin-bottom: 16px;
+}
+.attention-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.attention-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px 8px 10px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--dur-1) var(--ease);
+}
+.attention-item:hover {
+  box-shadow: var(--shadow-md);
+}
+.attention-item:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+.attention-item.tone-neg {
+  background: color-mix(in srgb, var(--neg) 6%, var(--surface));
+}
+.attention-item.tone-warn {
+  background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+}
+.attention-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.attention-title {
+  overflow: hidden;
+  font-size: var(--fs-md);
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attention-detail {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attention-item > .fi {
+  font-size: var(--icon-sm);
+  color: var(--text-3);
+}
+.attention-more {
+  margin: 8px 4px 0;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+
 /* ───────── Indikator utama ───────── */
 .kpi-grid {
   display: grid;
