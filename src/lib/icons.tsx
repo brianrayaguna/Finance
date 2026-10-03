@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react';
+import type { Glyph } from './glyphs';
 import {
   Wallet, Landmark, Smartphone, CreditCard, PiggyBank, HandCoins, Banknote, Coins, Vault, WalletCards,
   TrendingUp, TrendingDown, ChartLine, Bitcoin, CircleDollarSign, BadgePercent, Percent, Briefcase, Gift,
@@ -15,9 +15,9 @@ import {
   Shield, Umbrella, Scale, Landmark as Gov, FileSpreadsheet, Calculator, Tag, Folder, Archive, Boxes, Factory,
   Rocket, Newspaper, Cloud, Server, Key, Lock, Star, Crown, Medal, Lightbulb, Flame, Hourglass, Repeat,
   Cigarette, Wine, Apple, Carrot, Drumstick, Mail, Phone, MapPin, Globe, Umbrella as Umb2,
-} from 'lucide-react';
+} from './glyphs';
 
-export const ICONS: Record<string, LucideIcon> = {
+export const ICONS: Record<string, Glyph> = {
   wallet: Wallet, landmark: Landmark, smartphone: Smartphone, 'credit-card': CreditCard, 'piggy-bank': PiggyBank,
   'hand-coins': HandCoins, banknote: Banknote, coins: Coins, vault: Vault, 'wallet-cards': WalletCards,
   'trending-up': TrendingUp, 'trending-down': TrendingDown, 'chart-line': ChartLine, bitcoin: Bitcoin,
@@ -100,11 +100,11 @@ export const ICON_GROUPS: { label: string; icons: string[] }[] = [
   },
 ];
 
-export function getIcon(name?: string): LucideIcon {
+export function getIcon(name?: string): Glyph {
   return (name && ICONS[name]) || Tag;
 }
 
-/* Palet kategori bernuansa tanah — selaras dengan hijau hutan & krem, tetap mudah dibedakan. */
+/* Palet kategori bernuansa tanah, mudah dibedakan di atas permukaan terang maupun gelap. */
 export const PALETTE: { key: string; name: string; value: string }[] = [
   { key: 'green', name: 'Daun', value: '#4C8A58' },
   { key: 'mint', name: 'Sage', value: '#5F9A82' },
@@ -123,7 +123,7 @@ export const PALETTE: { key: string; name: string; value: string }[] = [
   { key: 'graphite', name: 'Batu', value: '#78736A' },
 ];
 
-/** Warna palet lama (versi sebelumnya) → padanan pada palet baru. */
+/** Pemetaan warna bawaan data tersimpan ke palet kategori. */
 const LEGACY_COLORS: Record<string, string> = {
   '#D97757': '#B8603C',
   '#FF3B30': '#A8432F',
@@ -147,7 +147,7 @@ export function remapColor(c: string | undefined): string | undefined {
   return LEGACY_COLORS[c.toUpperCase()] ?? c;
 }
 
-/** Ikon lama yang diganti agar tampilan tidak terkesan "AI". */
+/** Nama ikon yang dipetakan ke ikon lain saat data dimuat. */
 const LEGACY_ICONS: Record<string, string> = { sparkles: 'coins' };
 
 export function remapIcon(i: string | undefined): string | undefined {

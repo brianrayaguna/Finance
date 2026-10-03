@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight } from 'lucide-react';
+import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight } from '../../lib/glyphs';
 import { ALL_NAV, navLabel, navSection } from '../../app/nav';
 import { REPORTS } from '../../app/reports';
 import { usePrefs, useUI } from '../../store/ui';
@@ -203,19 +203,14 @@ export function PageHeader({
   title,
   subtitle,
   actions,
-  eyebrow,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
-  /** Label kecil opsional di atas judul (kelompok navigasi sudah tampil di jejak halaman). */
-  eyebrow?: ReactNode;
 }) {
-  // Nama kelompok kini tampil di jejak halaman (bilah atas), bukan sebagai label di atas judul.
   return (
     <header className="page-head">
       <div className="ph-main">
-        {eyebrow && <div className="page-eyebrow">{eyebrow}</div>}
         <h1 className="page-title">{title}</h1>
         {subtitle && <p className="page-sub">{subtitle}</p>}
       </div>

@@ -8,13 +8,13 @@
     <meta name="description" content="Keuanganku — catatan keuangan pribadi dengan pembukuan double-entry, laporan keuangan lengkap, dan ekspor Excel." />
     <meta name="application-name" content="Keuanganku" />
     <meta name="apple-mobile-web-app-title" content="Keuanganku" />
-    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#111112" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F5F5F7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B0C0A" media="(prefers-color-scheme: dark)" />
     <title>Keuanganku</title>
     <script>
       (function () {
         try {
-          // Kunci penyimpanan lama dipertahankan agar data pengguna tidak hilang.
+          // Kunci penyimpanan 'neraca.*' dipertahankan agar data tersimpan tetap terbaca.
           var p = JSON.parse(localStorage.getItem('neraca.prefs') || '{}');
           var s = (p && p.state) || {};
           var mode = s.theme || 'system';

@@ -20,7 +20,7 @@ import {
   Star,
   TriangleAlert,
   X,
-} from 'lucide-react';
+} from '../../lib/glyphs';
 import { useUI, usePrefs } from '../../store/ui';
 import { useData, deleteTemplate } from '../../store/data';
 import { notify } from '../../store/history';
@@ -120,7 +120,7 @@ export function TopCatsWidget({ settings }: WidgetProps) {
                       <span className="money-val num">{shortMoney(c.value, compact)}</span>
                     </span>
                     <span className="tc-bar" aria-hidden>
-                      <span style={{ width: `${max ? (c.value / max) * 100 : 0}%`, '--c': c.account.color } as CSSProperties} />
+                      <span style={{ clipPath: `inset(0 ${100 - (max ? (c.value / max) * 100 : 0)}% 0 0 round 999px)`, '--c': c.account.color } as CSSProperties} />
                     </span>
                   </span>
                   <span

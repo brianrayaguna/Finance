@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X } from '../../lib/glyphs';
 import { useLayer } from '../../lib/layers';
 
 function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement | null>, initial?: string) {

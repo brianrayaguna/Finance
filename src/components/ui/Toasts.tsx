@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CircleCheck, CircleAlert, Info, X } from 'lucide-react';
+import { CircleCheck, CircleAlert, Info, X } from '../../lib/glyphs';
 import { useToasts, type Toast } from '../../store/ui';
 
 function ToastItem({ t }: { t: Toast }) {

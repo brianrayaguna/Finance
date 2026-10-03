@@ -1,11 +1,11 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import type { LucideIcon } from 'lucide-react';
+import type { Glyph } from '../../lib/glyphs';
 
 export interface SegOption<T extends string> {
   value: T;
   label: ReactNode;
-  icon?: LucideIcon;
+  icon?: Glyph;
   title?: string;
 }
 

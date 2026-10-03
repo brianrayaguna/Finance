@@ -1,4 +1,4 @@
-import { Keyboard } from 'lucide-react';
+import { Keyboard } from '../lib/glyphs';
 import { useUI } from '../store/ui';
 import { ALT, MOD } from '../lib/layers';
 import { ALL_NAV } from '../app/nav';

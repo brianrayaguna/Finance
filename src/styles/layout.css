@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    Kerangka aplikasi: sidebar tetap · bilah atas lengket · kolom konten
-   Sidebar mengikuti pola Claude: kepala + tombol panel, Cari & Catat di atas,
+   Sidebar: kepala + tombol panel, Cari & Catat di atas,
    menu berkelompok yang dapat dilipat, daftar rekening, profil di bawah.
    ═══════════════════════════════════════════════════════════════ */
 .app {
@@ -42,12 +42,12 @@
   gap: 10px;
   min-width: 0;
   flex: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   transition: opacity var(--dur-2) var(--ease);
 }
 .brand-mark {
   flex: none;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   transition: transform var(--dur-3) var(--ease-spring), opacity var(--dur-2) var(--ease);
 }
 .brand:hover .brand-mark {
@@ -55,10 +55,9 @@
 }
 .brand-name,
 .wordmark {
-  font-family: var(--font-serif);
   font-size: 18px;
-  font-weight: 620;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.035em;
   white-space: nowrap;
   color: var(--text);
 }
@@ -69,7 +68,7 @@
   width: 32px;
   height: 32px;
   flex: none;
-  border-radius: 8px;
+  border-radius: 50%;
   color: var(--text-3);
   transition: background-color var(--dur-1), color var(--dur-1), transform var(--dur-1);
 }
@@ -84,16 +83,15 @@
 .sb-icon:active {
   transform: scale(0.92);
 }
-.sb-icon svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
+.sb-icon .fi {
+  font-size: var(--icon-md);
 }
 .sb-icon.on {
   color: var(--accent-ink);
   background: var(--accent-soft);
 }
 
-/* Cari + Catat transaksi (padanan Search & New di Claude) */
+/* Cari + Catat transaksi */
 .sb-actions {
   flex: none;
   display: flex;
@@ -106,22 +104,20 @@
   align-items: center;
   gap: 9px;
   height: 36px;
-  padding: 0 8px 0 11px;
-  border-radius: 10px;
+  padding: 0 8px 0 14px;
+  border-radius: var(--radius-pill);
   color: var(--text-3);
   font-size: var(--fs-md);
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line-2), var(--shadow-xs);
-  transition: box-shadow var(--dur-2) var(--ease), color var(--dur-1);
+  background: var(--fill-2);
+  transition: background-color var(--dur-1) var(--ease), color var(--dur-1);
   white-space: nowrap;
 }
 .sb-search:hover {
   color: var(--text-2);
-  box-shadow: 0 0 0 1px var(--line-strong), 0 2px 6px -3px rgba(17, 17, 16, 0.12);
+  background: var(--fill-3);
 }
-.sb-search svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+.sb-search .fi {
+  font-size: var(--icon-sm);
   flex: none;
 }
 .sb-search .sb-text {
@@ -131,9 +127,9 @@
 .sb-kbd {
   font: 600 11px/1 var(--font-sans);
   color: var(--text-3);
-  padding: 3px 5px;
-  border-radius: 5px;
-  background: var(--fill);
+  padding: 3px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--surface);
   letter-spacing: 0.02em;
 }
 .sb-new {
@@ -159,13 +155,10 @@
   border-radius: 50%;
   color: var(--on-accent);
   background: var(--accent);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--accent) 40%, transparent);
   transition: transform var(--dur-3) var(--ease-spring);
 }
-.sb-plus svg {
-  width: var(--icon-xs) !important;
-  height: var(--icon-xs) !important;
-  stroke-width: var(--icon-stroke-bold) !important;
+.sb-plus .fi {
+  font-size: var(--icon-xs) !important;
   color: inherit !important;
 }
 .sb-primary:hover .sb-plus {
@@ -178,7 +171,7 @@
   place-items: center;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: 50%;
   color: var(--text-3);
   opacity: 0;
   transition: opacity var(--dur-1), background-color var(--dur-1), color var(--dur-1);
@@ -193,9 +186,8 @@
   color: var(--text);
   background: var(--fill-2);
 }
-.sb-new-more svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.sb-new-more .fi {
+  font-size: var(--icon-xs);
 }
 
 /* Area menu yang dapat digulir, dengan tepi memudar saat ada isi di luar layar */
@@ -244,7 +236,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
   font-weight: 560;
   letter-spacing: 0.005em;
@@ -261,8 +253,7 @@
   text-overflow: ellipsis;
 }
 .sb-chev {
-  width: 13px;
-  height: 13px;
+  font-size: 13px;
   flex: none;
   opacity: 0;
   transition: transform var(--dur-2) var(--ease), opacity var(--dur-1);
@@ -279,7 +270,7 @@
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: grid;
   place-items: center;
   font-size: var(--fs-xs);
@@ -296,12 +287,10 @@
   letter-spacing: -0.01em;
 }
 .sb-fav-ico {
-  width: 11px;
-  height: 11px;
+  font-size: 11px;
   flex: none;
   margin-right: 2px;
   color: var(--warn);
-  fill: currentColor;
 }
 .sb-items {
   overflow: hidden;
@@ -322,13 +311,13 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 34px;
-  padding: 0 9px;
-  margin: 1px 0;
-  border-radius: 8px;
+  gap: 12px;
+  height: 40px;
+  padding: 0 14px;
+  margin: 2px 0;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-md);
-  font-weight: 520;
+  font-weight: 560;
   color: var(--text-2);
   white-space: nowrap;
   isolation: isolate;
@@ -339,32 +328,26 @@
   background: var(--nav-hover);
 }
 .sb-ico {
-  --tone: var(--text-3);
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: -4px;
+  width: 20px;
+  height: 20px;
   flex: none;
-  border-radius: 8px;
-  /* warna kelompok: lebih terang di tema gelap, lebih pekat di tema terang (mengikuti --text) */
-  color: color-mix(in srgb, var(--tone) 72%, var(--text));
-  background: color-mix(in srgb, var(--tone) 11%, transparent);
-  transition: color var(--dur-2), background-color var(--dur-2), transform var(--dur-2) var(--ease-spring);
+  color: var(--text-3);
+  transition: color var(--dur-2), transform var(--dur-2) var(--ease-spring);
 }
-.sb-ico svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+.sb-ico .fi {
+  font-size: var(--icon-md);
 }
 .sb-item:hover:not(.active) .sb-ico {
-  background: color-mix(in srgb, var(--tone) 17%, transparent);
+  color: var(--text-2);
 }
 .sb-item.active {
-  color: var(--text);
-  font-weight: 600;
+  color: var(--on-accent);
+  font-weight: 650;
 }
 .sb-item.active .sb-ico {
-  background: color-mix(in srgb, var(--tone) 22%, transparent);
+  color: inherit;
 }
 .sb-item:active .sb-ico {
   transform: scale(0.9);
@@ -388,7 +371,7 @@
   min-width: 19px;
   height: 19px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: grid;
   place-items: center;
   font-size: var(--fs-xs);
@@ -406,10 +389,10 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  height: 30px;
-  padding: 0 9px 0 12px;
+  height: 32px;
+  padding: 0 12px 0 14px;
   margin: 1px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
   color: var(--text-2);
   transition: background-color var(--dur-1), color var(--dur-1);
@@ -420,7 +403,7 @@
 }
 .sb-acct.active {
   color: var(--text);
-  background: var(--nav-active);
+  background: var(--nav-soft);
 }
 .sb-acct-dot {
   width: 8px;
@@ -466,9 +449,9 @@
   gap: 8px;
   flex: 1;
   min-width: 0;
-  height: 44px;
-  padding: 0 4px 0 6px;
-  border-radius: 10px;
+  height: 48px;
+  padding: 0 6px 0 6px;
+  border-radius: var(--radius-pill);
   text-align: left;
   white-space: nowrap;
   transition: background-color var(--dur-1);
@@ -487,9 +470,8 @@
   font-size: var(--fs-xs);
   font-weight: 650;
   letter-spacing: 0.02em;
-  color: var(--text);
-  background: var(--surface-3);
-  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--on-accent);
+  background: var(--accent);
 }
 .profile-chip .p-meta {
   display: flex;
@@ -518,8 +500,7 @@
   font-weight: 500;
 }
 .profile-chip .p-chev {
-  width: 15px;
-  height: 15px;
+  font-size: 15px;
   color: var(--text-3);
   flex: none;
   margin-left: 2px;
@@ -529,9 +510,9 @@
   transform: rotate(180deg);
 }
 
-/* Menu profil ala Claude: lebih lega, ikon lebih besar */
+/* Menu profil: lebih lega */
 .profile-pop {
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 .profile-pop .menu {
   padding: 6px;
@@ -541,11 +522,10 @@
   gap: 12px;
   padding: 0 10px;
   font-size: var(--fs-md);
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
 }
-.profile-pop .menu-item svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+.profile-pop .menu-item .fi {
+  font-size: var(--icon-sm);
 }
 .profile-pop .menu-note {
   padding: 8px 10px 6px;
@@ -575,7 +555,7 @@
   .app.collapsed .sb-new-more {
     display: none;
   }
-  /* Tombol buka menimpa logo saat disorot (seperti tombol panel Claude) */
+  /* Tombol buka menimpa logo saat disorot */
   .app.collapsed .sb-toggle {
     position: absolute;
     z-index: 2;
@@ -612,9 +592,8 @@
     background: var(--nav-hover);
     color: var(--text);
   }
-  .app.collapsed .sb-search svg {
-    width: var(--icon-md);
-    height: var(--icon-md);
+  .app.collapsed .sb-search .fi {
+    font-size: var(--icon-md);
   }
   .app.collapsed .sb-new .sb-item {
     width: 38px;
@@ -639,11 +618,10 @@
     width: 34px;
     height: 34px;
     margin: 0;
-    border-radius: 10px;
+    border-radius: var(--radius);
   }
-  .app.collapsed .sb-ico svg {
-    width: var(--icon-md);
-    height: var(--icon-md);
+  .app.collapsed .sb-ico .fi {
+    font-size: var(--icon-md);
   }
   .app.collapsed .sb-label {
     height: 13px;
@@ -734,7 +712,7 @@
 .tb-logo {
   display: none;
   flex: none;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
 }
 .tb-left {
   display: flex;
@@ -796,9 +774,9 @@
 }
 /* Lonceng pengingat */
 .tb-bell {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   color: var(--text-2);
 }
 .tb-bell.on {
@@ -812,7 +790,7 @@
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   display: grid;
   place-items: center;
   font-size: var(--fs-xs);
@@ -838,19 +816,18 @@
   border-bottom-right-radius: 0;
 }
 .tb-cta-more {
-  width: 30px;
-  height: 36px;
+  width: 34px;
+  height: 38px;
   padding: 0;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.18);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--on-accent) 22%, transparent);
 }
-.tb-cta-more svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.tb-cta-more .fi {
+  font-size: var(--icon-xs);
   transition: transform var(--dur-2) var(--ease);
 }
-.tb-cta-more[aria-expanded='true'] svg {
+.tb-cta-more[aria-expanded='true'] .fi {
   transform: rotate(180deg);
 }
 /* Daftar pengingat */
@@ -881,7 +858,7 @@
   align-items: center;
   gap: 11px;
   padding: 9px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   text-align: left;
   transition: background var(--dur-1);
 }
@@ -912,8 +889,7 @@
   font-size: var(--fs-xs);
 }
 .rem-chev {
-  width: 15px;
-  height: 15px;
+  font-size: 15px;
   color: var(--text-4);
   flex: none;
 }
@@ -925,9 +901,8 @@
   font-size: var(--fs-sm);
   color: var(--text-3);
 }
-.rem-empty svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
+.rem-empty .fi {
+  font-size: var(--icon-md);
   flex: none;
 }
 .tb-cluster {
@@ -939,9 +914,9 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   color: var(--text-2);
   transition: background var(--dur-1), color var(--dur-1), transform var(--dur-1);
 }
@@ -959,24 +934,21 @@
   color: var(--accent-ink);
   background: var(--accent-soft);
 }
-.tb-btn svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
+.tb-btn .fi {
+  font-size: var(--icon-md);
 }
 .tb-btn.tb-menu {
   display: none;
 }
 .tb-cta {
-  height: 36px;
-  padding: 0 14px 0 12px;
+  height: 38px;
+  padding: 0 16px 0 14px;
 }
-.tb-cta svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
-  stroke-width: var(--icon-stroke-bold);
+.tb-cta .fi {
+  font-size: var(--icon-sm);
   transition: transform var(--dur-3) var(--ease-spring);
 }
-.tb-cta:hover svg {
+.tb-cta:hover .fi {
   transform: rotate(90deg);
 }
 .tb-sep {
@@ -1007,20 +979,11 @@
   min-width: 0;
   flex: 1 1 320px;
 }
-.page-eyebrow {
-  margin-bottom: 8px;
-  font-size: var(--fs-xs);
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
 .page-title {
-  font-family: var(--font-title);
-  font-size: 30px;
-  line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.035em;
   color: var(--text);
 }
 .page-sub {
@@ -1069,9 +1032,8 @@
   color: var(--text-2);
   background: var(--warn-soft);
 }
-.lock-note svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+.lock-note .fi {
+  font-size: var(--icon-sm);
   flex: none;
   margin-top: 2px;
   color: var(--warn);
@@ -1088,8 +1050,7 @@
   justify-content: flex-end;
 }
 .lock-ico {
-  width: 16px;
-  height: 16px;
+  font-size: 16px;
   color: var(--accent-ink);
 }
 
@@ -1205,21 +1166,29 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
     font-size: var(--fs-xs);
     font-weight: 600;
     color: var(--text-3);
     transition: color var(--dur-1);
   }
-  .tab svg {
-    width: 21px;
-    height: 21px;
+  .tab-ico {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 30px;
+    border-radius: var(--radius-pill);
+    transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
+  }
+  .tab .fi {
+    font-size: 21px;
   }
   .tab.active {
     color: var(--text);
   }
-  .tab.active svg {
-    color: var(--accent-ink);
+  .tab.active .tab-ico {
+    color: var(--on-accent);
+    background: var(--accent);
   }
   .tab-add {
     justify-content: flex-start;
@@ -1233,16 +1202,14 @@
     place-items: center;
     color: var(--on-accent);
     background: var(--accent);
-    box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--accent) 80%, transparent), 0 0 0 4px var(--canvas);
+    box-shadow: 0 0 0 4px var(--canvas);
     transition: transform var(--dur-2) var(--ease-spring);
   }
   .tab-add:active .tab-fab {
     transform: scale(0.92);
   }
-  .tab-fab svg {
-    width: 24px;
-    height: 24px;
-    stroke-width: var(--icon-stroke-bold);
+  .tab-fab .fi {
+    font-size: 24px;
   }
   .toast-stack {
     bottom: calc(76px + env(safe-area-inset-bottom)) !important;

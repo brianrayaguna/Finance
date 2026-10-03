@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, ArrowLeftRight, Wallet, Menu as MenuIcon, Plus } from 'lucide-react';
+import { LayoutGrid, ArrowLeftRight, Wallet, Menu as MenuIcon, Plus } from '../../lib/glyphs';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { usePrefs, useUI } from '../../store/ui';
@@ -79,12 +79,24 @@ function TabBar() {
   return (
     <nav className="tabbar no-print" aria-label="Navigasi cepat">
       <NavLink to="/" end className="tab">
-        <LayoutGrid />
-        <span>Ringkasan</span>
+        {({ isActive }) => (
+          <>
+            <span className="tab-ico">
+              <LayoutGrid solid={isActive} />
+            </span>
+            <span>Ringkasan</span>
+          </>
+        )}
       </NavLink>
       <NavLink to="/transaksi" className="tab">
-        <ArrowLeftRight />
-        <span>Transaksi</span>
+        {({ isActive }) => (
+          <>
+            <span className="tab-ico">
+              <ArrowLeftRight solid={isActive} />
+            </span>
+            <span>Transaksi</span>
+          </>
+        )}
       </NavLink>
       <button type="button" className="tab tab-add" onClick={() => openTx()} aria-label="Catat transaksi">
         <span className="tab-fab">
@@ -92,11 +104,19 @@ function TabBar() {
         </span>
       </button>
       <NavLink to="/dompet" className="tab">
-        <Wallet />
-        <span>Dompet</span>
+        {({ isActive }) => (
+          <>
+            <span className="tab-ico">
+              <Wallet solid={isActive} />
+            </span>
+            <span>Dompet</span>
+          </>
+        )}
       </NavLink>
       <button type="button" className={`tab${mobileNav ? ' active' : ''}`} onClick={() => setMobileNav(!mobileNav)} aria-expanded={mobileNav} aria-label="Menu lainnya">
-        <MenuIcon />
+        <span className="tab-ico">
+          <MenuIcon />
+        </span>
         <span>Lainnya</span>
       </button>
     </nav>

@@ -14,7 +14,7 @@ import {
   Inbox,
   FilterX,
   NotebookPen,
-} from 'lucide-react';
+} from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, confirm } from '../store/ui';
 import { deleteTransactions, duplicateTransaction, childCount } from '../store/data';

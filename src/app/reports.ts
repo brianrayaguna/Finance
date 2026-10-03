@@ -1,9 +1,9 @@
-import { TrendingUp, Scale, Waves, Landmark, Table2, Gauge, HandCoins, Handshake, Target, type LucideIcon } from 'lucide-react';
+import { TrendingUp, Scale, Waves, Landmark, Table2, Gauge, HandCoins, Handshake, Target, type Glyph } from '../lib/glyphs';
 
 export type ReportKey = 'laba-rugi' | 'neraca' | 'arus-kas' | 'ekuitas' | 'lajur' | 'rasio' | 'umur-piutang' | 'umur-hutang' | 'anggaran';
 
 /** Daftar laporan (dipakai halaman Laporan dan jejak halaman di bilah atas). */
-export const REPORTS: { key: ReportKey; label: string; desc: string; icon: LucideIcon; compare: boolean }[] = [
+export const REPORTS: { key: ReportKey; label: string; desc: string; icon: Glyph; compare: boolean }[] = [
   { key: 'laba-rugi', label: 'Laba Rugi', desc: 'Kinerja pendapatan & beban', icon: TrendingUp, compare: true },
   { key: 'neraca', label: 'Posisi Keuangan', desc: 'Aset, liabilitas, ekuitas', icon: Scale, compare: true },
   { key: 'arus-kas', label: 'Arus Kas', desc: 'Operasi, investasi, pendanaan', icon: Waves, compare: true },

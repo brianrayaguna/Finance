@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowDownRight, ArrowUpRight, ChevronRight } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ChevronRight } from '../../lib/glyphs';
 import type { Books, MonthPoint, Position } from '../../accounting/reports';
 import { formatMoney, formatPercent, isZero } from '../../lib/format';
 import { Sparkline } from '../charts/Charts';

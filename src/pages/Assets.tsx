@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Boxes, Ellipsis, Pencil, Trash2, CalendarRange, BadgeDollarSign, Undo2 } from 'lucide-react';
+import { Plus, Boxes, Ellipsis, Pencil, Trash2, CalendarRange, BadgeDollarSign, Undo2 } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { addAsset, deleteAsset, updateAsset, useData } from '../store/data';
 import { confirm } from '../store/ui';
@@ -8,6 +8,7 @@ import { accumulatedAt, depreciationSchedule, disposalStop } from '../accounting
 import { isLocked } from '../accounting/lock';
 import type { DepreciationMethod, FixedAsset } from '../accounting/types';
 import { addDays, endOfMonth, formatDate, formatMoney, round2, todayISO } from '../lib/format';
+import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Progress, Switch, TextInput, TableWrap } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
@@ -120,7 +121,7 @@ export default function Assets() {
                 {rows.map(({ a, acc, book, fully, account }) => {
                   const base = a.cost - a.residualValue;
                   return (
-                    <tr key={a.id} className="clickable asset-row" onClick={() => setSched(a)}>
+                    <tr key={a.id} className="clickable asset-row" {...rowAction(() => setSched(a))}>
                       <td>
                         <div className="row">
                           <IconTile icon={account?.icon} color={account?.color} size="sm" />

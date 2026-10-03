@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Plus, Handshake, HandCoins, Search, Ellipsis, Pencil, Trash2, Eye, CircleCheck, Receipt, X, CalendarClock } from 'lucide-react';
+import { Plus, Handshake, HandCoins, Search, Ellipsis, Pencil, Trash2, Eye, CircleCheck, Receipt, X, CalendarClock } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, confirm } from '../store/ui';
 import { deleteTransactions, childCount } from '../store/data';

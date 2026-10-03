@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { CalendarDays, List } from 'lucide-react';
+import { CalendarDays, List } from '../../lib/glyphs';
 import { Segmented } from '../ui/Segmented';
 
 export type TxView = 'daftar' | 'kalender';
 
-/** Tab Daftar | Kalender di halaman Transaksi (Kalender tidak lagi punya menu sendiri). */
+/** Tab Daftar | Kalender di halaman Transaksi (Kalender tidak punya menu sendiri). */
 export function TxViewSwitch({ value }: { value: TxView }) {
   const nav = useNavigate();
   return (

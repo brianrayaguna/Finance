@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Trash2, Archive, ArchiveRestore } from 'lucide-react';
+import { Trash2, Archive, ArchiveRestore } from '../../lib/glyphs';
 import { SUBTYPE_META, WALLET_PRESETS, WALLET_SUBTYPES, TYPE_LABEL, nextCode } from '../../accounting/coa';
 import type { Account, AccountSubtype, AccountType } from '../../accounting/types';
 import {

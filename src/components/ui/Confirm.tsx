@@ -1,4 +1,4 @@
-import { TriangleAlert, CircleHelp } from 'lucide-react';
+import { TriangleAlert, CircleHelp } from '../../lib/glyphs';
 import { useConfirm } from '../../store/ui';
 import { Modal } from './Modal';
 import { Button, IconTile } from './primitives';
@@ -21,7 +21,7 @@ export function ConfirmHost() {
             }
           }}
         >
-          <IconTile icon={danger ? TriangleAlert : CircleHelp} color={danger ? 'var(--neg)' : 'var(--accent)'} size="lg" />
+          <IconTile icon={danger ? TriangleAlert : CircleHelp} color={danger ? 'var(--neg)' : 'var(--accent-ink)'} size="lg" />
           <div className="confirm-title">{c.title}</div>
           {c.message && <div className="confirm-msg">{c.message}</div>}
           <div className="confirm-actions">

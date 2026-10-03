@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, CircleCheck, TriangleAlert } from 'lucide-react';
+import { Download, CircleCheck, TriangleAlert } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { toast } from '../store/ui';
 import { TYPE_LABEL } from '../accounting/coa';
 import { trialBalance } from '../accounting/reports';
 import { checkIntegrity } from '../accounting/integrity';
 import { formatDate, formatMoney } from '../lib/format';
+import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, Dots, IconTile, TableWrap } from '../components/ui/primitives';
 import { DatePicker } from '../components/ui/DatePicker';
@@ -94,7 +95,7 @@ export default function TrialBalance() {
                       <td colSpan={4}>{head}</td>
                     </tr>
                   ),
-                  <tr key={r.key} className={acc ? 'clickable' : undefined} onClick={() => acc && nav(`/buku-besar?akun=${acc.id}`)}>
+                  <tr key={r.key} className={acc ? 'clickable' : undefined} {...rowAction(acc ? () => nav(`/buku-besar?akun=${acc.id}`) : undefined)}>
                     <td className="code">{r.code}</td>
                     <td>
                       <span className="row">

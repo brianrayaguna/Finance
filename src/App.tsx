@@ -22,7 +22,7 @@ import Accounts from './pages/Accounts';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
-/** Kalender kini tab di Transaksi (?tampil=kalender); tautan lama /kalender dialihkan dengan parameternya. */
+/** Kalender adalah tab di Transaksi (?tampil=kalender); /kalender dialihkan dengan parameternya. */
 function TransaksiRoute() {
   const [params] = useSearchParams();
   return params.get('tampil') === 'kalender' ? <CalendarPage /> : <Transactions />;

@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, HandCoins, Handshake, NotebookPen, Star } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, HandCoins, Handshake, NotebookPen, Star } from '../../lib/glyphs';
 import type { TxTemplate } from '../../accounting/types';
 import type { UiMode } from '../../app/nav';
 import type { TxModalState } from '../../store/ui';

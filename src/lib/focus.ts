@@ -1,4 +1,5 @@
 /* Navigasi fokus antar-field dengan tombol Enter. Elemen field ditandai dengan atribut data-field. */
+import type { KeyboardEvent } from 'react';
 
 function fields(scope: ParentNode): HTMLElement[] {
   return Array.from(scope.querySelectorAll<HTMLElement>('[data-field]')).filter((el) => {
@@ -27,4 +28,20 @@ export function focusFirst(scope: ParentNode | null | undefined) {
   if (!scope) return;
   const list = fields(scope);
   list[0]?.focus();
+}
+
+/** Baris tabel yang dapat diklik: bisa difokus dan dijalankan dengan Enter atau Spasi. */
+export function rowAction(run: (() => void) | undefined) {
+  if (!run) return {};
+  return {
+    tabIndex: 0,
+    onClick: run,
+    onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        run();
+      }
+    },
+  };
 }

@@ -3,7 +3,7 @@
  * sehingga dasbor lebih pendek tanpa menghilangkan isinya.
  */
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ChartColumnBig, ChartPie, Wallet, Gauge, HandCoins, type LucideIcon } from 'lucide-react';
+import { ChartColumnBig, ChartPie, Wallet, Gauge, HandCoins, type Glyph } from '../../lib/glyphs';
 import { EmbedProvider } from './common';
 import { BudgetsWidget, CashflowWidget, CompositionWidget, DebtsWidget, WalletsWidget } from './core';
 import type { WidgetProps } from './types';
@@ -11,7 +11,7 @@ import type { WidgetProps } from './types';
 interface TabDef {
   key: string;
   label: string;
-  icon: LucideIcon;
+  icon: Glyph;
   node: ReactNode;
 }
 

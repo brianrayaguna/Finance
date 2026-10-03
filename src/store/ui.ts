@@ -11,11 +11,11 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type Accent = 'forest' | 'ocean' | 'plum' | 'clay' | 'graphite';
 
 export const ACCENTS: { key: Accent; name: string; color: string; dark: string }[] = [
-  { key: 'forest', name: 'Hijau hutan', color: '#263E35', dark: '#2F6A52' },
-  { key: 'ocean', name: 'Biru samudra', color: '#1F3F5C', dark: '#2F5F86' },
-  { key: 'plum', name: 'Plum', color: '#4A2F48', dark: '#6A4866' },
-  { key: 'clay', name: 'Terakota', color: '#8A4428', dark: '#A45A3B' },
-  { key: 'graphite', name: 'Grafit', color: '#1C1C1B', dark: '#E6E6E3' },
+  { key: 'forest', name: 'Hijau hutan', color: '#9FE870', dark: '#9FE870' },
+  { key: 'ocean', name: 'Biru samudra', color: '#95DAFF', dark: '#95DAFF' },
+  { key: 'plum', name: 'Plum', color: '#E5C0F7', dark: '#E5C0F7' },
+  { key: 'clay', name: 'Terakota', color: '#FFBB82', dark: '#FFBB82' },
+  { key: 'graphite', name: 'Grafit', color: '#0E0F0C', dark: '#F1F3EE' },
 ];
 
 const ACCENT_KEYS = ACCENTS.map((a) => a.key) as string[];
@@ -60,7 +60,7 @@ export const BACKUP_PREF_KEYS: (keyof PrefsState)[] = [
 const LANDINGS = ['/', '/transaksi', '/dompet', '/anggaran', '/hutang-piutang', '/laporan'];
 const REPORT_PRESETS: PresetKey[] = ['this_month', 'last_month', 'this_quarter', 'ytd', 'this_year', 'last_year', 'fiscal_year', 'last_30', 'last_90'];
 
-/** Menyelaraskan preferensi dari penyimpanan lama / berkas cadangan dengan bentuk terkini. */
+/** Menyelaraskan preferensi dari penyimpanan / berkas cadangan dengan bentuk yang berlaku. */
 export function sanitizePrefs(raw: Record<string, unknown>): Partial<PrefsState> {
   const p: Partial<PrefsState> = {};
   if (raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system') p.theme = raw.theme;
@@ -73,7 +73,7 @@ export function sanitizePrefs(raw: Record<string, unknown>): Partial<PrefsState>
   if (raw.nav !== undefined) p.nav = sanitizeNavPrefs(raw.nav);
   if (raw.mode === 'simple' || raw.mode === 'accountant') p.mode = raw.mode;
   if (raw.weekStart === 0 || raw.weekStart === 1) p.weekStart = raw.weekStart;
-  // Kalender kini tab di Transaksi: halaman pembuka lama '/kalender' dialihkan.
+  // Kalender adalah tab di Transaksi: halaman pembuka '/kalender' dialihkan.
   const landing = raw.landing === '/kalender' ? '/transaksi' : raw.landing;
   if (typeof landing === 'string' && LANDINGS.includes(landing)) p.landing = landing;
   if (REPORT_PRESETS.includes(raw.reportPreset as PresetKey)) p.reportPreset = raw.reportPreset as PresetKey;
@@ -108,7 +108,7 @@ export const usePrefs = create<Prefs>()(
       setNav: (fn) => set((s) => ({ nav: fn(s.nav) })),
     }),
     {
-      // Nama kunci lama dipertahankan agar preferensi pengguna tidak hilang.
+      // Nama kunci 'neraca.*' dipertahankan agar preferensi tersimpan tetap terbaca.
       name: 'neraca.prefs',
       version: 3,
       storage: createJSONStorage(() => {
@@ -120,7 +120,7 @@ export const usePrefs = create<Prefs>()(
       }),
       migrate: (persisted) => {
         const p = { ...(persisted as Record<string, unknown>) };
-        // Tampilan baru: warna aksen lama diganti hijau hutan.
+        // Warna aksen yang tidak dikenal kembali ke bawaan.
         if (!ACCENT_KEYS.includes(String(p.accent))) p.accent = 'forest';
         return sanitizePrefs(p) as unknown as Prefs;
       },

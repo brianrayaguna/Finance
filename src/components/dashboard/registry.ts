@@ -17,8 +17,8 @@ import {
   ChartLine,
   Lightbulb,
   ShieldCheck,
-  type LucideIcon,
-} from 'lucide-react';
+  type Glyph,
+} from '../../lib/glyphs';
 import type { SettingValue, WidgetId } from '../../app/dashboardLayout';
 import type { SettingDef, WidgetProps } from './types';
 import { BudgetsWidget, CashflowWidget, CompositionWidget, DebtsWidget, HealthWidget, HeroWidget, KpiWidget, RecentWidget, WalletsWidget } from './core';
@@ -28,7 +28,7 @@ import { DailyCashWidget, FavoritesWidget, GoalsWidget, HeatmapWidget, InsightsW
 export interface WidgetMeta {
   title: string;
   desc: string;
-  icon: LucideIcon;
+  icon: Glyph;
   /** Kelompok di galeri */
   group: 'Ringkasan' | 'Aktivitas' | 'Perencanaan' | 'Pembukuan';
   settings?: SettingDef[];

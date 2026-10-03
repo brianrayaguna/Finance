@@ -2,7 +2,7 @@
 
 Aplikasi web pengelola keuangan dengan **mesin akuntansi double-entry**. Setiap pemasukan, pengeluaran, transfer, hutang, dan piutang otomatis dijurnal (debit = kredit), lalu buku besar, neraca saldo, dan seluruh laporan keuangan tersusun sendiri — lengkap dengan ekspor Excel berstandar pelaporan.
 
-Tampilan **putih bersih** dengan garis rambut netral dan satu warna merek, **hijau hutan `#263E35`**, untuk aksi utama dan sorotan. Judul memakai serif (Source Serif 4), sedangkan antarmuka dan seluruh angka nominal memakai Plus Jakarta Sans dengan angka tabular agar kolom rupiah rata dan tegas. Tersedia tema terang, gelap (grafit netral), dan otomatis. Aplikasi langsung terbuka di halaman Ringkasan — tanpa layar sambutan.
+Tampilan **putih galeri** dengan kartu datar berbingkai garis rambut, tinta **hijau hutan `#163300`**, dan satu warna aksi, **lime `#9FE870`**, untuk tindakan utama dan menu aktif. Tombol dan tag berbentuk pil. Antarmuka, judul, dan seluruh angka nominal memakai Inter dengan angka tabular agar kolom rupiah rata dan tegas. Tersedia tema terang, gelap (hijau-hitam), dan otomatis. Aplikasi langsung terbuka di halaman Ringkasan — tanpa layar sambutan.
 
 ---
 
@@ -39,7 +39,7 @@ Tampilan **putih bersih** dengan garis rambut netral dan satu warna merek, **hij
 - **Transaksi favorit**: simpan dari formulir, catat ulang dengan sekali klik dari tombol *Catat*, dasbor, atau palet perintah
 
 **Pengalaman pengguna**
-- Sidebar bergaya Claude: *Cari* (⌘/Ctrl + K) dan *Catat transaksi* di atas, menu berkelompok yang dapat dilipat dengan bagian *Favorit* dan lencana (jatuh tempo, anggaran terlampaui), daftar **saldo tiap rekening**, dan profil di bawah
+- Sidebar: *Cari* (⌘/Ctrl + K) dan *Catat transaksi* di atas, menu berkelompok yang dapat dilipat dengan bagian *Favorit* dan lencana (jatuh tempo, anggaran terlampaui), daftar **saldo tiap rekening**, dan profil di bawah
 - Menu profil berisi Pengaturan (⌘/Ctrl + ,), Tampilan (tema terang/gelap/sistem, Mode Sederhana/Akuntan), pintasan keyboard, sembunyikan nominal, dan cadangkan data
 - Bilah atas ramping: jejak halaman, urungkan/ulangi, dan lonceng pengingat; di tablet & ponsel tombol cari dan catat pindah ke bilah atas / navigasi bawah
 - Menu dapat disesuaikan: sematkan ke Favorit, sembunyikan, ubah urutan; **Mode Sederhana** menyembunyikan halaman pembukuan teknis
@@ -50,16 +50,16 @@ Tampilan **putih bersih** dengan garis rambut netral dan satu warna merek, **hij
 - Navigasi formulir dengan Enter, simpan dengan ⌘/Ctrl + Enter
 - Kalender bulanan (intensitas pengeluaran, jatuh tempo) dan tampilan tahunan — tab *Kalender* di halaman Transaksi
 - Kategori & akun dapat ditambah, diubah, diarsipkan, dengan ikon dan warna kustom
-- Tema terang/gelap/otomatis, 5 warna utama (hijau hutan bawaan), kepadatan tampilan, mode sembunyikan nominal
+- Tema terang/gelap/otomatis, 5 warna utama yang diturunkan dari satu rumus warna (hutan & lime bawaan), kepadatan tampilan, mode sembunyikan nominal
 - Cadangkan & pulihkan data (JSON) — termasuk tata letak dasbor, menu, dan preferensi
 
 ---
 
 ## Teknologi
 
-React 19 · TypeScript · Vite · Zustand · Framer Motion · Recharts · ExcelJS · Lucide Icons
+React 19 · TypeScript · Vite · Zustand · Framer Motion · Recharts · ExcelJS · Flaticon UIcons
 
-Huruf **Plus Jakarta Sans** dan **Source Serif 4** di-host sendiri (`src/assets/fonts`, lisensi SIL OFL) sehingga tidak bergantung pada Google Fonts.
+Huruf **Inter** di-host sendiri (`src/assets/fonts`, lisensi SIL OFL) sehingga tidak bergantung pada Google Fonts. Ikon memakai [Flaticon UIcons](https://www.flaticon.com/uicons) (gaya Regular Rounded; Solid Rounded untuk status aktif) — kredit "Uicons by Flaticon" tampil di Pengaturan › Tentang.
 
 Data tersimpan di peramban (localStorage) sehingga aplikasi berjalan sepenuhnya di sisi klien tanpa server atau basis data. Kunci penyimpanan lama (`neraca.*`) sengaja dipertahankan agar data yang sudah ada tetap terbaca setelah pergantian nama.
 
@@ -117,8 +117,11 @@ src/
 ├─ pages/           Halaman aplikasi
 ├─ hooks/, lib/     Utilitas format angka/tanggal, fokus, ikon
 ├─ assets/fonts/    Huruf yang di-host sendiri
-└─ styles/          Token desain, huruf, komponen, tata letak, halaman
+└─ styles/          Token desain, huruf, ikon (uicons.css), komponen, tata letak, halaman
+scripts/            uicons.mjs — menyusun styles/uicons.css dari ikon yang dipakai di lib/glyphs.tsx
 ```
+
+Menambah ikon: tambahkan satu baris di `src/lib/glyphs.tsx` (cek nama dengan daftar UIcons), lalu jalankan `npm run uicons`. `npm run check` gagal bila `uicons.css` tidak sesuai.
 
 ### Pemetaan jurnal otomatis
 

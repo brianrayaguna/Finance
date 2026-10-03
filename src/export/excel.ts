@@ -34,7 +34,7 @@ import { formatDate, periodLabel, todayISO, parseISO, round2 } from '../lib/form
 const INK = 'FF1B1917';
 const INK_2 = 'FF48443F';
 const INK_3 = 'FF6A6561';
-const ACCENT = 'FF263E35';
+const ACCENT = 'FF163300';
 const HEAD_FILL = 'FFF2EEE5';
 const TOTAL_FILL = 'FFF9F7F2';
 const GRAND_FILL = 'FFECE7DE';

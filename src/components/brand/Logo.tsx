@@ -2,12 +2,12 @@ import type { CSSProperties } from 'react';
 
 /**
  * Logo Keuanganku — monogram "K" terbelah di atas kotak hijau hutan.
- * Lengan atas (krem) naik = pemasukan, kaki bawah (terakota) turun = pengeluaran.
+ * Lengan atas (lime) naik = pemasukan, kaki bawah (krem) turun = pengeluaran.
  */
 export const BRAND = {
-  forest: '#263E35',
-  cream: '#F2EEE5',
-  clay: '#C4764F',
+  forest: '#163300',
+  lime: '#9FE870',
+  cream: '#F2F5EE',
 } as const;
 
 export function LogoMark({ size = 32, className, style, title }: { size?: number; className?: string; style?: CSSProperties; title?: string }) {
@@ -23,9 +23,9 @@ export function LogoMark({ size = 32, className, style, title }: { size?: number
       aria-label={title}
     >
       <rect width="32" height="32" rx="9" fill={BRAND.forest} />
-      <rect x="9" y="8" width="3.8" height="16" rx="1.2" fill={BRAND.cream} />
-      <path d="M23.4 8h-4.9l-5.2 6.4 2.45 3z" fill={BRAND.cream} />
-      <path d="M16.9 17.95 22.1 24h-4.9l-2.68-3.12z" fill={BRAND.clay} />
+      <rect x="9" y="8" width="3.8" height="16" rx="1.2" fill={BRAND.lime} />
+      <path d="M23.4 8h-4.9l-5.2 6.4 2.45 3z" fill={BRAND.lime} />
+      <path d="M16.9 17.95 22.1 24h-4.9l-2.68-3.12z" fill={BRAND.cream} />
     </svg>
   );
 }

@@ -3,7 +3,7 @@
  * Kemajuan = saldo gabungan dompet yang ditautkan, sehingga tidak ada pencatatan ganda.
  */
 import { useId, useMemo, useState } from 'react';
-import { Trash2, Check } from 'lucide-react';
+import { Trash2, Check } from '../../lib/glyphs';
 import type { Goal } from '../../accounting/types';
 import { goalProgress, type GoalProgress, type GoalStatus } from '../../accounting/goals';
 import { walletBalances } from '../../accounting/reports';

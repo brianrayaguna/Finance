@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Download, NotebookPen, CircleCheck, TriangleAlert, Lock } from 'lucide-react';
+import { Plus, Search, Download, NotebookPen, CircleCheck, TriangleAlert, Lock } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, toast } from '../store/ui';
 import { entryTotals } from '../accounting/engine';

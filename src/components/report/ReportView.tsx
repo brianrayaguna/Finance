@@ -1,7 +1,8 @@
-import { CircleCheck, TriangleAlert } from 'lucide-react';
+import { CircleCheck, TriangleAlert } from '../../lib/glyphs';
 import { TableWrap } from '../ui/primitives';
 import type { Report, ReportColumn, ReportRow } from '../../accounting/types';
 import { formatAccounting, formatDate, todayISO } from '../../lib/format';
+import { rowAction } from '../../lib/focus';
 
 export function fmtCell(v: number | null | undefined, col: ReportColumn | undefined, row: ReportRow): string {
   if (v === null || v === undefined) return '';
@@ -90,7 +91,7 @@ export function ReportView({
                 );
               const clickable = !!r.accountId && !!onAccount;
               return (
-                <tr key={r.key} className={`k-${r.kind}${clickable ? ' clickable' : ''}${r.italic ? ' italic' : ''}`} onClick={clickable ? () => onAccount!(r.accountId!) : undefined}>
+                <tr key={r.key} className={`k-${r.kind}${clickable ? ' clickable' : ''}${r.italic ? ' italic' : ''}`} {...rowAction(clickable ? () => onAccount!(r.accountId!) : undefined)}>
                   <td className="st-label" style={{ paddingLeft: 12 + r.indent * 18 }}>
                     {r.code && (r.kind === 'account' || report.id === 'aging-ar' || report.id === 'aging-ap') && <span className="st-code">{r.code}</span>}
                     {r.label}

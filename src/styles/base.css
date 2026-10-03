@@ -32,13 +32,25 @@ body {
   transition: background-color var(--dur-3) var(--ease), color var(--dur-3) var(--ease);
 }
 
-/* Satu ketebalan garis untuk seluruh ikon Lucide; pengecualian memakai --icon-stroke-bold. */
-.lucide {
-  stroke-width: var(--icon-stroke);
+/* Ikon: font Flaticon UIcons. Ukuran lewat font-size, warna lewat color. */
+.fi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  font-size: var(--icon-md);
+  line-height: 1;
+  vertical-align: middle;
+}
+.fi::before {
+  display: block;
+  line-height: 1;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 :root[data-theme='dark'] ::selection {
   background: color-mix(in srgb, var(--accent-ink) 30%, transparent);
@@ -118,7 +130,7 @@ textarea:focus-visible {
 }
 *::-webkit-scrollbar-thumb {
   background-color: var(--fill-3);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 3px solid transparent;
   background-clip: content-box;
 }
@@ -131,10 +143,6 @@ textarea:focus-visible {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
   letter-spacing: -0.012em;
-}
-
-.serif {
-  font-family: var(--font-serif);
 }
 
 .muted {
@@ -195,10 +203,14 @@ textarea:focus-visible {
 :root[data-motion='reduce'] *,
 :root[data-motion='reduce'] *::before,
 :root[data-motion='reduce'] *::after {
-  animation-duration: 0.001ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.001ms !important;
   scroll-behavior: auto !important;
+  animation: none !important;
+  transition-property: color, background-color, border-color, box-shadow, opacity !important;
+  transition-duration: var(--dur-1) !important;
+  transition-delay: 0s !important;
+}
+:root[data-motion='reduce'] .spin {
+  animation: spin 1.6s linear infinite !important;
 }
 
 @media (hover: none) {
@@ -207,12 +219,6 @@ textarea:focus-visible {
   .sb-search .kbd,
   .tb-search .kbd {
     display: none !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
   }
 }
 

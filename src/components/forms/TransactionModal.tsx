@@ -20,7 +20,7 @@ import {
   TriangleAlert,
   Lock,
   Copy,
-} from 'lucide-react';
+} from '../../lib/glyphs';
 import { SYS, isWallet } from '../../accounting/coa';
 import { TX_META, journalizeTx, makeCtx } from '../../accounting/engine';
 import { isLocked } from '../../accounting/lock';

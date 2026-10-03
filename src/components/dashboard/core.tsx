@@ -20,8 +20,8 @@ import {
   ChartLine,
   Layers,
   CreditCard,
-  type LucideIcon,
-} from 'lucide-react';
+  type Glyph,
+} from '../../lib/glyphs';
 import { useData } from '../../store/data';
 import { useUI } from '../../store/ui';
 import { budgetVsActual, categoryBreakdown, debtInfos, ratios, walletBalances, type MonthPoint } from '../../accounting/reports';
@@ -76,8 +76,9 @@ export function HeroWidget({ settings }: WidgetProps) {
           dataKey="nw"
           height={width < 560 ? 96 : 136}
           label="Kekayaan bersih"
-          color="var(--chart-nw)"
+          color="var(--brand-lime)"
           showAxis
+          inverse
         />
       </div>
     </div>
@@ -88,7 +89,7 @@ export function HeroWidget({ settings }: WidgetProps) {
 
 type Tone = 'pos' | 'neg' | 'acc' | 'info' | 'warn';
 
-export const KPI_META: Record<KpiMetric, { icon: LucideIcon; tone: Tone; color: string; to: string }> = {
+export const KPI_META: Record<KpiMetric, { icon: Glyph; tone: Tone; color: string; to: string }> = {
   income: { icon: TrendingUp, tone: 'pos', color: 'var(--chart-inc)', to: '/laporan?r=laba-rugi' },
   expense: { icon: TrendingDown, tone: 'neg', color: 'var(--chart-exp)', to: '/laporan?r=laba-rugi' },
   net: { icon: Coins, tone: 'acc', color: 'var(--chart-nw)', to: '/laporan?r=laba-rugi' },
@@ -197,7 +198,7 @@ function kpiValue(k: KpiMetric, d: DashData, budget: { budget: number; actual: n
               {formatPercent(used, 0)} dari <span className="money-val">{shortMoney(budget.budget, true)}</span>
               {budget.over > 0 && <strong className="neg"> · {budget.over} lewat batas</strong>}
             </span>
-            <Progress value={used} thin color={used > 1 ? 'var(--neg)' : used > 0.85 ? 'var(--warn)' : 'var(--accent)'} label="Anggaran terpakai" />
+            <Progress value={used} thin color={used > 1 ? 'var(--neg)' : used > 0.85 ? 'var(--warn)' : 'var(--accent-ink)'} label="Anggaran terpakai" />
           </div>
         ),
       };

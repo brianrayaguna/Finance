@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CalendarRange, ChevronDown, Check } from 'lucide-react';
+import { CalendarRange, ChevronDown, Check } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { DatePicker } from './DatePicker';
 import { Button, Field } from './primitives';

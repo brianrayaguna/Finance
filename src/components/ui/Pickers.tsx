@@ -1,5 +1,5 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Search } from 'lucide-react';
+import { Search } from '../../lib/glyphs';
 import { ICON_GROUPS, ICONS, PALETTE } from '../../lib/icons';
 import { normalize } from '../../lib/format';
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Target, Pencil, Trash2, Ellipsis, History, TriangleAlert, CircleCheck, Flame, Flag } from 'lucide-react';
+import { Plus, Target, Pencil, Trash2, Ellipsis, History, TriangleAlert, CircleCheck, Flame, Flag } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { upsertBudget, deleteBudget, useData } from '../store/data';
 import { notify } from '../store/history';

@@ -21,8 +21,8 @@ import {
   Flag,
   Star,
   BookOpenCheck,
-  type LucideIcon,
-} from 'lucide-react';
+  type Glyph,
+} from '../lib/glyphs';
 import { ALL_NAV } from '../app/nav';
 import { useData } from '../store/data';
 import { usePrefs, useUI } from '../store/ui';
@@ -58,7 +58,7 @@ function highlight(text: string, q: string): ReactNode {
   );
 }
 
-const lucideTile = (I: LucideIcon, color = 'var(--accent)') => <IconTile icon={I} color={color} size="sm" />;
+const glyphTile = (I: Glyph, color = 'var(--accent-ink)') => <IconTile icon={I} color={color} size="sm" />;
 
 export function CommandPalette() {
   const open = useUI((s) => s.palette);
@@ -126,15 +126,15 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     };
 
     const simple = prefs.mode === 'simple';
-    const actions: [string, string, LucideIcon, string, () => void][] = [
+    const actions: [string, string, Glyph, string, () => void][] = [
       ['a-exp', 'Catat pengeluaran', ArrowUpRight, 'var(--neg)', () => openTx({ type: 'expense' })],
       ['a-inc', 'Catat pemasukan', ArrowDownLeft, 'var(--pos)', () => openTx({ type: 'income' })],
       ['a-trf', 'Transfer antar akun', ArrowLeftRight, 'var(--info)', () => openTx({ type: 'transfer' })],
       ['a-pay', 'Catat hutang baru', Handshake, 'var(--tone-payable)', () => openTx({ type: 'payable_new' })],
       ['a-rec', 'Catat piutang baru', HandCoins, 'var(--tone-receivable)', () => openTx({ type: 'receivable_new' })],
-      ...(simple ? [] : [['a-jrn', 'Buat jurnal umum', NotebookPen, 'var(--accent)', () => openTx({ type: 'journal' })] as [string, string, LucideIcon, string, () => void]]),
-      ['a-goal', 'Tambah target tabungan', Flag, 'var(--accent)', () => nav('/anggaran#target')],
-      ['a-dash', 'Sesuaikan dasbor (widget & tata letak)', LayoutDashboard, 'var(--accent)', () => nav('/?sesuaikan=1')],
+      ...(simple ? [] : [['a-jrn', 'Buat jurnal umum', NotebookPen, 'var(--accent-ink)', () => openTx({ type: 'journal' })] as [string, string, Glyph, string, () => void]]),
+      ['a-goal', 'Tambah target tabungan', Flag, 'var(--accent-ink)', () => nav('/anggaran#target')],
+      ['a-dash', 'Sesuaikan dasbor (widget & tata letak)', LayoutDashboard, 'var(--accent-ink)', () => nav('/?sesuaikan=1')],
       ['a-xls', 'Ekspor laporan keuangan (Excel)', FileSpreadsheet, 'var(--pos)', () => nav('/laporan?ekspor=1')],
       [
         'a-mode',
@@ -150,7 +150,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     ];
     for (const [id, title, I, c, run] of actions) {
       const s = match(title);
-      if (s) out.push({ id, group: 'Tindakan', title, icon: lucideTile(I, c), run: go(run), score: s + (n ? 0 : 10) });
+      if (s) out.push({ id, group: 'Tindakan', title, icon: glyphTile(I, c), run: go(run), score: s + (n ? 0 : 10) });
     }
     // transaksi favorit: sekali pilih langsung tercatat
     for (const t of data.templates) {
@@ -162,14 +162,14 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           title: t.name,
           sub: t.amount ? 'Catat sekarang' : 'Buka formulir terisi',
           right: t.amount ? <span className="money-val">{formatMoney(t.amount)}</span> : undefined,
-          icon: lucideTile(Star, 'var(--warn)'),
+          icon: glyphTile(Star, 'var(--warn)'),
           run: go(() => runTemplate(t)),
           score: s + 1,
         });
     }
     for (const p of ALL_NAV) {
       const s = match(p.label);
-      if (s) out.push({ id: 'p-' + p.to, group: 'Halaman', title: p.label, sub: p.desc ?? 'Buka halaman', icon: lucideTile(p.icon, 'var(--text-2)'), run: go(() => nav(p.to)), score: s + 1 });
+      if (s) out.push({ id: 'p-' + p.to, group: 'Halaman', title: p.label, sub: p.desc ?? 'Buka halaman', icon: glyphTile(p.icon, 'var(--text-2)'), run: go(() => nav(p.to)), score: s + 1 });
     }
 
     if (n) {

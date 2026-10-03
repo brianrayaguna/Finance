@@ -31,7 +31,7 @@ export function useThemeSync() {
       const root = document.documentElement;
       root.dataset.theme = dark ? 'dark' : 'light';
       const meta = document.querySelectorAll('meta[name="theme-color"]');
-      meta.forEach((m) => m.setAttribute('content', dark ? '#111112' : '#FFFFFF'));
+      meta.forEach((m) => m.setAttribute('content', dark ? '#0B0C0A' : '#F5F5F7'));
     };
     apply();
     mq.addEventListener('change', apply);
@@ -42,9 +42,15 @@ export function useThemeSync() {
     r.dataset.accent = accent;
     r.dataset.density = density;
     delete r.dataset.glass;
-    if (reduceMotion) r.dataset.motion = 'reduce';
-    else delete r.dataset.motion;
     document.body.classList.toggle('privacy', hideAmounts);
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const applyMotion = () => {
+      if (reduceMotion || mq.matches) r.dataset.motion = 'reduce';
+      else delete r.dataset.motion;
+    };
+    applyMotion();
+    mq.addEventListener('change', applyMotion);
+    return () => mq.removeEventListener('change', applyMotion);
   }, [accent, density, reduceMotion, hideAmounts]);
 }
 

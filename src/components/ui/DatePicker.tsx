@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import {
   addDays,

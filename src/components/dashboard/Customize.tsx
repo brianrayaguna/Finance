@@ -4,7 +4,7 @@
  */
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ChevronDown, EyeOff, GripVertical, LayoutDashboard, Plus, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
+import { Check, ChevronDown, EyeOff, GripVertical, LayoutDashboard, Plus, RotateCcw, SlidersHorizontal, X } from '../../lib/glyphs';
 import {
   ALL_KPI,
   KPI_LABEL,
@@ -332,7 +332,7 @@ export function GallerySheet({
     <Sheet open={open} onClose={onClose} width={460} ariaLabel="Galeri widget">
       <div className="gal">
         <div className="dsh-head">
-          <IconTile icon={LayoutDashboard} color="var(--accent)" solid />
+          <IconTile icon={LayoutDashboard} color="var(--accent-ink)" solid />
           <div className="grow" style={{ minWidth: 0 }}>
             <div className="modal-title">Widget & tata letak</div>
             <div className="muted" style={{ fontSize: 13 }}>
@@ -366,7 +366,7 @@ export function GallerySheet({
                   const on = shown.has(id);
                   return (
                     <div key={id} className={`gal-item${on ? ' on' : ''}`}>
-                      <IconTile icon={m.icon} color={on ? 'var(--accent)' : 'var(--text-3)'} size="sm" />
+                      <IconTile icon={m.icon} color={on ? 'var(--accent-ink)' : 'var(--text-3)'} size="sm" />
                       <div className="grow" style={{ minWidth: 0 }}>
                         <div className="gal-name">{m.title}</div>
                         <div className="gal-desc">{m.desc}</div>

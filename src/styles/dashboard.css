@@ -66,7 +66,7 @@
   .kpi-foot {
     padding-top: 6px;
   }
-  .kpi-foot > svg {
+  .kpi-foot > .fi {
     display: none;
   }
   .kpi-sub {
@@ -158,13 +158,12 @@
   width: 34px;
   height: 34px;
   flex: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   color: var(--on-accent);
   background: var(--accent);
 }
-.deb-ico svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
+.deb-ico .fi {
+  font-size: var(--icon-md);
 }
 .deb-text {
   display: flex;
@@ -185,13 +184,13 @@
 }
 
 .w.is-editing {
-  outline: 2px dashed color-mix(in srgb, var(--accent) 38%, transparent);
+  outline: 2px dashed color-mix(in srgb, var(--accent-ink) 38%, transparent);
   outline-offset: 5px;
   transition: outline-color var(--dur-2);
 }
 .w.is-editing:hover,
 .w.is-editing:focus-within {
-  outline-color: color-mix(in srgb, var(--accent) 75%, transparent);
+  outline-color: color-mix(in srgb, var(--accent-ink) 75%, transparent);
 }
 .w.is-editing .w-body {
   user-select: none;
@@ -208,7 +207,7 @@ body.dragging-widget * {
 .w.is-dragging {
   z-index: 20;
   outline-style: solid;
-  outline-color: var(--accent);
+  outline-color: var(--accent-ink);
 }
 .w.is-dragging .w-body {
   opacity: 0.9;
@@ -230,7 +229,7 @@ body.dragging-widget * {
   gap: 2px;
   height: 38px;
   padding: 0 4px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--popover) 92%, transparent);
   backdrop-filter: blur(12px) saturate(150%);
   -webkit-backdrop-filter: blur(12px) saturate(150%);
@@ -242,7 +241,7 @@ body.dragging-widget * {
   width: 30px;
   height: 30px;
   flex: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--text-2);
   cursor: grab;
   touch-action: none;
@@ -256,9 +255,8 @@ body.dragging-widget * {
   color: var(--on-accent);
   background: var(--accent);
 }
-.w-grip svg {
-  width: var(--icon-sm);
-  height: var(--icon-sm);
+.w-grip .fi {
+  font-size: var(--icon-sm);
 }
 .w-name {
   flex: 1;
@@ -276,7 +274,7 @@ body.dragging-widget * {
   height: 30px;
   padding: 0 7px;
   flex: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-2);
@@ -288,13 +286,11 @@ body.dragging-widget * {
   color: var(--text);
   background: var(--fill);
 }
-.w-tool svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.w-tool .fi {
+  font-size: var(--icon-xs);
 }
-.w-size svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.w-size .fi {
+  font-size: var(--icon-xs);
   color: var(--text-3);
 }
 .dash.editing .dash-grid {
@@ -363,7 +359,7 @@ label.wset-row {
   transition: box-shadow var(--dur-1), transform var(--dur-2) var(--ease);
 }
 .gal-preset:hover {
-  box-shadow: 0 0 0 1.5px var(--accent), var(--shadow-sm);
+  box-shadow: 0 0 0 1.5px var(--accent-ink), var(--shadow-sm);
   transform: translateY(-1px);
 }
 .gal-preset strong {
@@ -382,7 +378,7 @@ label.wset-row {
   gap: 3px;
   width: 100%;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--fill);
 }
 .gal-thumb i {
@@ -419,7 +415,7 @@ label.wset-row {
   align-items: center;
   gap: 12px;
   padding: 8px 6px 8px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   transition: background var(--dur-1);
 }
 .gal-item:hover {
@@ -465,13 +461,12 @@ label.wset-row {
   width: 36px;
   height: 36px;
   flex: none;
-  border-radius: 11px;
+  border-radius: var(--radius);
   color: var(--accent-ink);
   background: var(--accent-soft);
 }
-.onb-ico svg {
-  width: var(--icon-md);
-  height: var(--icon-md);
+.onb-ico .fi {
+  font-size: var(--icon-md);
 }
 .onb-progress {
   width: 140px;
@@ -493,15 +488,13 @@ label.wset-row {
 .onb-ico.lg {
   width: 44px;
   height: 44px;
-  border-radius: 13px;
+  border-radius: var(--radius-md);
 }
-.onb-ico.lg svg {
-  width: 22px;
-  height: 22px;
+.onb-ico.lg .fi {
+  font-size: 22px;
 }
 .onb-welcome-title {
   margin: 0;
-  font-family: var(--font-title);
   font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.015em;
@@ -560,7 +553,7 @@ label.wset-row {
   transition: box-shadow var(--dur-1), background var(--dur-1);
 }
 .onb-step:hover {
-  box-shadow: inset 0 0 0 1.5px var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent-ink);
 }
 .onb-step strong {
   display: block;
@@ -599,14 +592,11 @@ label.wset-row {
   color: #fff;
   background: var(--pos);
 }
-.onb-num svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
-  stroke-width: var(--icon-stroke-bold);
+.onb-num .fi {
+  font-size: var(--icon-xs);
 }
 .onb-chev {
-  width: 15px;
-  height: 15px;
+  font-size: 15px;
   margin-top: 3px;
   flex: none;
   color: var(--text-4);
@@ -655,7 +645,7 @@ label.wset-row {
   width: calc(100% + 16px);
   margin: 0 -8px;
   padding: 7px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   text-align: left;
   transition: background var(--dur-1);
 }
@@ -682,7 +672,7 @@ label.wset-row {
 .tc-bar {
   display: block;
   height: 5px;
-  border-radius: 99px;
+  border-radius: var(--radius-pill);
   background: var(--fill);
   overflow: hidden;
 }
@@ -691,7 +681,7 @@ label.wset-row {
   height: 100%;
   border-radius: inherit;
   background: var(--c);
-  transition: width 700ms var(--ease-out, var(--ease));
+  transition: clip-path 700ms var(--ease-out, var(--ease));
 }
 .tc-delta {
   display: inline-flex;
@@ -703,10 +693,8 @@ label.wset-row {
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
-.tc-delta svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
-  stroke-width: var(--icon-stroke-bold);
+.tc-delta .fi {
+  font-size: var(--icon-xs);
 }
 .tc-delta.bad {
   color: var(--neg);
@@ -752,7 +740,7 @@ label.wset-row {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -797,7 +785,7 @@ button.hm-cell:hover {
   box-shadow: inset 0 0 0 1px var(--line);
 }
 .hm-cell.today {
-  box-shadow: 0 0 0 2px var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ink);
 }
 .hm-legend {
   display: flex;
@@ -843,7 +831,7 @@ button.hm-cell:hover {
 }
 .fav-btn:hover {
   background: var(--surface);
-  box-shadow: inset 0 0 0 1.5px var(--accent), var(--shadow-sm);
+  box-shadow: inset 0 0 0 1.5px var(--accent-ink), var(--shadow-sm);
   transform: translateY(-1px);
 }
 .fav-btn:active {
@@ -871,7 +859,7 @@ button.hm-cell:hover {
   place-items: center;
   width: 22px;
   height: 22px;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   color: var(--text-3);
   opacity: 0;
   transition: opacity var(--dur-1), background var(--dur-1), color var(--dur-1);
@@ -884,9 +872,8 @@ button.hm-cell:hover {
   color: var(--neg);
   background: var(--neg-soft);
 }
-.fav-del svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.fav-del .fi {
+  font-size: var(--icon-xs);
 }
 @media (hover: none) {
   .fav-del {
@@ -907,7 +894,7 @@ button.hm-cell:hover {
   width: calc(100% + 16px);
   margin: 0 -8px;
   padding: 10px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   text-align: left;
   transition: background var(--dur-1);
 }
@@ -958,7 +945,7 @@ button.hm-cell:hover {
   gap: 8px;
   min-width: 0;
   padding: 8px 9px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: var(--fs-sm);
   text-align: left;
   background: var(--surface-2);
@@ -970,7 +957,7 @@ button.hm-cell:hover {
 }
 .gw.on {
   background: var(--accent-softer);
-  box-shadow: inset 0 0 0 1.5px var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent-ink);
 }
 .gw .money-val {
   font-size: var(--fs-xs);
@@ -982,7 +969,7 @@ button.hm-cell:hover {
   width: 18px;
   height: 18px;
   flex: none;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   box-shadow: inset 0 0 0 1.5px var(--line-strong);
 }
 .gw.on .gw-check {
@@ -990,10 +977,8 @@ button.hm-cell:hover {
   background: var(--accent);
   box-shadow: none;
 }
-.gw-check svg {
-  width: 12px;
-  height: 12px;
-  stroke-width: var(--icon-stroke-bold);
+.gw-check .fi {
+  font-size: 12px;
 }
 .goal-preview {
   padding: 4px 12px;
@@ -1055,7 +1040,7 @@ button.hm-cell:hover {
   gap: 11px;
   margin: 0 -8px;
   padding: 9px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: var(--fs-sm);
   line-height: 1.45;
   color: var(--text);
@@ -1070,11 +1055,10 @@ a.ins:hover {
   width: 26px;
   height: 26px;
   flex: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
-.ins-ico svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.ins-ico .fi {
+  font-size: var(--icon-xs);
 }
 .ins-ico.neg {
   color: var(--neg);
@@ -1096,8 +1080,7 @@ a.ins:hover {
   padding-top: 3px;
 }
 .ins-chev {
-  width: 15px;
-  height: 15px;
+  font-size: 15px;
   margin-top: 5px;
   flex: none;
   color: var(--text-4);
@@ -1111,9 +1094,8 @@ a.ins:hover {
   padding: 12px 14px;
   border-radius: var(--radius-md);
 }
-.integ-status > svg {
-  width: 26px;
-  height: 26px;
+.integ-status > .fi {
+  font-size: 26px;
   flex: none;
 }
 .integ-status div {
@@ -1235,7 +1217,7 @@ a.ins:hover {
     justify-content: center;
     padding: 0 6px;
   }
-  .tabbed-tab svg {
+  .tabbed-tab .fi {
     display: none;
   }
 }
@@ -1247,7 +1229,7 @@ a.ins:hover {
   max-width: 100%;
   gap: 2px;
   padding: 3px;
-  border-radius: 10px;
+  border-radius: var(--radius-pill);
   background: var(--fill);
 }
 .tabbed-tab {
@@ -1256,17 +1238,16 @@ a.ins:hover {
   align-items: center;
   gap: 6px;
   height: 30px;
-  padding: 0 11px;
-  border-radius: 8px;
+  padding: 0 13px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-3);
   white-space: nowrap;
   transition: background-color var(--dur-1), color var(--dur-1), box-shadow var(--dur-1);
 }
-.tabbed-tab svg {
-  width: var(--icon-xs);
-  height: var(--icon-xs);
+.tabbed-tab .fi {
+  font-size: var(--icon-xs);
 }
 .tabbed-tab:hover:not(.on) {
   color: var(--text);
@@ -1277,7 +1258,7 @@ a.ins:hover {
   box-shadow: var(--shadow-sm);
 }
 .tabbed-tab:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 1px;
 }
 /* Semua panel menumpuk di satu sel grid → tinggi kartu = panel tertinggi, tab berpindah tanpa menggeser halaman */

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Download, Search, BookOpenText } from 'lucide-react';
+import { Download, Search, BookOpenText } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, toast } from '../store/ui';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';

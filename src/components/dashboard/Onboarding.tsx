@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, Plus, Rocket, Sparkles, X } from 'lucide-react';
+import { Check, ChevronRight, Plus, Rocket, Sparkles, X } from '../../lib/glyphs';
 import { replaceData, useData } from '../../store/data';
 import { buildSampleData } from '../../store/sample';
 import { notify } from '../../store/history';

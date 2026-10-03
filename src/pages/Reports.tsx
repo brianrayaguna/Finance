@@ -8,7 +8,7 @@ import {
   CircleCheck,
   Package,
   TriangleAlert,
-} from 'lucide-react';
+} from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { toast, usePrefs } from '../store/ui';
 import {

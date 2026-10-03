@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Check, ChevronRight, type Glyph } from '../../lib/glyphs';
 import { useLayer } from '../../lib/layers';
 
 export type Anchor = RefObject<HTMLElement | null> | { x: number; y: number };
@@ -174,7 +174,7 @@ export function Popover({
 
 export interface MenuItem {
   label?: string;
-  icon?: LucideIcon;
+  icon?: Glyph;
   kbd?: string;
   /** Teks redup rata kanan, mis. nomor versi */
   hint?: string;

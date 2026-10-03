@@ -22,8 +22,8 @@ import {
   ArrowUp,
   ArrowDown,
   Lock,
-  type LucideIcon,
-} from 'lucide-react';
+  type Glyph,
+} from '../lib/glyphs';
 import { checkIntegrity } from '../accounting/integrity';
 import type { AppData } from '../accounting/types';
 import { useData, updateProfile, replaceData, isValidData, resetAll, getData, normalizeData } from '../store/data';
@@ -56,7 +56,7 @@ import { LogoMark } from '../components/brand/Logo';
 import { useIsDark } from '../hooks/useApp';
 import { modKey } from '../lib/layers';
 
-const SECTIONS: { id: string; label: string; icon: LucideIcon }[] = [
+const SECTIONS: { id: string; label: string; icon: Glyph }[] = [
   { id: 'profil', label: 'Profil & buku', icon: User },
   { id: 'tampilan', label: 'Tampilan & mode', icon: Palette },
   { id: 'preferensi', label: 'Preferensi', icon: SlidersHorizontal },
@@ -104,7 +104,7 @@ function NavSettings() {
                   </span>
                   <Tooltip label={isPinned ? 'Lepas dari Favorit' : 'Sematkan ke Favorit'}>
                     <button type="button" className={`navset-btn star${isPinned ? ' on' : ''}`} aria-pressed={isPinned} aria-label={`Favorit: ${it.label}`} onClick={() => toggle('pinned', it.to)}>
-                      <Star aria-hidden />
+                      <Star solid={isPinned} aria-hidden />
                     </button>
                   </Tooltip>
                   <Tooltip label={it.to === '/' ? 'Ringkasan selalu tampil' : isHidden ? 'Tampilkan di sidebar' : 'Sembunyikan dari sidebar'}>
@@ -457,7 +457,7 @@ export default function Settings() {
                   ariaLabel="Mode aplikasi"
                 />
               </Row>
-              <Row title="Warna utama" desc="Dipakai pada tombol utama, ikon navigasi aktif, dan grafik kekayaan bersih">
+              <Row title="Warna utama" desc="Dipakai pada tombol utama, menu yang sedang aktif, dan sakelar">
                 <div className="swatches" role="radiogroup" aria-label="Warna utama">
                   {ACCENTS.map((a) => (
                     <button
@@ -605,6 +605,11 @@ export default function Settings() {
                 <div>
                   <div className="wordmark">Keuanganku</div>
                   <p>Versi {APP_VERSION} · Pembukuan double-entry · Berjalan sepenuhnya di peramban Anda</p>
+                  <p>
+                    <a className="link" href="https://www.flaticon.com/uicons" target="_blank" rel="noopener noreferrer">
+                      Uicons by Flaticon
+                    </a>
+                  </p>
                 </div>
               </div>
             </div>

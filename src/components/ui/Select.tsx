@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Search } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { IconTile, useFieldCtx } from './primitives';
 import { normalize } from '../../lib/format';

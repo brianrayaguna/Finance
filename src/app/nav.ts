@@ -12,13 +12,13 @@ import {
   ListTree,
   FileChartColumn,
   Settings,
-  type LucideIcon,
-} from 'lucide-react';
+  type Glyph,
+} from '../lib/glyphs';
 
 export interface NavItem {
   to: string;
   label: string;
-  icon: LucideIcon;
+  icon: Glyph;
   hotkey?: string;
   /** Deskripsi singkat — dipakai di palet perintah */
   desc?: string;

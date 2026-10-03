@@ -38,8 +38,8 @@ export function emptyData(): AppData {
 }
 
 /**
- * Menyelaraskan data lama/cadangan dengan versi terkini:
- * akun sistem yang hilang ditambahkan, warna & ikon bawaan lama dipetakan ke palet baru.
+ * Menyelaraskan data tersimpan/cadangan dengan bentuk yang berlaku:
+ * akun sistem yang hilang ditambahkan, warna & ikon bawaan dipetakan ke palet kategori.
  */
 export function normalizeData(input: AppData): AppData {
   const base = emptyData();
@@ -298,7 +298,7 @@ export const useData = create<DataState>()(
       canUndoId: (id) => get().past[get().past.length - 1]?.id === id,
     }),
     {
-      // Nama kunci lama dipertahankan agar data yang sudah tersimpan tetap terbaca.
+      // Nama kunci 'neraca.*' dipertahankan agar data tersimpan tetap terbaca.
       name: 'neraca.data',
       version: 1,
       storage: safeStorage,

@@ -15,12 +15,12 @@ import {
   YAxis,
   ReferenceLine,
 } from 'recharts';
-import { ChartColumnBig } from 'lucide-react';
+import { ChartColumnBig } from '../../lib/glyphs';
 import { compactNumber, formatMoney, isZero, niceTicks } from '../../lib/format';
 import { EmptyState } from '../ui/primitives';
 
 const axisTick = { fill: 'var(--text-3)', fontSize: 12, fontWeight: 520, fontFamily: 'var(--font-sans)' };
-const axisTickInverse = { ...axisTick, fill: 'rgba(244, 241, 234, 0.62)' };
+const axisTickInverse = { ...axisTick, fill: 'rgba(245, 247, 242, 0.72)' };
 
 function GlassTooltip({
   active,
@@ -191,7 +191,7 @@ export function TrendArea({
         {showAxis && <XAxis dataKey="label" tick={inverse ? axisTickInverse : axisTick} tickLine={false} axisLine={false} dy={2} padding={{ left: 22, right: 22 }} interval="preserveStartEnd" />}
         <YAxis hide domain={max === min ? [min - 1, min + 5] : [min - pad, max + pad]} />
         <Tooltip
-          cursor={{ stroke: inverse ? 'rgba(244, 241, 234, 0.35)' : 'var(--line-strong)', strokeWidth: 1, strokeDasharray: '3 3' }}
+          cursor={{ stroke: inverse ? 'rgba(245, 247, 242, 0.35)' : 'var(--line-strong)', strokeWidth: 1, strokeDasharray: '3 3' }}
           content={(p) => <GlassTooltip {...(p as object)} rows={[{ key: dataKey, label, color: inverse ? 'var(--chart-nw)' : color }]} />}
         />
         <Area
@@ -201,7 +201,7 @@ export function TrendArea({
           strokeWidth={2.2}
           fill={`url(#ta-${id})`}
           animationDuration={1000}
-          activeDot={{ r: 4.5, strokeWidth: 2, stroke: inverse ? 'var(--accent)' : 'var(--surface)', fill: color }}
+          activeDot={{ r: 4.5, strokeWidth: 2, stroke: inverse ? 'var(--brand-ink)' : 'var(--surface)', fill: color }}
         />
       </AreaChart>
     </ResponsiveContainer>

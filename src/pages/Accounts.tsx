@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Tags, ListTree, Lock, Archive, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, Tags, ListTree, Lock, Archive, TrendingUp, TrendingDown } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';
 import { activity, displayBalances } from '../accounting/reports';
 import type { Account } from '../accounting/types';
 import { formatMoney, normalize, startOfMonth, endOfMonth } from '../lib/format';
+import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, IconTile, TextInput, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -143,7 +144,7 @@ export default function Accounts() {
                     {list.map((a) => {
                       const v = balOf(a);
                       return (
-                        <tr key={a.id} className={`clickable${a.archived ? ' archived' : ''}`} onClick={() => modal.openEdit(a.type === 'revenue' || a.type === 'expense' ? 'category' : ['cash', 'bank', 'ewallet', 'investment', 'credit_card'].includes(a.subtype) ? 'wallet' : 'account', a)}>
+                        <tr key={a.id} className={`clickable${a.archived ? ' archived' : ''}`} {...rowAction(() => modal.openEdit(a.type === 'revenue' || a.type === 'expense' ? 'category' : ['cash', 'bank', 'ewallet', 'investment', 'credit_card'].includes(a.subtype) ? 'wallet' : 'account', a))}>
                           <td className="code">{a.code}</td>
                           <td>
                             <span className="row">

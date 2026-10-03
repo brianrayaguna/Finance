@@ -1,6 +1,6 @@
 import { createContext, forwardRef, useContext, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
-import { Check, Minus, X, CircleAlert } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Check, Minus, X, CircleAlert } from '../../lib/glyphs';
+import type { Glyph } from '../../lib/glyphs';
 import { formatMoney, type MoneyOpts } from '../../lib/format';
 import { getIcon } from '../../lib/icons';
 
@@ -11,8 +11,8 @@ type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'tinted' | 'danger' | 'dan
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: BtnVariant;
   size?: 'sm' | 'md' | 'lg';
-  icon?: LucideIcon;
-  iconRight?: LucideIcon;
+  icon?: Glyph;
+  iconRight?: Glyph;
   iconOnly?: boolean;
   block?: boolean;
   kbd?: string[];
@@ -59,7 +59,7 @@ export function IconTile({
   className = '',
   style,
 }: {
-  icon?: string | LucideIcon;
+  icon?: string | Glyph;
   color?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   solid?: boolean;
@@ -90,7 +90,7 @@ export function Badge({
 }: {
   tone?: 'default' | 'pos' | 'neg' | 'warn' | 'info' | 'accent';
   dot?: boolean;
-  icon?: LucideIcon;
+  icon?: Glyph;
   children: ReactNode;
   className?: string;
 }) {
@@ -163,7 +163,7 @@ export function Progress({ value, color, thin, marker, label = 'Kemajuan' }: { v
       aria-valuemin={0}
       aria-valuemax={Math.max(100, Math.round(value * 100))}
     >
-      <span style={{ width: `${w * 100}%`, ...(color ? ({ '--c': color } as CSSProperties) : {}) }} />
+      <span style={{ clipPath: `inset(0 ${(1 - w) * 100}% 0 0 round 999px)`, ...(color ? ({ '--c': color } as CSSProperties) : {}) }} />
       {marker !== undefined && marker > 0 && marker < 1 && <i className="marker" style={{ left: `calc(${marker * 100}% - 1px)` }} />}
     </div>
   );
@@ -178,7 +178,7 @@ export function EmptyState({
   action,
   compact,
 }: {
-  icon: LucideIcon;
+  icon: Glyph;
   title: string;
   text?: ReactNode;
   action?: ReactNode;
@@ -257,7 +257,7 @@ export function Field({
 interface TextInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'prefix'> {
   value: string;
   onChange: (v: string) => void;
-  icon?: LucideIcon;
+  icon?: Glyph;
   prefix?: ReactNode;
   suffix?: ReactNode;
   clearable?: boolean;

@@ -1,7 +1,7 @@
 /*
- * Sidebar bergaya Claude untuk aplikasi keuangan:
+ * Sidebar aplikasi:
  *  kepala (merek + ciutkan) · Cari & Catat transaksi · menu berkelompok yang dapat dilipat ·
- *  daftar saldo rekening · profil dengan menu pengaturan (pola menu akun Claude).
+ *  daftar saldo rekening · profil dengan menu pengaturan.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -24,8 +24,8 @@ import {
   Moon,
   Monitor,
   Star,
-  type LucideIcon,
-} from 'lucide-react';
+  type Glyph,
+} from '../../lib/glyphs';
 import { buildNav, toneOf, type NavItem } from '../../app/nav';
 import { downloadBackup } from '../../app/backup';
 import { usePrefs, useUI, type ThemeMode } from '../../store/ui';
@@ -57,7 +57,7 @@ function NavRow({
   group?: string;
   onNavigate: () => void;
 }) {
-  const Icon: LucideIcon = it.icon;
+  const Icon: Glyph = it.icon;
   return (
     <Tooltip
       label={
@@ -80,7 +80,7 @@ function NavRow({
       >
         {active && <motion.span layoutId="sb-pill" className="sb-pill" transition={SPRING} />}
         <span className="sb-ico" style={{ '--tone': toneOf(it.to) } as CSSProperties} aria-hidden>
-          <Icon />
+          <Icon solid={active} />
         </span>
         <span className="sb-text">{it.label}</span>
         {!!badge && (
@@ -135,7 +135,7 @@ function useScrollEdges() {
   return ref;
 }
 
-/** Judul kelompok yang dapat dilipat (pola "Projects/Recents" di Claude). */
+/** Judul kelompok yang dapat dilipat. */
 function SectionLabel({
   id,
   label,
@@ -197,7 +197,7 @@ const Fold = ({ open, id, children }: { open: boolean; id: string; children: Rea
   </AnimatePresence>
 );
 
-/** Saldo tiap dompet — padanan daftar percakapan terbaru di sidebar Claude. */
+/** Saldo tiap dompet. */
 function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boolean; onToggle: () => void; collapsed: boolean; onNavigate: () => void }) {
   const b = useBooks();
   const today = useToday();
@@ -248,13 +248,13 @@ function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boole
   );
 }
 
-const THEMES: { key: ThemeMode; label: string; icon: LucideIcon }[] = [
+const THEMES: { key: ThemeMode; label: string; icon: Glyph }[] = [
   { key: 'light', label: 'Terang', icon: Sun },
   { key: 'dark', label: 'Gelap', icon: Moon },
   { key: 'system', label: 'Ikuti sistem', icon: Monitor },
 ];
 
-/** Menu profil ala Claude: identitas di atas, pengaturan & tampilan, alat data, lalu info aplikasi. */
+/** Menu profil: identitas di atas, pengaturan & tampilan, alat data, lalu info aplikasi. */
 function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate: () => void }) {
   const profile = useData((s) => s.data.profile);
   const theme = usePrefs((s) => s.theme);
@@ -313,7 +313,7 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
             <span className="avatar" aria-hidden>
               {initials(name)}
             </span>
-            {/* Satu baris "Nama · Mode" — padanan "Brian · Pro" di Claude */}
+            {/* Satu baris "Nama · Mode" */}
             <span className="p-meta">
               <span className="p-name">{name}</span>
               <span className="p-tag"> · {mode === 'simple' ? 'Sederhana' : 'Akuntan'}</span>
@@ -357,7 +357,7 @@ export function Sidebar() {
   const toggleFold = (id: string) =>
     setNav((n) => ({ ...n, folded: n.folded.includes(id) ? n.folded.filter((x) => x !== id) : [...n.folded, id] }));
 
-  // Kelompok pertama (Ikhtisar) tampil tanpa judul, seperti menu utama Claude; sisanya berjudul & dapat dilipat.
+  // Kelompok pertama (Ikhtisar) tampil tanpa judul; sisanya berjudul & dapat dilipat.
   const [primary, ...rest] = model.sections;
   const primaryItems = primary?.id === 'ikhtisar' ? primary.items : [];
   const sections = [
@@ -445,7 +445,7 @@ export function Sidebar() {
                 onToggle={() => toggleFold(sec.id)}
                 collapsed={collapsed}
                 badge={hiddenBadge}
-                icon={sec.fav ? <Star className="sb-fav-ico" aria-hidden /> : undefined}
+                icon={sec.fav ? <Star solid className="sb-fav-ico" aria-hidden /> : undefined}
               />
               <Fold open={!isFolded} id={sec.id}>
                 {sec.items.map((it) => (

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { Glyph } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { normalize } from '../../lib/format';
 import { useFieldCtx } from './primitives';
@@ -27,7 +27,7 @@ export function AutoComplete({
   onPick?: (s: Suggestion) => void;
   suggestions: Suggestion[];
   placeholder?: string;
-  icon?: LucideIcon;
+  icon?: Glyph;
   id?: string;
   invalid?: boolean;
   maxLength?: number;
