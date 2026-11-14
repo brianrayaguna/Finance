@@ -122,10 +122,12 @@ export function normalizeData(input: AppData): AppData {
     method: a.method === 'declining_balance' ? 'declining_balance' : 'straight_line',
     depreciable: a.depreciable === false ? false : undefined,
     funding: a.funding === 'opening' ? 'opening' : 'wallet',
-    ref: a.ref || nextRef(list<FixedAsset>(d.assets), 'AST', a.acquisitionDate),
+    ref: typeof a.ref === 'string' && a.ref ? a.ref : '',
     createdAt: num(a.createdAt, Date.now()),
     disposal: a.disposal && isDate(a.disposal.date) ? { ...a.disposal, proceeds: round2(Math.abs(num(a.disposal.proceeds))) } : undefined,
   }));
+  // nomor aset yang hilang dibuat ulang berurutan agar tidak bertabrakan dalam bulan yang sama
+  for (const a of assets) if (!a.ref) a.ref = nextRef(assets, 'AST', a.acquisitionDate);
 
   const accountIds = new Set(accounts.map((a) => a.id));
   const goals: Goal[] = uniqBy(
@@ -430,7 +432,12 @@ export function addAccount(input: Omit<Account, 'id' | 'code' | 'createdAt'> & {
 export function updateAccount(id: string, patch: Partial<Account>, label = 'Ubah akun') {
   return commit(label, (s) => ({
     ...s,
-    accounts: s.accounts.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    accounts: s.accounts.map((a) => {
+      if (a.id !== id) return a;
+      const subtype = patch.subtype && SUBTYPE_META[patch.subtype] ? patch.subtype : a.subtype;
+      const type = patch.subtype && SUBTYPE_META[patch.subtype] ? SUBTYPE_META[patch.subtype].type : (patch.type ?? a.type);
+      return { ...a, ...patch, subtype, type };
+    }),
   }));
 }
 
@@ -466,7 +473,12 @@ export function deleteAccount(id: string) {
 export function updateWallet(id: string, patch: Partial<Account>, opening: { amount: number; date: string }, label = 'Ubah dompet') {
   return commit(label, (s) => {
     let profile = s.profile;
-    const accounts = s.accounts.map((a) => (a.id === id ? { ...a, ...patch } : a));
+    const accounts = s.accounts.map((a) => {
+      if (a.id !== id) return a;
+      const subtype = patch.subtype && SUBTYPE_META[patch.subtype] ? patch.subtype : a.subtype;
+      const type = patch.subtype && SUBTYPE_META[patch.subtype] ? SUBTYPE_META[patch.subtype].type : (patch.type ?? a.type);
+      return { ...a, ...patch, subtype, type };
+    });
     const amount = round2(opening.amount || 0);
     const existing = s.transactions.find((t) => t.type === 'opening' && t.accountId === id);
     let transactions = s.transactions;
@@ -509,7 +521,7 @@ export function createWallet(
 ) {
   const { opening, openingDate, ...rest } = input;
   const d = getData();
-  const type = rest.subtype === 'credit_card' ? 'liability' : 'asset';
+  const type = SUBTYPE_META[rest.subtype].type;
   const acc: Account = { ...rest, type, id: uid('acc'), code: nextCode(d.accounts, rest.subtype), createdAt: Date.now() };
   const now = Date.now();
   const txs: Transaction[] = [];
@@ -560,8 +572,10 @@ export function addAsset(input: Omit<FixedAsset, 'id' | 'ref' | 'createdAt'>) {
   const issued = issueRef(d, 'AST', input.acquisitionDate, d.assets);
   const asset: FixedAsset = {
     ...input,
-    cost: round2(input.cost),
-    residualValue: round2(input.residualValue),
+    name: input.name.trim() || input.name,
+    cost: round2(Math.abs(input.cost)),
+    residualValue: round2(Math.max(0, input.residualValue)),
+    usefulLifeMonths: Math.max(1, Math.round(input.usefulLifeMonths)),
     id: uid('ast'),
     ref: issued.ref,
     createdAt: Date.now(),
@@ -571,7 +585,22 @@ export function addAsset(input: Omit<FixedAsset, 'id' | 'ref' | 'createdAt'>) {
 }
 
 export function updateAsset(id: string, patch: Partial<FixedAsset>, label = 'Ubah aset tetap') {
-  return commit(label, (s) => ({ ...s, assets: s.assets.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
+  return commit(label, (s) => ({
+    ...s,
+    assets: s.assets.map((a) => {
+      if (a.id !== id) return a;
+      const next: FixedAsset = { ...a, ...patch };
+      if (patch.name !== undefined) next.name = patch.name.trim() || a.name;
+      if (patch.cost !== undefined && Number.isFinite(patch.cost)) next.cost = round2(Math.abs(patch.cost));
+      if (patch.residualValue !== undefined && Number.isFinite(patch.residualValue)) next.residualValue = round2(Math.max(0, patch.residualValue));
+      if (patch.usefulLifeMonths !== undefined && Number.isFinite(patch.usefulLifeMonths)) next.usefulLifeMonths = Math.max(1, Math.round(patch.usefulLifeMonths));
+      if ('disposal' in patch && patch.disposal) {
+        const proceeds = Number.isFinite(patch.disposal.proceeds) ? round2(Math.max(0, patch.disposal.proceeds)) : 0;
+        next.disposal = { ...patch.disposal, proceeds };
+      }
+      return next;
+    }),
+  }));
 }
 
 export function deleteAsset(id: string) {

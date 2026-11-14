@@ -3,6 +3,23 @@
    Sidebar: kepala + tombol panel, Cari & Catat di atas,
    menu berkelompok yang dapat dilipat, daftar rekening, profil di bawah.
    ═══════════════════════════════════════════════════════════════ */
+.skip-link {
+  position: fixed;
+  left: -9999px;
+  top: 12px;
+  z-index: 2000;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--fs-md);
+  font-weight: 650;
+  box-shadow: var(--shadow-lg), var(--focus-ring);
+}
+.skip-link:focus-visible {
+  left: 12px;
+}
+
 .app {
   --sw: var(--sidebar-w);
   min-height: 100vh;
@@ -1238,12 +1255,57 @@
 }
 
 /* ───────── Cetak ───────── */
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
 @media print {
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: light;
+    --canvas: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f5f5f7;
+    --surface-3: #ececef;
+    --popover: #ffffff;
+    --text: #0e0f0c;
+    --text-2: #3a3c39;
+    --text-3: #5c5e5c;
+    --line: rgba(14, 15, 12, 0.14);
+    --line-2: rgba(14, 15, 12, 0.22);
+    --line-strong: rgba(14, 15, 12, 0.36);
+    --fill: rgba(14, 15, 12, 0.04);
+    --pos: #157a3e;
+    --neg: #cb272f;
+    --warn: #8f5d09;
+    --accent-ink: #163300;
+  }
   .sidebar,
   .topbar,
   .tabbar,
   .no-print,
-  .toast-stack {
+  .toast-stack,
+  .bulk-bar,
+  .nav-scrim,
+  .modal-root,
+  .sheet-root,
+  .palette-root,
+  .popover,
+  .tooltip,
+  .load-more,
+  .quick-actions,
+  .list-toolbar,
+  .filter-bar,
+  .settings-nav,
+  .ledger-accounts,
+  .add-tile,
+  .cat-tile.add,
+  .dr-actions,
+  .wc-top .tb-btn,
+  .card-link,
+  .tx-head .check,
+  .tx-check,
+  .page-actions {
     display: none !important;
   }
   .main {
@@ -1255,9 +1317,42 @@
   }
   body {
     background: #fff !important;
-    color: #000;
+    color: #0e0f0c !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .card {
     box-shadow: none !important;
+    border: 1px solid var(--line-2);
+  }
+  .hero-card {
+    background: #ffffff !important;
+    color: #0e0f0c !important;
+    border: 1.5px solid #163300 !important;
+  }
+  .hero-card .kpi-label {
+    color: #3a3c39 !important;
+  }
+  .hero-card .kpi-label .fi {
+    color: #163300 !important;
+  }
+  .hero-card .muted {
+    color: #5c5e5c !important;
+  }
+  .hero-value {
+    color: #0e0f0c !important;
+  }
+  .hero-value.is-neg {
+    color: #cb272f !important;
+  }
+  .hero-split {
+    background: #f5f5f7 !important;
+    border: 1px solid var(--line-2);
+  }
+  .hero-split .money-val {
+    color: #0e0f0c !important;
+  }
+  .hero-card svg text {
+    fill: #3a3c39 !important;
   }
 }

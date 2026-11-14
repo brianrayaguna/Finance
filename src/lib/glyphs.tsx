@@ -8,7 +8,7 @@ function glyph(regular: string, solid: string | null = regular, turn?: number): 
     const icon = filled && solid ? `fi-sr-${solid}` : `fi-rr-${regular}`;
     const cls = `fi ${icon}${className ? ` ${className}` : ''}`;
     const labelled = rest['aria-label'] !== undefined;
-    return <i {...rest} className={cls} style={size === undefined && turn === undefined ? style : { fontSize: size, transform: turn === undefined ? undefined : `rotate(${turn}deg)`, ...style }} aria-hidden={labelled ? undefined : true} />;
+    return <i {...rest} role={labelled ? rest.role ?? 'img' : rest.role} className={cls} style={size === undefined && turn === undefined ? style : { fontSize: size, transform: turn === undefined ? undefined : `rotate(${turn}deg)`, ...style }} aria-hidden={labelled ? undefined : true} />;
   };
 }
 

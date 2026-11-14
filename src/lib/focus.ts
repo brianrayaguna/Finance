@@ -45,3 +45,10 @@ export function rowAction(run: (() => void) | undefined) {
     },
   };
 }
+
+/** Menghormati pengaturan Kurangi Gerak & prefers-reduced-motion saat menggulir terprogram. */
+export function scrollBehavior(): ScrollBehavior {
+  if (typeof window === 'undefined') return 'auto';
+  const reduced = document.documentElement.dataset.motion === 'reduce' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return reduced ? 'auto' : 'smooth';
+}

@@ -57,7 +57,10 @@ export default function Assets() {
 
   const remove = async (a: FixedAsset) => {
     const ok = await confirm({ title: `Hapus ${a.name}?`, message: 'Jurnal perolehan, penyusutan, dan pelepasan aset ini ikut dihapus.', confirmLabel: 'Hapus', tone: 'danger' });
-    if (ok) notify(`${a.name} dihapus`, deleteAsset(a.id), { tone: 'danger' });
+    if (!ok) return;
+    const hid = deleteAsset(a.id);
+    if (!hid) return;
+    notify(`${a.name} dihapus`, hid, { tone: 'danger' });
   };
 
   return (
@@ -93,6 +96,7 @@ export default function Assets() {
       <div className="card">
         {rows.length === 0 ? (
           <EmptyState
+            heading="h2"
             icon={Boxes}
             title="Belum ada aset tetap"
             text="Catat laptop, kendaraan, atau properti — penyusutan akan dijurnal otomatis setiap bulan."
@@ -179,13 +183,20 @@ export default function Assets() {
                             { label: 'Jadwal penyusutan', icon: CalendarRange, onSelect: () => setSched(a) },
                             { label: 'Ubah', icon: Pencil, onSelect: () => setModal({ editing: a }) },
                             a.disposal
-                              ? { label: 'Batalkan pelepasan', icon: Undo2, onSelect: () => notify('Pelepasan dibatalkan', updateAsset(a.id, { disposal: undefined }, 'Batalkan pelepasan aset')) }
+                              ? {
+                                  label: 'Batalkan pelepasan',
+                                  icon: Undo2,
+                                  onSelect: () => {
+                                    const hid = updateAsset(a.id, { disposal: undefined }, 'Batalkan pelepasan aset');
+                                    if (hid) notify('Pelepasan dibatalkan', hid);
+                                  },
+                                }
                               : { label: 'Jual / lepaskan aset…', icon: BadgeDollarSign, onSelect: () => setDispose(a) },
                             { separator: true },
                             { label: 'Hapus', icon: Trash2, danger: true, onSelect: () => remove(a) },
                           ]}
                           trigger={(p) => (
-                            <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label="Menu">
+                            <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-haspopup={p['aria-haspopup']} aria-label={`Menu aset ${a.name}`}>
                               <Ellipsis />
                             </button>
                           )}
@@ -208,8 +219,11 @@ export default function Assets() {
 
 function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () => void }) {
   const b = useBooks();
-  const wallets = useWalletOptions();
-  const assetAccounts = b.accounts.filter((a) => a.subtype === 'fixed_asset' && !a.archived).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color, sub: a.code }));
+  const lockDate = useData((st) => st.data.profile.lockDate);
+  const wallets = useWalletOptions(false, editing?.paidFromAccountId ? [editing.paidFromAccountId] : undefined);
+  const assetAccounts = b.accounts
+    .filter((a) => a.subtype === 'fixed_asset' && (!a.archived || a.id === editing?.accountId))
+    .map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color, sub: a.code }));
   const [name, setName] = useState(editing?.name ?? '');
   const [accountId, setAccountId] = useState(editing?.accountId ?? assetAccounts[0]?.value ?? '');
   const [date, setDate] = useState(editing?.acquisitionDate ?? todayISO());
@@ -222,6 +236,8 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
   const [wallet, setWallet] = useState(editing?.paidFromAccountId ?? wallets.find((w) => w.group !== 'Kartu Kredit / PayLater')?.value ?? '');
   const [tried, setTried] = useState(false);
   const lifeN = Math.max(0, Math.round(Number(life) || 0));
+  const lockedExisting = !!editing && isLocked(editing.acquisitionDate, lockDate);
+  const dateLockErr = (!lockedExisting || date !== editing?.acquisitionDate) && isLocked(date, lockDate);
   const errs = {
     name: !name.trim() ? 'Nama aset wajib diisi' : null,
     cost: !cost ? 'Masukkan harga perolehan' : null,
@@ -229,7 +245,11 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
     life: !depreciable ? null : lifeN < 1 ? 'Umur minimal 1 bulan' : lifeN > 600 ? 'Maksimal 50 tahun' : null,
     wallet: funding === 'wallet' && !wallet ? 'Pilih akun pembayaran' : null,
     account: !accountId ? 'Pilih kelompok aset' : null,
-    date: editing?.disposal && date > editing.disposal.date ? `Setelah tanggal pelepasan (${formatDate(editing.disposal.date)})` : null,
+    date: editing?.disposal && date > editing.disposal.date
+      ? `Setelah tanggal pelepasan (${formatDate(editing.disposal.date)})`
+      : dateLockErr
+        ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci`
+        : null,
   };
   const monthly = depreciable && cost && lifeN ? (cost - (residual ?? 0)) / lifeN : 0;
 
@@ -291,10 +311,17 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
           <TextInput value={name} onChange={setName} placeholder="mis. Laptop kerja" autoFocus data-field invalid={tried && !!errs.name} />
         </Field>
         <Field label="Kelompok aset" error={tried && errs.account}>
-          <Select value={accountId} onChange={setAccountId} options={assetAccounts} placeholder="Pilih…" advance />
+          <Select value={accountId} onChange={setAccountId} options={assetAccounts} placeholder="Pilih…" advance invalid={tried && !!errs.account} />
         </Field>
         <Field label="Tanggal perolehan" error={tried && errs.date}>
-          <DatePicker value={date} onChange={setDate} advance />
+          <DatePicker
+            value={date}
+            onChange={setDate}
+            advance
+            min={!lockedExisting && lockDate ? addDays(lockDate, 1) : undefined}
+            max={editing?.disposal?.date}
+            invalid={tried && !!errs.date}
+          />
         </Field>
         <Field label="Harga perolehan" error={tried && errs.cost}>
           <AmountInput variant="inline" value={cost} onChange={setCost} invalid={tried && !!errs.cost} />
@@ -305,10 +332,10 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
         {depreciable && (
           <>
             <Field label="Nilai sisa (residu)" optional error={tried && errs.residual}>
-              <AmountInput variant="inline" value={residual} onChange={setResidual} />
+              <AmountInput variant="inline" value={residual} onChange={setResidual} invalid={tried && !!errs.residual} />
             </Field>
             <Field label="Umur ekonomis (bulan)" error={tried && errs.life} hint={lifeN ? lifeLabel(lifeN) : undefined}>
-              <TextInput value={life} onChange={(v) => setLife(v.replace(/\D/g, '').slice(0, 3))} inputMode="numeric" data-field className="num" suffix="bulan" />
+              <TextInput value={life} onChange={(v) => setLife(v.replace(/\D/g, '').slice(0, 3))} inputMode="numeric" data-field className="num" suffix="bulan" invalid={tried && !!errs.life} />
             </Field>
             <Field label="Preset umur">
               <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
@@ -324,6 +351,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
                 block
                 value={method}
                 onChange={setMethod}
+                ariaLabel="Metode penyusutan"
                 options={[
                   { value: 'straight_line', label: 'Garis lurus' },
                   { value: 'declining_balance', label: 'Saldo menurun ganda' },
@@ -338,6 +366,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
             size="sm"
             value={funding}
             onChange={setFunding}
+            ariaLabel="Sumber perolehan aset"
             options={[
               { value: 'wallet', label: 'Dibeli dari dompet / rekening' },
               { value: 'opening', label: 'Sudah dimiliki (saldo awal)' },
@@ -346,7 +375,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
         </Field>
         {funding === 'wallet' && (
           <Field label="Dibayar dari" error={tried && errs.wallet} className="span-2">
-            <Select value={wallet} onChange={setWallet} options={wallets} placeholder="Pilih akun…" />
+            <Select value={wallet} onChange={setWallet} options={wallets} placeholder="Pilih akun…" invalid={tried && !!errs.wallet} />
           </Field>
         )}
       </div>
@@ -374,7 +403,7 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
   }, [rows, stop]);
   return (
     <Modal open onClose={onClose} size="lg" title="Jadwal penyusutan" subtitle={asset.depreciable === false ? `${asset.name} · ${formatMoney(asset.cost)} · tidak disusutkan` : `${asset.name} · ${formatMoney(asset.cost)} · ${lifeLabel(asset.usefulLifeMonths)} · ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`}
-      headerExtra={<Segmented size="sm" value={mode} onChange={setMode} options={[{ value: 'year', label: 'Tahunan' }, { value: 'month', label: 'Bulanan' }]} />}
+      headerExtra={<Segmented size="sm" value={mode} onChange={setMode} ariaLabel="Periode jadwal penyusutan" options={[{ value: 'year', label: 'Tahunan' }, { value: 'month', label: 'Bulanan' }]} />}
     >
       {asset.depreciable === false && <p className="muted" style={{ margin: '4px 0 0' }}>Aset ini tidak disusutkan, sehingga tidak ada jadwal penyusutan.</p>}
       <div className="card" hidden={asset.depreciable === false} style={{ boxShadow: '0 0 0 .5px var(--line-2)' }}>
@@ -421,15 +450,25 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
 }
 
 function DisposeModal({ asset, onClose }: { asset: FixedAsset; onClose: () => void }) {
-  const wallets = useWalletOptions();
-  const [date, setDate] = useState(todayISO());
+  const wallets = useWalletOptions(false, asset.paidFromAccountId ? [asset.paidFromAccountId] : undefined);
+  const today = todayISO();
+  const [date, setDate] = useState(today);
   const [proceeds, setProceeds] = useState<number | null>(null);
   const [wallet, setWallet] = useState(asset.paidFromAccountId ?? wallets[0]?.value ?? '');
   const acc = accumulatedAt({ ...asset, disposal: { date, proceeds: 0, accountId: wallet } }, date);
   const book = round2(asset.cost - acc);
   const gain = round2((proceeds ?? 0) - book);
   const lockDate = useData((st) => st.data.profile.lockDate);
-  const invalid = !wallet || date < asset.acquisitionDate || date > todayISO() || isLocked(date, lockDate);
+  const effectiveMin = lockDate && lockDate >= asset.acquisitionDate ? addDays(lockDate, 1) : asset.acquisitionDate;
+  const dateErr =
+    date < asset.acquisitionDate
+      ? 'Sebelum tanggal perolehan'
+      : date > today
+        ? 'Tidak boleh melewati hari ini'
+        : isLocked(date, lockDate)
+          ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci`
+          : undefined;
+  const invalid = !wallet || !!dateErr;
   const submit = () => {
     if (invalid) return;
     const hid = updateAsset(asset.id, { disposal: { date, proceeds: proceeds ?? 0, accountId: wallet } }, 'Pelepasan aset tetap');
@@ -455,11 +494,8 @@ function DisposeModal({ asset, onClose }: { asset: FixedAsset; onClose: () => vo
       }
     >
       <div className="stack">
-        <Field
-          label="Tanggal pelepasan"
-          error={date < asset.acquisitionDate ? 'Sebelum tanggal perolehan' : isLocked(date, lockDate) ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci` : undefined}
-        >
-          <DatePicker value={date} onChange={setDate} min={lockDate && lockDate >= asset.acquisitionDate ? addDays(lockDate, 1) : asset.acquisitionDate} max={todayISO()} />
+        <Field label="Tanggal pelepasan" error={dateErr}>
+          <DatePicker value={date} onChange={setDate} min={effectiveMin} max={today >= effectiveMin ? today : undefined} invalid={!!dateErr} />
         </Field>
         <Field label="Harga jual / nilai diterima" optional>
           <AmountInput value={proceeds} onChange={setProceeds} autoFocus />

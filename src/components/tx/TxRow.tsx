@@ -39,7 +39,7 @@ export const TxRow = memo(function TxRow({
       tabIndex={onOpen ? 0 : undefined}
       aria-label={`${v.title}, ${prefix}${formatMoney(v.amount)}, ${formatDate(tx.date, 'long')}`}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' && e.target === e.currentTarget && onOpen) {
+        if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget && onOpen) {
           e.preventDefault();
           e.stopPropagation();
           onOpen(tx);

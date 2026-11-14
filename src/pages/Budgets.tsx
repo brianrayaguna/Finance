@@ -77,6 +77,7 @@ export default function Budgets() {
       {lines.length === 0 ? (
         <div className="card">
           <EmptyState
+            heading="h2"
             icon={Target}
             title="Belum ada anggaran"
             text="Tetapkan batas pengeluaran bulanan per kategori untuk memantau disiplin belanja Anda."
@@ -133,7 +134,10 @@ export default function Budgets() {
                   tabIndex={0}
                   aria-label={`Ubah anggaran ${l.account.name}`}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target === e.currentTarget) setEdit({ categoryId: l.account.id, amount: l.budget });
+                    if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+                      e.preventDefault();
+                      setEdit({ categoryId: l.account.id, amount: l.budget });
+                    }
                   }}
                 >
                   <div className="row">
@@ -149,10 +153,19 @@ export default function Budgets() {
                         items={[
                           { label: 'Ubah batas', icon: Pencil, onSelect: () => setEdit({ categoryId: l.account.id, amount: l.budget }) },
                           { separator: true },
-                          { label: 'Hapus anggaran', icon: Trash2, danger: true, onSelect: () => l.budgetId && notify(`Anggaran ${l.account.name} dihapus`, deleteBudget(l.budgetId), { tone: 'danger' }) },
+                          {
+                            label: 'Hapus anggaran',
+                            icon: Trash2,
+                            danger: true,
+                            onSelect: () => {
+                              if (!l.budgetId) return;
+                              const hid = deleteBudget(l.budgetId);
+                              if (hid) notify(`Anggaran ${l.account.name} dihapus`, hid, { tone: 'danger' });
+                            },
+                          },
                         ]}
                         trigger={(p) => (
-                          <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label={`Menu anggaran ${l.account.name}`}>
+                          <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-haspopup={p['aria-haspopup']} aria-label={`Menu anggaran ${l.account.name}`}>
                             <Ellipsis />
                           </button>
                         )}
@@ -182,7 +195,7 @@ export default function Budgets() {
 
       <section id="target" className="goals-section">
         <div className="section-head">
-          <h3>Target tabungan</h3>
+          <h2>Target tabungan</h2>
           <span className="muted">{goalList.length ? `${goalList.filter((p) => p.status === 'done').length} dari ${goalList.length} tercapai` : 'Kemajuan dari saldo dompet yang ditautkan'}</span>
           <span className="spacer" />
           <Button size="sm" icon={Plus} onClick={goalModal.openNew}>
@@ -217,7 +230,7 @@ export default function Budgets() {
       {unbudgeted.length > 0 && (
         <section>
           <div className="section-head">
-            <h3>Beban tanpa anggaran</h3>
+            <h2>Beban tanpa anggaran</h2>
             <span className="muted num money-val">{formatMoney(unbudgeted.reduce((s, x) => s + x.v, 0))}</span>
           </div>
           <div className="card list-body" style={{ padding: 6 }}>
@@ -243,7 +256,7 @@ export default function Budgets() {
 
 function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: string; amount?: number }; onClose: () => void; month: string }) {
   const b = useBooks();
-  const cats = useCategoryOptions('expense');
+  const cats = useCategoryOptions('expense', initial.categoryId ? [initial.categoryId] : undefined);
   const [cat, setCat] = useState(initial.categoryId ?? '');
   const [amount, setAmount] = useState<number | null>(initial.amount ?? null);
   const [tried, setTried] = useState(false);
@@ -261,7 +274,9 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
     setTried(true);
     if (!cat || !amount) return;
     const name = b.acc.get(cat)?.name ?? '';
-    notify(`Anggaran ${name} ${formatMoney(amount)}/bulan disimpan`, upsertBudget(cat, amount));
+    const hid = upsertBudget(cat, amount);
+    if (!hid) return;
+    notify(`Anggaran ${name} ${formatMoney(amount)}/bulan disimpan`, hid);
     onClose();
   };
 

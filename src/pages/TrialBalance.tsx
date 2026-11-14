@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, CircleCheck, TriangleAlert } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
@@ -89,25 +89,27 @@ export default function TrialBalance() {
                 const t = acc ? TYPE_LABEL[acc.type] : 'Ekuitas';
                 const head = t !== lastType ? t : null;
                 lastType = t;
-                return [
-                  head && (
-                    <tr key={'h-' + t} className="tb-group">
-                      <td colSpan={4}>{head}</td>
+                return (
+                  <Fragment key={r.key}>
+                    {head && (
+                      <tr className="tb-group">
+                        <td colSpan={4}>{head}</td>
+                      </tr>
+                    )}
+                    <tr className={acc ? 'clickable' : undefined} {...rowAction(acc ? () => nav(`/buku-besar?akun=${acc.id}`) : undefined)}>
+                      <td className="code">{r.code}</td>
+                      <td>
+                        <span className="row">
+                          {acc && <IconTile icon={acc.icon} color={acc.color} size="xs" />}
+                          {r.label}
+                          {acc?.archived && <Badge>Arsip</Badge>}
+                        </span>
+                      </td>
+                      <td className="r num money-val">{r.values[0] ? formatMoney(r.values[0], { symbol: false }) : ''}</td>
+                      <td className="r num money-val">{r.values[1] ? formatMoney(r.values[1], { symbol: false }) : ''}</td>
                     </tr>
-                  ),
-                  <tr key={r.key} className={acc ? 'clickable' : undefined} {...rowAction(acc ? () => nav(`/buku-besar?akun=${acc.id}`) : undefined)}>
-                    <td className="code">{r.code}</td>
-                    <td>
-                      <span className="row">
-                        {acc && <IconTile icon={acc.icon} color={acc.color} size="xs" />}
-                        {r.label}
-                        {acc?.archived && <Badge>Arsip</Badge>}
-                      </span>
-                    </td>
-                    <td className="r num money-val">{r.values[0] ? formatMoney(r.values[0], { symbol: false }) : ''}</td>
-                    <td className="r num money-val">{r.values[1] ? formatMoney(r.values[1], { symbol: false }) : ''}</td>
-                  </tr>,
-                ];
+                  </Fragment>
+                );
               })}
             </tbody>
             <tfoot>

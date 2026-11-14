@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Download,
@@ -55,6 +56,7 @@ import { Segmented } from '../components/ui/Segmented';
 import { LogoMark } from '../components/brand/Logo';
 import { useIsDark } from '../hooks/useApp';
 import { modKey } from '../lib/layers';
+import { scrollBehavior } from '../lib/focus';
 
 const SECTIONS: { id: string; label: string; icon: Glyph }[] = [
   { id: 'profil', label: 'Profil & buku', icon: User },
@@ -177,7 +179,7 @@ function SectionHead({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="set-head">
       <div>
-        <h3>{title}</h3>
+        <h2>{title}</h2>
         <p>{desc}</p>
       </div>
     </div>
@@ -187,7 +189,11 @@ function SectionHead({ title, desc }: { title: string; desc: string }) {
 function IntegrityPanel({ data }: { data: AppData }) {
   const issues = useMemo(() => checkIntegrity(data), [data]);
   const editTx = useUI((s) => s.editTx);
-  const [open, setOpen] = useState(false);
+  const { hash } = useLocation();
+  const [open, setOpen] = useState(hash === '#integritas');
+  useEffect(() => {
+    if (hash === '#integritas') setOpen(true);
+  }, [hash]);
   const errors = issues.filter((i) => i.level === 'error').length;
   const warns = issues.length - errors;
   const tone = errors ? 'bad' : warns ? 'warn' : 'ok';
@@ -273,7 +279,7 @@ export default function Settings() {
 
   const jump = (id: string) => {
     setActive(id);
-    document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
   };
 
   const saveProfile = () => {
@@ -349,6 +355,8 @@ export default function Settings() {
       toast('Data diatur ulang');
     }
   };
+
+  const accentIdx = Math.max(0, ACCENTS.findIndex((a) => a.key === prefs.accent));
 
   return (
     <div>
@@ -459,17 +467,29 @@ export default function Settings() {
               </Row>
               <Row title="Warna utama" desc="Dipakai pada tombol utama, menu yang sedang aktif, dan sakelar">
                 <div className="swatches" role="radiogroup" aria-label="Warna utama">
-                  {ACCENTS.map((a) => (
+                  {ACCENTS.map((a, idx) => (
                     <button
                       key={a.key}
                       type="button"
                       className="swatch"
                       role="radio"
                       aria-checked={prefs.accent === a.key}
+                      tabIndex={idx === accentIdx ? 0 : -1}
                       title={a.name}
                       aria-label={a.name}
                       style={{ '--c': isDark ? a.dark : a.color } as React.CSSProperties}
                       onClick={() => prefs.set({ accent: a.key })}
+                      onKeyDown={(e) => {
+                        let next: number | null = null;
+                        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % ACCENTS.length;
+                        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + ACCENTS.length) % ACCENTS.length;
+                        else if (e.key === 'Home') next = 0;
+                        else if (e.key === 'End') next = ACCENTS.length - 1;
+                        if (next === null) return;
+                        e.preventDefault();
+                        prefs.set({ accent: ACCENTS[next].key });
+                        e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
+                      }}
                     />
                   ))}
                 </div>
@@ -479,6 +499,7 @@ export default function Settings() {
                   size="sm"
                   value={prefs.density}
                   onChange={(v) => prefs.set({ density: v })}
+                  ariaLabel="Kepadatan"
                   options={[
                     { value: 'comfortable', label: 'Lega' },
                     { value: 'compact', label: 'Ringkas' },

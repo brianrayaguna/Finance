@@ -176,6 +176,7 @@
   margin-top: 12px;
   display: flex;
   align-items: flex-start;
+  flex-wrap: wrap;
   gap: 16px;
 }
 .tx-extras .fav-link {
@@ -575,6 +576,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 18px 28px;
 }
+.sc-group h3,
 .sc-group h4 {
   font-size: var(--fs-xs);
   font-weight: 650;

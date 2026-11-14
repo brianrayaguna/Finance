@@ -39,12 +39,18 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
   const inner = useRef<HTMLInputElement | null>(null);
   const pendingCaret = useRef<number | null>(null);
   const lastEmitted = useRef<number | null>(value);
+  const focused = useRef(false);
+  const textRef = useRef(text);
+  textRef.current = text;
 
-  // sinkron bila nilai berubah dari luar
+  // sinkron bila nilai berubah dari luar atau tersisa teks tidak lengkap saat tidak fokus
   useEffect(() => {
+    const expected = amountToDisplay(value);
     if (value !== lastEmitted.current) {
-      setText(amountToDisplay(value));
+      setText(expected);
       lastEmitted.current = value;
+    } else if (!focused.current && textRef.current !== expected) {
+      setText(expected);
     }
   }, [value]);
 
@@ -77,6 +83,13 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
       const d = amountToDisplay(v === null ? null : allowNegative ? v : Math.abs(v));
       setText(d);
       emit(d);
+    } else if (text.trim()) {
+      const v = evaluateAmount(text);
+      const d = amountToDisplay(v === null ? null : allowNegative ? v : Math.abs(v));
+      if (d !== text) {
+        setText(d);
+        emit(d);
+      }
     }
   };
 
@@ -106,7 +119,8 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
     apply(next + text.slice(end), next.length);
   };
 
-  const calc = hasOperator(text) ? evaluateAmount(text) : null;
+  const rawCalc = hasOperator(text) ? evaluateAmount(text) : null;
+  const calc = rawCalc === null ? null : allowNegative ? rawCalc : Math.abs(rawCalc);
 
   const input = (
     <input
@@ -127,11 +141,15 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
       placeholder={placeholder}
       value={text}
       onFocus={(e) => {
+        focused.current = true;
         const el = e.currentTarget;
         requestAnimationFrame(() => el.select());
       }}
       onChange={(e) => apply(e.target.value, e.target.selectionStart ?? e.target.value.length)}
-      onBlur={settle}
+      onBlur={() => {
+        focused.current = false;
+        settle();
+      }}
       onPaste={paste}
       onKeyDown={(e) => {
         if (!e.metaKey && !e.ctrlKey && !e.altKey) {

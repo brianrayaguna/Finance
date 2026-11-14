@@ -183,9 +183,11 @@ function TransactionModal({
   const lockedEdit = !!editing && isLocked(editing.date, lockDate);
   const minDate = lockDate && !lockedEdit ? addDays(lockDate, 1) : undefined;
 
-  const wallets = useWalletOptions();
-  const expenseCats = useCategoryOptions('expense');
-  const revenueCats = useCategoryOptions('revenue');
+  const walletKeep = useMemo(() => [editing?.accountId, editing?.toAccountId].filter((x): x is string => !!x), [editing]);
+  const catKeep = useMemo(() => (editing?.categoryId ? [editing.categoryId] : undefined), [editing]);
+  const wallets = useWalletOptions(false, walletKeep);
+  const expenseCats = useCategoryOptions('expense', catKeep);
+  const revenueCats = useCategoryOptions('revenue', catKeep);
   const contacts = useContacts();
   const payables = useOpenDebtOptions('payable', editing?.parentId);
   const receivables = useOpenDebtOptions('receivable', editing?.parentId);
@@ -423,6 +425,7 @@ function TransactionModal({
       categoryId: type === 'transfer' ? undefined : d.categoryId || undefined,
       description: d.description.trim() || undefined,
     });
+    if (!historyId) return;
     notify(`${template.name} disimpan ke favorit`, historyId, { detail: 'Catat ulang dari tombol Catat atau widget Favorit' });
   };
 
@@ -430,7 +433,7 @@ function TransactionModal({
     if (lockedEdit) return;
     setTried(true);
     if (hasErrors) {
-      const first = formRef.current?.querySelector<HTMLElement>('.invalid input, .invalid, [aria-invalid="true"]');
+      const first = formRef.current?.querySelector<HTMLElement>('.invalid input, .invalid textarea, button.invalid, [aria-invalid="true"]');
       first?.focus();
       return;
     }
@@ -807,12 +810,12 @@ function TransactionModal({
           )}
 
           <Field label="Tanggal" error={err('date')}>
-            <DatePicker value={d.date} onChange={(v) => set('date', v)} advance min={minDate} />
+            <DatePicker value={d.date} onChange={(v) => set('date', v)} advance min={minDate} invalid={!!err('date')} />
           </Field>
 
           {(d.mode === 'payable' || d.mode === 'receivable') && d.sub === 'new' && (
             <Field label="Jatuh tempo" optional error={err('dueDate')}>
-              <DatePicker value={d.dueDate} onChange={(v) => set('dueDate', v)} clearable placeholder="Tanpa jatuh tempo" advance />
+              <DatePicker value={d.dueDate} onChange={(v) => set('dueDate', v)} clearable placeholder="Tanpa jatuh tempo" advance invalid={!!err('dueDate')} />
             </Field>
           )}
 
@@ -861,7 +864,7 @@ function TransactionModal({
               <TextArea value={d.note} onChange={(v) => set('note', v)} placeholder="Catatan tambahan (tidak tampil di laporan)" rows={2} autoFocus={!editing?.note} />
             </div>
           )}
-          {canFavorite && !showNote && (
+          {canFavorite && (
             <button
               type="button"
               className="link-btn fav-link"

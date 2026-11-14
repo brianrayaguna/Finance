@@ -128,12 +128,20 @@ export function PeriodPicker({
   const sub = value.preset === 'all' ? '' : `${formatDate(value.from)} – ${formatDate(value.to)}`;
   return (
     <>
-      <button ref={ref} type="button" className="select-trigger compact period-trigger" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <button
+        ref={ref}
+        type="button"
+        className="select-trigger compact period-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Pilih periode: ${describePeriod(value)}`}
+        onClick={() => setOpen((v) => !v)}
+      >
         <CalendarRange size={15} style={{ color: 'var(--text-3)' }} />
         <span className="truncate">{describePeriod(value)}</span>
         <ChevronDown className="chev" />
       </button>
-      <Popover open={open} onClose={close} anchor={ref} placement="bottom-end" minWidth={custom ? 320 : 250}>
+      <Popover open={open} onClose={close} anchor={ref} placement="bottom-end" minWidth={custom ? 320 : 250} autoFocus ariaLabel="Pilih rentang periode">
         {!custom ? (
           <div className="menu">
             <div className="menu-label">{sub || 'Rentang waktu'}</div>

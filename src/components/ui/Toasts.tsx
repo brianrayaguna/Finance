@@ -35,12 +35,16 @@ function ToastItem({ t }: { t: Toast }) {
     <motion.div
       layout
       className="toast"
-      role="status"
+      role={t.tone === 'danger' ? 'alert' : 'status'}
       initial={{ opacity: 0, y: 24, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 32 } }}
       exit={{ opacity: 0, y: 12, scale: 0.97, transition: { duration: 0.16 } }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPaused(false);
+      }}
       style={{ position: 'relative' }}
     >
       {Icon && <Icon className={`t-icon ${t.tone}`} />}

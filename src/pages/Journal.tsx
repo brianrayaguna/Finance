@@ -107,6 +107,7 @@ export default function Journal() {
         <Segmented
           value={tab}
           onChange={setTab}
+          ariaLabel="Jenis jurnal"
           options={[
             { value: 'general', label: 'Jurnal umum', icon: NotebookPen },
             { value: 'closing', label: 'Jurnal penutup', icon: Lock },
@@ -126,6 +127,7 @@ export default function Journal() {
                   size="sm"
                   value={src}
                   onChange={setSrc}
+                  ariaLabel="Sumber jurnal"
                   options={[
                     { value: 'all', label: 'Semua' },
                     { value: 'tx', label: 'Transaksi' },
@@ -137,7 +139,7 @@ export default function Journal() {
               </div>
             </div>
             {entries.length === 0 ? (
-              <EmptyState icon={NotebookPen} title="Tidak ada jurnal" text="Belum ada jurnal pada periode dan filter ini." />
+              <EmptyState heading="h2" icon={NotebookPen} title="Tidak ada jurnal" text="Belum ada jurnal pada periode dan filter ini." />
             ) : (
               <TableWrap label="Jurnal umum">
                 <table className="table journal-table">
@@ -153,8 +155,25 @@ export default function Journal() {
                   </thead>
                   {entries.slice(0, limit).map((e) => {
                     const ordered = [...e.lines].sort((x, y) => (x.debit ? 0 : 1) - (y.debit ? 0 : 1));
+                    const clickable = !!(e.txId || e.assetId);
                     return (
-                      <tbody key={e.id} className="je-block" onClick={() => openEntry(e)}>
+                      <tbody
+                        key={e.id}
+                        className={`je-block${clickable ? '' : ' static'}`}
+                        tabIndex={clickable ? 0 : undefined}
+                        aria-label={clickable ? `Buka jurnal ${e.ref}` : undefined}
+                        onClick={clickable ? () => openEntry(e) : undefined}
+                        onKeyDown={
+                          clickable
+                            ? (ev) => {
+                                if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) {
+                                  ev.preventDefault();
+                                  openEntry(e);
+                                }
+                              }
+                            : undefined
+                        }
+                      >
                         {ordered.map((l, i) => {
                           const a = b.acc.get(l.accountId);
                           return (
@@ -224,7 +243,7 @@ export default function Journal() {
           </div>
           <div className="card journal-card">
             {closing.length === 0 ? (
-              <EmptyState icon={Lock} title="Tidak ada akun nominal" text="Tidak ada pendapatan atau beban pada periode ini." />
+              <EmptyState heading="h2" icon={Lock} title="Tidak ada akun nominal" text="Tidak ada pendapatan atau beban pada periode ini." />
             ) : (
               <TableWrap label="Jurnal penutup">
                 <table className="table journal-table">

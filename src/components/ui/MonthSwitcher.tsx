@@ -12,7 +12,7 @@ export function MonthSwitcher({ value, onChange }: { value: string; onChange: (v
           <ChevronLeft />
         </button>
       </Tooltip>
-      <button type="button" className="ms-label" onClick={() => onChange(cur)} title="Kembali ke bulan ini">
+      <button type="button" className="ms-label" onClick={() => onChange(cur)} title="Kembali ke bulan ini" aria-label={`${formatMonth(value)}, kembali ke bulan ini`}>
         {formatMonth(value)}
       </button>
       <Tooltip label="Bulan berikutnya">

@@ -21,8 +21,10 @@ function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement | null>
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab' || !root.current) return;
       const f = Array.from(
-        root.current.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea, [tabindex="0"], a[href]'),
-      ).filter((x) => x.offsetParent !== null);
+        root.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((x) => x.offsetParent !== null || x.getClientRects().length > 0);
       if (!f.length) return;
       const first = f[0];
       const last = f[f.length - 1];
@@ -95,9 +97,9 @@ export function Modal({ open, onClose, title, subtitle, icon, children, footer, 
                 {icon}
                 <div className="grow">
                   {title && (
-                    <div className="modal-title" id={titleId}>
+                    <h2 className="modal-title" id={titleId}>
                       {title}
-                    </div>
+                    </h2>
                   )}
                   {subtitle && <div className="modal-sub">{subtitle}</div>}
                 </div>

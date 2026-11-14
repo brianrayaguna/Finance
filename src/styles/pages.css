@@ -869,6 +869,23 @@
   color: var(--text-3);
   margin-left: 4px;
 }
+@media (max-width: 760px) {
+  .bulk-bar {
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 20px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+@media (max-width: 480px) {
+  .bulk-bar {
+    gap: 4px;
+    padding: 6px 8px 6px 12px;
+  }
+  .bb-total {
+    display: none;
+  }
+}
 
 /* ═══════════ Calendar ═══════════ */
 .cal-layout {
@@ -1218,6 +1235,20 @@ i.ym-cell {
   margin: 0 2px 10px;
   width: calc(100% - 4px);
 }
+.wg-head-wrap {
+  margin: 0 2px 10px;
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -0.015em;
+}
+.wg-head-wrap .wg-head {
+  margin: 0;
+  width: 100%;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+}
+.wg-head h2,
 .wg-head h3 {
   font-size: 15px;
   font-weight: 680;
@@ -1734,8 +1765,12 @@ button.tl-item:hover {
 .je-block.static {
   cursor: default;
 }
-.je-block:hover {
+.je-block:not(.static):hover {
   background: var(--fill);
+}
+.je-block:focus-visible {
+  outline: 2px solid var(--focus-border, var(--accent-ink));
+  outline-offset: -2px;
 }
 .table .je-block tr:hover {
   background: transparent;
@@ -1911,10 +1946,20 @@ button.tl-item:hover {
 .table tr.archived td {
   opacity: 0.55;
 }
-.link-cell:hover {
+.link-cell:hover,
+.link-cell-btn:hover,
+.link-cell-btn:focus-visible {
   color: var(--accent-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+.link-cell-btn {
+  display: inline-block;
+  font: inherit;
+  font-variant-numeric: inherit;
+  color: inherit;
+  text-align: right;
+  border-radius: var(--radius-xs);
 }
 
 /* ═══════════ Accounts ═══════════ */
@@ -2310,6 +2355,7 @@ button.tl-item:hover {
 .ratio-group {
   margin-top: 22px;
 }
+.ratio-group h3,
 .ratio-group h4 {
   font-size: var(--fs-xs);
   font-weight: 750;
@@ -2424,15 +2470,72 @@ button.tl-item:hover {
   }
 }
 @media print {
-  .reports-layout {
+  .reports-page > .page-head {
+    display: none !important;
+  }
+  .reports-layout,
+  .ledger-layout,
+  .cal-layout,
+  .settings-layout {
     display: block;
   }
-  .paper {
-    box-shadow: none;
-    padding: 0;
+  .table-wrap {
+    overflow: visible !important;
+  }
+  thead {
+    display: table-header-group;
+  }
+  .stmt.cols-10 .st-label,
+  .table th,
+  .tx-day-head {
+    position: static !important;
+    box-shadow: none !important;
+  }
+  .card,
+  .wallet-card,
+  .budget-card,
+  .debt-row,
+  .tx-row,
+  .kpi,
+  .set-card,
+  .stmt tr,
+  .table tr,
+  .ratio-card,
+  .ratio-group,
+  .paper-foot {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .paper-head,
+  .k-section,
+  .k-group {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .paper,
+  .paper.wide {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
   }
   .paper::before {
     display: none;
+  }
+  .stmt.cols-10 {
+    font-size: 10px;
+  }
+  .stmt.cols-10 th,
+  .stmt.cols-10 td {
+    padding: 4px 5px;
+    height: auto;
+  }
+  .stmt.cols-10 .st-label {
+    min-width: 120px;
+    white-space: normal;
+  }
+  .stmt.cols-10 td.r {
+    min-width: 62px;
+    font-size: 9.5px;
   }
   .stmt tr.clickable:hover td {
     background: none;
@@ -2508,6 +2611,7 @@ button.tl-item:hover {
   gap: 14px;
   padding: 20px 22px 4px;
 }
+.set-head h2,
 .set-head h3 {
   font-size: 19px;
   font-weight: 620;

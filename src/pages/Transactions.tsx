@@ -221,9 +221,23 @@ export default function Transactions() {
       tone: 'danger',
     });
     if (!ok) return;
+    const delSet = new Set(ids);
+    for (const t of b.data.transactions) if (t.parentId && delSet.has(t.parentId)) delSet.add(t.id);
     const hid = deleteTransactions(ids);
     if (!hid) return; // sebagian berada di periode terkunci — pilihan dipertahankan
-    setSelected(new Set());
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const id of delSet) next.delete(id);
+      return next;
+    });
+    anchorIdx.current = null;
+    if (focusId && delSet.has(focusId)) {
+      const idx = visible.findIndex((t) => t.id === focusId);
+      const next =
+        visible.slice(idx + 1).find((t) => !delSet.has(t.id)) ??
+        [...visible.slice(0, Math.max(0, idx))].reverse().find((t) => !delSet.has(t.id));
+      setFocusId(next?.id ?? null);
+    }
     notify(ids.length > 1 ? `${ids.length} transaksi dihapus` : 'Transaksi dihapus', hid, { tone: 'danger' });
   };
 
@@ -391,6 +405,7 @@ export default function Transactions() {
               size="sm"
               value={kind}
               onChange={setKind}
+              ariaLabel="Jenis transaksi"
               options={[
                 { value: 'all', label: 'Semua' },
                 { value: 'in', label: 'Masuk' },
@@ -402,10 +417,10 @@ export default function Transactions() {
             />
             <div className="lt-filters">
               <div style={{ width: 176 }}>
-                <Select compact value={account} onChange={setAccount} options={accOptions} placeholder="Semua akun" width={260} />
+                <Select compact value={account} onChange={setAccount} options={accOptions} placeholder="Semua akun" ariaLabel="Filter akun" width={260} />
               </div>
               <div style={{ width: 188 }}>
-                <Select compact value={category} onChange={setCategory} options={catOptions} placeholder="Semua kategori" searchable width={280} />
+                <Select compact value={category} onChange={setCategory} options={catOptions} placeholder="Semua kategori" ariaLabel="Filter kategori" searchable width={280} />
               </div>
               {hasFilter && (
                 <Button size="sm" variant="ghost" icon={FilterX} onClick={clearFilters}>
@@ -417,6 +432,7 @@ export default function Transactions() {
         </div>
         {filtered.length === 0 ? (
           <EmptyState
+            heading="h2"
             icon={hasFilter ? FilterX : Inbox}
             title={hasFilter ? 'Tidak ada transaksi yang cocok' : 'Belum ada transaksi'}
             text={hasFilter ? 'Coba ubah kata kunci atau rentang waktu.' : 'Transaksi yang Anda catat akan muncul di sini, dikelompokkan per hari.'}
@@ -488,7 +504,9 @@ export default function Transactions() {
       <AnimatePresence>
         {selected.size > 0 && (
           <motion.div
-            className="bulk-bar"
+            className="bulk-bar no-print"
+            role="region"
+            aria-label="Tindakan massal"
             initial={{ opacity: 0, y: 24, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%', transition: { type: 'spring', stiffness: 420, damping: 32 } }}
             exit={{ opacity: 0, y: 16, x: '-50%' }}

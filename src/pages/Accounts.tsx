@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Tags, ListTree, Lock, Archive, TrendingUp, TrendingDown } from '../lib/glyphs';
+import { Plus, Search, FilterX, Tags, ListTree, Lock, Archive, TrendingUp, TrendingDown } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';
 import { activity, displayBalances } from '../accounting/reports';
@@ -9,7 +9,7 @@ import type { Account } from '../accounting/types';
 import { formatMoney, normalize, startOfMonth, endOfMonth } from '../lib/format';
 import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
-import { Badge, Button, IconTile, TextInput, TableWrap } from '../components/ui/primitives';
+import { Badge, Button, EmptyState, IconTile, TextInput, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { useAccountModal } from '../components/forms/AccountModal';
 
@@ -32,18 +32,25 @@ export default function Accounts() {
   }, [b]);
 
   const match = (a: Account) => (!q || normalize(`${a.name} ${a.code} ${SUBTYPE_META[a.subtype].label}`).includes(normalize(q))) && (showArchived || !a.archived);
+  const coaGroups = TYPE_ORDER.map((t) => ({ type: t, list: b.accounts.filter((a) => a.type === t && match(a)) })).filter((g) => g.list.length > 0);
 
   const catSection = (type: 'revenue' | 'expense') => {
     const list = b.accounts.filter((a) => a.type === type && match(a));
     return (
       <section className="cat-section">
         <div className="wg-head">
-          <h3 className="row" style={{ gap: 8 }}>
+          <h2 className="row" style={{ gap: 8 }}>
             {type === 'revenue' ? <TrendingUp size={17} className="pos" /> : <TrendingDown size={17} className="neg" />}
             {type === 'revenue' ? 'Kategori pendapatan' : 'Kategori beban'}
             <span className="muted" style={{ fontWeight: 500 }}>{list.length}</span>
-          </h3>
-          <Button size="sm" variant="ghost" icon={Plus} onClick={() => modal.openNew('category', type === 'revenue' ? 'operating_revenue' : 'operating_expense')}>
+          </h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={Plus}
+            aria-label={type === 'revenue' ? 'Tambah kategori pendapatan' : 'Tambah kategori beban'}
+            onClick={() => modal.openNew('category', type === 'revenue' ? 'operating_revenue' : 'operating_expense')}
+          >
             Tambah
           </Button>
         </div>
@@ -99,6 +106,7 @@ export default function Accounts() {
         <Segmented
           value={tab}
           onChange={setTab}
+          ariaLabel="Tampilan bagan akun"
           options={[
             { value: 'categories', label: 'Kategori', icon: Tags },
             { value: 'coa', label: 'Bagan akun lengkap', icon: ListTree },
@@ -119,22 +127,38 @@ export default function Accounts() {
         </>
       ) : (
         <div className="card">
-          <TableWrap label="Bagan akun">
-            <table className="table coa-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 100 }}>Kode</th>
-                  <th>Nama akun</th>
-                  <th>Kelompok</th>
-                  <th>Saldo normal</th>
-                  <th className="r" title="Akun laba rugi: saldo tahun buku berjalan">Saldo per hari ini</th>
-                  <th style={{ width: 90 }} />
-                </tr>
-              </thead>
-              {TYPE_ORDER.map((t) => {
-                const list = b.accounts.filter((a) => a.type === t && match(a));
-                if (!list.length) return null;
-                return (
+          {coaGroups.length === 0 ? (
+            <EmptyState
+              heading="h2"
+              icon={Search}
+              title="Akun tidak ditemukan"
+              text="Coba ubah kata kunci pencarian atau tampilkan akun yang diarsipkan."
+              action={
+                q ? (
+                  <Button icon={FilterX} onClick={() => setQ('')}>
+                    Reset pencarian
+                  </Button>
+                ) : !showArchived ? (
+                  <Button icon={Archive} onClick={() => setShowArchived(true)}>
+                    Tampilkan arsip
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <TableWrap label="Bagan akun">
+              <table className="table coa-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 100 }}>Kode</th>
+                    <th>Nama akun</th>
+                    <th>Kelompok</th>
+                    <th>Saldo normal</th>
+                    <th className="r" title="Akun laba rugi: saldo tahun buku berjalan">Saldo per hari ini</th>
+                    <th style={{ width: 90 }} />
+                  </tr>
+                </thead>
+                {coaGroups.map(({ type: t, list }) => (
                   <tbody key={t}>
                     <tr className="tb-group">
                       <td colSpan={6}>
@@ -156,14 +180,18 @@ export default function Accounts() {
                           <td>
                             <Badge tone={normalSide(a) === 'debit' ? 'info' : 'accent'}>{normalSide(a) === 'debit' ? 'Debit' : 'Kredit'}</Badge>
                           </td>
-                          <td
-                            className="r num money-val link-cell"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              nav(`/buku-besar?akun=${a.id}`);
-                            }}
-                          >
-                            {v ? formatMoney(v, { symbol: false }) : '–'}
+                          <td className="r num money-val">
+                            <button
+                              type="button"
+                              className="link-cell-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                nav(`/buku-besar?akun=${a.id}`);
+                              }}
+                              aria-label={`Buka buku besar ${a.name}`}
+                            >
+                              {v ? formatMoney(v, { symbol: false }) : '–'}
+                            </button>
                           </td>
                           <td>
                             <span className="row" style={{ gap: 4, justifyContent: 'flex-end' }}>
@@ -175,10 +203,10 @@ export default function Accounts() {
                       );
                     })}
                   </tbody>
-                );
-              })}
-            </table>
-          </TableWrap>
+                ))}
+              </table>
+            </TableWrap>
+          )}
         </div>
       )}
       {modal.node}

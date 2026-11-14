@@ -75,11 +75,13 @@ export default function Wallets() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03, type: 'spring', stiffness: 300, damping: 28 } }}
         onClick={() => nav(`/buku-besar?akun=${a.id}`)}
-        role="link"
         tabIndex={0}
         aria-label={`${a.name}: buka buku besar`}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.target === e.currentTarget) nav(`/buku-besar?akun=${a.id}`);
+          if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
+            e.preventDefault();
+            nav(`/buku-besar?akun=${a.id}`);
+          }
         }}
       >
         <div className="wc-top">
@@ -99,11 +101,25 @@ export default function Wallets() {
                 { label: 'Buka buku besar', icon: BookOpenText, onSelect: () => nav(`/buku-besar?akun=${a.id}`) },
                 { separator: true },
                 a.archived
-                  ? { label: 'Aktifkan kembali', icon: ArchiveRestore, onSelect: () => notify(`${a.name} diaktifkan`, updateAccount(a.id, { archived: false }, 'Aktifkan akun')) }
-                  : { label: 'Arsipkan', icon: Archive, onSelect: () => notify(`${a.name} diarsipkan`, updateAccount(a.id, { archived: true }, 'Arsipkan akun')) },
+                  ? {
+                      label: 'Aktifkan kembali',
+                      icon: ArchiveRestore,
+                      onSelect: () => {
+                        const hid = updateAccount(a.id, { archived: false }, 'Aktifkan akun');
+                        if (hid) notify(`${a.name} diaktifkan`, hid);
+                      },
+                    }
+                  : {
+                      label: 'Arsipkan',
+                      icon: Archive,
+                      onSelect: () => {
+                        const hid = updateAccount(a.id, { archived: true }, 'Arsipkan akun');
+                        if (hid) notify(`${a.name} diarsipkan`, hid);
+                      },
+                    },
               ]}
               trigger={(p) => (
-                <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label="Menu akun">
+                <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-haspopup={p['aria-haspopup']} aria-label="Menu akun">
                   <Ellipsis />
                 </button>
               )}
@@ -169,7 +185,7 @@ export default function Wallets() {
 
       {active.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Wallet} title="Belum ada dompet" text="Tambahkan kas, rekening bank, atau dompet digital untuk mulai mencatat." action={<Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>Tambah akun</Button>} />
+          <EmptyState heading="h2" icon={Wallet} title="Belum ada dompet" text="Tambahkan kas, rekening bank, atau dompet digital untuk mulai mencatat." action={<Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>Tambah akun</Button>} />
         </div>
       ) : (
         <div className="wallet-grid">
@@ -186,10 +202,12 @@ export default function Wallets() {
 
       {archived.length > 0 && (
         <section className="wallet-group">
-          <button type="button" className="wg-head toggle" onClick={() => setShowArchived((v) => !v)}>
-            <h3>Diarsipkan ({archived.length})</h3>
-            <ChevronDown size={16} style={{ transform: showArchived ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
-          </button>
+          <h2 className="wg-head-wrap">
+            <button type="button" className="wg-head toggle" aria-expanded={showArchived} onClick={() => setShowArchived((v) => !v)}>
+              <span>Diarsipkan ({archived.length})</span>
+              <ChevronDown size={16} aria-hidden style={{ transform: showArchived ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
+            </button>
+          </h2>
           {showArchived && <div className="wallet-grid">{archived.map(card)}</div>}
         </section>
       )}

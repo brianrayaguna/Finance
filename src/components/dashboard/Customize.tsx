@@ -183,7 +183,15 @@ export function WidgetFrame({
               })),
             ]}
             trigger={(p) => (
-              <button type="button" className="w-tool w-size" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-label={`Ukuran ${meta.title}: ${SIZE_LABEL[size]}`}>
+              <button
+                type="button"
+                className="w-tool w-size"
+                ref={p.ref}
+                onClick={p.onClick}
+                aria-haspopup={p['aria-haspopup']}
+                aria-expanded={p['aria-expanded']}
+                aria-label={`Ukuran ${meta.title}: ${SIZE_LABEL[size]}`}
+              >
                 {SIZE_LABEL[size]}
                 <ChevronDown aria-hidden />
               </button>
@@ -213,11 +221,11 @@ function SettingsButton({ id, layout, update }: { id: WidgetId; layout: DashLayo
   return (
     <>
       <Tooltip label="Pengaturan">
-        <button type="button" ref={ref} className={`w-tool${open ? ' on' : ''}`} onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={`Pengaturan ${meta.title}`}>
+        <button type="button" ref={ref} className={`w-tool${open ? ' on' : ''}`} onClick={() => setOpen((v) => !v)} aria-haspopup="dialog" aria-expanded={open} aria-label={`Pengaturan ${meta.title}`}>
           <SlidersHorizontal aria-hidden />
         </button>
       </Tooltip>
-      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={290} autoFocus>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={290} autoFocus ariaLabel={`Pengaturan ${meta.title}`}>
         <WidgetSettings id={id} layout={layout} update={update} />
       </Popover>
     </>
@@ -334,7 +342,7 @@ export function GallerySheet({
         <div className="dsh-head">
           <IconTile icon={LayoutDashboard} color="var(--accent-ink)" solid />
           <div className="grow" style={{ minWidth: 0 }}>
-            <div className="modal-title">Widget & tata letak</div>
+            <h2 className="modal-title">Widget & tata letak</h2>
             <div className="muted" style={{ fontSize: 13 }}>
               {layout.order.length} dari {Object.keys(WIDGETS).length} widget ditampilkan
             </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FileSpreadsheet,
@@ -106,7 +106,7 @@ export default function Reports() {
   };
 
   return (
-    <div>
+    <div className="reports-page">
       <PageHeader
         title="Laporan Keuangan"
         subtitle={`${b.data.profile.entityName || 'Buku keuangan'} · ${periodLabel(from, asOf)}`}
@@ -126,9 +126,9 @@ export default function Reports() {
       />
 
       <div className="reports-layout">
-        <nav className="card report-nav no-print">
+        <nav className="card report-nav no-print" aria-label="Daftar laporan">
           {REPORTS.map((r) => (
-            <button key={r.key} type="button" className={`rn-item${r.key === key ? ' active' : ''}`} onClick={() => select(r.key)}>
+            <button key={r.key} type="button" className={`rn-item${r.key === key ? ' active' : ''}`} aria-current={r.key === key ? 'page' : undefined} onClick={() => select(r.key)}>
               {r.key === key && <motion.span layoutId="rn-pill" className="rn-pill" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
               <r.icon />
               <span className="col" style={{ minWidth: 0 }}>
@@ -155,9 +155,11 @@ export default function Reports() {
                   Semua uji keseimbangan lolos
                 </Badge>
               ) : (
-                <Badge tone="neg" icon={TriangleAlert}>
-                  {report.checks.filter((c) => !c.ok).length} uji keseimbangan gagal — periksa Pengaturan › Integritas buku
-                </Badge>
+                <Link to="/pengaturan#integritas" className="badge-link">
+                  <Badge tone="neg" icon={TriangleAlert}>
+                    {report.checks.filter((c) => !c.ok).length} uji keseimbangan gagal — periksa Integritas buku
+                  </Badge>
+                </Link>
               )
             ) : null}
           </div>
@@ -187,14 +189,14 @@ function RatiosView({ list, from, to, entity }: { list: Ratio[]; from: string; t
     <div className="paper ratios-paper">
       <div className="paper-head">
         <div className="ph-entity">{entity}</div>
-        <div className="ph-title">Analisis Rasio Keuangan</div>
+        <h2 className="ph-title">Analisis Rasio Keuangan</h2>
         <div className="ph-period">
           Periode {formatDate(from, 'long')} – {formatDate(to, 'long')}
         </div>
       </div>
       {groups.map((g) => (
         <div key={g} className="ratio-group">
-          <h4>{g}</h4>
+          <h3>{g}</h3>
           <div className="ratio-grid">
             {list
               .filter((r) => r.group === g)
@@ -302,6 +304,7 @@ function PackModal({ onClose, initialPeriod }: { onClose: () => void; initialPer
             size="sm"
             value={mode}
             onChange={setPreset}
+            ariaLabel="Preset paket laporan"
             options={[
               { value: 'all', label: 'Lengkap' },
               { value: 'main', label: 'Laporan utama' },

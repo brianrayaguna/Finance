@@ -8,6 +8,7 @@ import { usePrefs, useUI } from '../../store/ui';
 import { useGlobalHotkeys } from '../../app/hotkeys';
 import { navLabel } from '../../app/nav';
 import { useLayer } from '../../lib/layers';
+import { scrollBehavior } from '../../lib/focus';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const collapsed = usePrefs((s) => s.sidebarCollapsed);
@@ -37,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const id = decodeURIComponent(hash.slice(1));
     const t = window.setTimeout(() => {
       const el = document.getElementById(id) ?? document.getElementById(`set-${id}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: id === 'integritas' ? 'center' : 'start' });
+      el?.scrollIntoView({ behavior: scrollBehavior(), block: id === 'integritas' ? 'center' : 'start' });
     }, 360);
     return () => window.clearTimeout(t);
   }, [pathname, hash]);
@@ -50,6 +51,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
   return (
     <div className={`app${collapsed ? ' collapsed' : ''}${mobileNav ? ' nav-open' : ''}`}>
+      <a href="#main-content" className="skip-link no-print">
+        Lewati ke konten utama
+      </a>
       <Sidebar />
       <AnimatePresence>
         {mobileNav && (
@@ -64,7 +68,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </AnimatePresence>
       <div className="main">
         <Topbar />
-        <main className="page">{children}</main>
+        <main id="main-content" tabIndex={-1} className="page">
+          {children}
+        </main>
       </div>
       <TabBar />
     </div>

@@ -1114,15 +1114,27 @@ export function budgetReport(b: Books, p: Period, entityName: string): Report {
   rows.push(...bRows);
   const tb = bRows.reduce((s, r) => s + (r.values[0] ?? 0), 0);
   const ta = bRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
-  rows.push(row('st-b', 'Jumlah Beranggaran', 'subtotal', [tb, ta, tb - ta, tb ? round2((ta / tb) * 100) : 0], 0));
+  rows.push(
+    row('st-b', 'Jumlah Beranggaran', 'subtotal', [tb, ta, tb - ta, tb ? round2((ta / tb) * 100) : 0], 0, {
+      formula: { plus: bRows.map((r) => r.key) },
+    }),
+  );
   if (extra.length) {
     rows.push(row('b1', '', 'blank', [null, null, null, null]));
     rows.push(row('sec-u', 'TANPA ANGGARAN', 'section', [null, null, null, null]));
     const uRows = extra.map((x) => row('u-' + x.a.id, x.a.name, 'account', [0, x.v, -x.v, null], 1, { code: x.a.code }));
     rows.push(...uRows);
     const tu = uRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
-    rows.push(row('st-u', 'Jumlah Tanpa Anggaran', 'subtotal', [0, tu, -tu, null], 0));
-    rows.push(row('t-all', 'JUMLAH BEBAN', 'grandtotal', [tb, ta + tu, tb - ta - tu, tb ? round2(((ta + tu) / tb) * 100) : null], 0));
+    rows.push(
+      row('st-u', 'Jumlah Tanpa Anggaran', 'subtotal', [0, tu, -tu, null], 0, {
+        formula: { plus: uRows.map((r) => r.key) },
+      }),
+    );
+    rows.push(
+      row('t-all', 'JUMLAH BEBAN', 'grandtotal', [tb, ta + tu, tb - ta - tu, tb ? round2(((ta + tu) / tb) * 100) : null], 0, {
+        formula: { plus: ['st-b', 'st-u'] },
+      }),
+    );
   }
   return {
     id: 'budget',

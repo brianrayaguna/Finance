@@ -24,8 +24,11 @@ interface PopoverProps {
   style?: CSSProperties;
   closeOnOutside?: boolean;
   role?: string;
-  /** Pindahkan fokus ke kontrol pertama saat dibuka dan kembalikan ke pemicu saat ditutup */
+  ariaLabel?: string;
+  /** Pindahkan fokus ke kontrol pertama saat dibuka */
   autoFocus?: boolean;
+  /** Kembalikan fokus ke pemicu saat popover ditutup */
+  returnFocus?: boolean;
 }
 
 export function Popover({
@@ -41,7 +44,9 @@ export function Popover({
   style,
   closeOnOutside = true,
   role = 'dialog',
+  ariaLabel,
   autoFocus = false,
+  returnFocus = true,
 }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; origin: string; w?: number } | null>(null);
@@ -102,16 +107,22 @@ export function Popover({
   }, [open, place]);
 
   useEffect(() => {
-    if (!open || !autoFocus) return;
-    const t = requestAnimationFrame(() =>
-      ref.current?.querySelector<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus(),
-    );
+    if (!open) return;
+    let t = 0;
+    if (autoFocus) {
+      t = requestAnimationFrame(() =>
+        ref.current?.querySelector<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus(),
+      );
+    }
     return () => {
-      cancelAnimationFrame(t);
+      if (t) cancelAnimationFrame(t);
+      if (!returnFocus) return;
       const a = document.activeElement;
-      if ('current' in anchor && (!a || a === document.body || ref.current?.contains(a))) anchor.current?.focus();
+      if ('current' in anchor && anchor.current?.isConnected && (!a || a === document.body || ref.current?.contains(a))) {
+        anchor.current.focus();
+      }
     };
-  }, [open, autoFocus, anchor]);
+  }, [open, autoFocus, returnFocus, anchor]);
 
   useEffect(() => {
     if (!open) return;
@@ -147,6 +158,7 @@ export function Popover({
         <motion.div
           ref={ref}
           role={role}
+          aria-label={ariaLabel}
           className={`popover ${className}`}
           style={{
             top: pos?.top ?? -9999,
@@ -306,7 +318,7 @@ export function MenuList({
         ),
       )}
       {sub !== null && items[sub]?.submenu && (
-        <Popover open onClose={closeSub} anchor={subAnchor} placement="right-start" offset={6} minWidth={200} role="none" className={popClassName}>
+        <Popover open onClose={closeSub} anchor={subAnchor} placement="right-start" offset={6} minWidth={200} role="none" returnFocus={false} className={popClassName}>
           <MenuList
             items={items[sub].submenu!}
             onClose={() => {
@@ -329,7 +341,7 @@ export function Menu({
   minWidth = 210,
   className,
 }: {
-  trigger: (props: { ref: RefObject<HTMLButtonElement | null>; onClick: (e: React.MouseEvent) => void; 'aria-expanded': boolean }) => ReactNode;
+  trigger: (props: { ref: RefObject<HTMLButtonElement | null>; onClick: (e: React.MouseEvent) => void; 'aria-expanded': boolean; 'aria-haspopup': 'menu' }) => ReactNode;
   items: MenuItem[];
   placement?: PopoverProps['placement'];
   minWidth?: number;
@@ -347,6 +359,7 @@ export function Menu({
           setOpen((v) => !v);
         },
         'aria-expanded': open,
+        'aria-haspopup': 'menu' as const,
       })}
       <Popover open={open} onClose={close} anchor={ref} placement={placement} minWidth={minWidth} role="none" className={className}>
         <MenuList items={items} onClose={close} popClassName={className} />
