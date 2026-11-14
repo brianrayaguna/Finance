@@ -43,9 +43,9 @@
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 24px;
-  --fs-xs: 12px;
-  --fs-sm: 13px;
-  --fs-md: 14px;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.875rem;
 
   /* Warna merek tetap */
   --brand-ink: #163300;

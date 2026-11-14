@@ -23,6 +23,7 @@
 .app {
   --sw: var(--sidebar-w);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 .app.collapsed {
   --sw: var(--sidebar-w-collapsed);
@@ -158,9 +159,9 @@
   flex: 1;
   margin: 0;
 }
-.sb-primary {
-  font-weight: 600 !important;
-  color: var(--text) !important;
+.sb-item.sb-primary {
+  font-weight: 600;
+  color: var(--text);
 }
 .sb-plus {
   display: grid;
@@ -174,9 +175,9 @@
   background: var(--accent);
   transition: transform var(--dur-3) var(--ease-spring);
 }
-.sb-plus .fi {
-  font-size: var(--icon-xs) !important;
-  color: inherit !important;
+.sb-item .sb-plus .fi {
+  font-size: var(--icon-xs);
+  color: inherit;
 }
 .sb-primary:hover .sb-plus {
   transform: rotate(90deg);
@@ -689,6 +690,7 @@
   position: relative;
   margin-left: var(--sw);
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--canvas);
@@ -785,9 +787,9 @@
   flex: none;
 }
 /* Cari & Catat di bilah atas hanya saat sidebar tersembunyi */
-.tb-search-icon,
-.tb-record {
-  display: none !important;
+.tb-search-icon.tb-btn,
+.tb-record.btn {
+  display: none;
 }
 /* Lonceng pengingat */
 .tb-bell {
@@ -1110,11 +1112,11 @@
   .tb-logo {
     display: block;
   }
-  .tb-search-icon {
-    display: grid !important;
+  .tb-search-icon.tb-btn {
+    display: grid;
   }
-  .tb-record {
-    display: flex !important;
+  .tb-record.btn {
+    display: flex;
   }
   .nav-scrim {
     position: fixed;
@@ -1149,8 +1151,8 @@
 }
 @media (max-width: 760px) {
   .tb-btn.tb-menu,
-  .tb-record {
-    display: none !important;
+  .tb-record.btn {
+    display: none;
   }
   .crumbs li:not(.current) {
     display: none;
@@ -1229,7 +1231,7 @@
     font-size: 24px;
   }
   .toast-stack {
-    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 640px) {
@@ -1249,8 +1251,8 @@
   .page-actions {
     width: 100%;
   }
-  .tb-undo-group {
-    display: none !important;
+  .tb-cluster.tb-undo-group {
+    display: none;
   }
 }
 

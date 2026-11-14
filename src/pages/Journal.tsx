@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Download, NotebookPen, CircleCheck, TriangleAlert, Lock } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
@@ -20,12 +20,25 @@ export default function Journal() {
   const today = useToday();
   const nav = useNavigate();
   const [params] = useSearchParams();
+  const cari = params.get('cari');
+  const prevCari = useRef(cari);
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
   const [tab, setTab] = useState<'general' | 'closing'>('general');
-  const [q, setQ] = useState(params.get('cari') ?? '');
+  const [q, setQ] = useState(cari ?? '');
   const [src, setSrc] = useState<Src>('all');
-  const [period, setPeriod] = useState<PeriodValue>(() => resolvePreset(params.get('cari') ? 'all' : 'this_month', b.fyStartMonth, today));
+  const [period, setPeriod] = useState<PeriodValue>(() => resolvePreset(cari ? 'all' : 'this_month', b.fyStartMonth, today));
+
+  useEffect(() => {
+    if (cari === prevCari.current) return;
+    prevCari.current = cari;
+    setQ(cari ?? '');
+    if (cari) {
+      setTab('general');
+      setSrc('all');
+      setPeriod(resolvePreset('all', b.fyStartMonth, today));
+    }
+  }, [cari, b.fyStartMonth, today]);
   const [closingPeriod, setClosingPeriod] = useState<PeriodValue>(() => resolvePreset('fiscal_year', b.fyStartMonth, today));
   const [limit, setLimit] = useState(PAGE);
   const [exporting, setExporting] = useState(false);

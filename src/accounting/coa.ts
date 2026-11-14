@@ -105,7 +105,10 @@ export function nextCode(accounts: Account[], subtype: AccountSubtype): string {
     const c = formatCode(n);
     if (!used.has(c)) return c;
   }
-  return formatCode(base) + '-' + (accounts.length + 1);
+  const prefix = formatCode(base);
+  let suffix = accounts.length + 1;
+  while (used.has(`${prefix}-${suffix}`)) suffix++;
+  return `${prefix}-${suffix}`;
 }
 
 const T = 1700000000000;

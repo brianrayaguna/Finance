@@ -4,6 +4,7 @@ import { Popover } from './Popover';
 import { IconTile, useFieldCtx } from './primitives';
 import { normalize } from '../../lib/format';
 import { focusNext } from '../../lib/focus';
+import { isImeComposing } from '../../lib/layers';
 
 export interface SelectOption<T extends string = string> {
   value: T;
@@ -152,6 +153,7 @@ export function Select<T extends string>({
         }
         break;
       case 'Enter':
+        if (isImeComposing(e)) return;
         if (e.metaKey || e.ctrlKey) {
           setOpen(false);
           setQ('');

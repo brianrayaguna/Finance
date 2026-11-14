@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Glyph } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { normalize } from '../../lib/format';
+import { isImeComposing } from '../../lib/layers';
 import { useFieldCtx } from './primitives';
 
 export interface Suggestion {
@@ -96,7 +97,7 @@ export function AutoComplete({
           setActive(-1);
         }}
         onKeyDown={(e) => {
-          if (!open) return;
+          if (!open || isImeComposing(e)) return;
           if (e.key === 'ArrowDown') {
             e.preventDefault();
             setActive((a) => (a + 1) % list.length);

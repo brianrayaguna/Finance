@@ -43,9 +43,14 @@ function TabbedCard({ id, tabs }: { id: string; tabs: TabDef[] }) {
     }
   };
   const onKey = (e: KeyboardEvent, i: number) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    let nextIdx: number | null = null;
+    if (e.key === 'ArrowRight') nextIdx = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') nextIdx = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') nextIdx = 0;
+    else if (e.key === 'End') nextIdx = tabs.length - 1;
+    if (nextIdx === null) return;
     e.preventDefault();
-    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+    const next = tabs[nextIdx];
     pick(next.key);
     document.getElementById(`${uid}-tab-${next.key}`)?.focus();
   };

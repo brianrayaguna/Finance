@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import { Plus, Boxes, Ellipsis, Pencil, Trash2, CalendarRange, BadgeDollarSign, Undo2 } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { addAsset, deleteAsset, updateAsset, useData } from '../store/data';
-import { confirm } from '../store/ui';
+import { confirm, usePrefs } from '../store/ui';
 import { notify } from '../store/history';
 import { accumulatedAt, depreciationSchedule, disposalStop } from '../accounting/engine';
 import { isLocked } from '../accounting/lock';
 import type { DepreciationMethod, FixedAsset } from '../accounting/types';
-import { addDays, endOfMonth, formatDate, formatMoney, round2, todayISO } from '../lib/format';
-import { rowAction } from '../lib/focus';
+import { addDays, endOfMonth, formatDate, formatMoney, round2 } from '../lib/format';
+import { useSubmitRef } from '../lib/focus';
+import { isImeComposing } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Progress, Switch, TextInput, TableWrap } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
@@ -38,16 +39,19 @@ export default function Assets() {
         .map((a) => {
           // Per hari ini — sama dengan Neraca & Buku Besar (penyusutan diposting setiap akhir bulan).
           const stop = disposalStop(a);
-          const acc = accumulatedAt(a, stop ?? today);
-          const book = round2(a.cost - acc);
-          const fully = a.depreciable !== false && book - a.residualValue <= 0.005;
-          const monthDep = depreciationSchedule(a).find((r) => r.period === today.slice(0, 7))?.amount ?? 0;
-          return { a, acc, book, fully, disposed: !!stop, monthDep: stop ? 0 : monthDep, account: b.acc.get(a.accountId) };
+          const future = a.acquisitionDate > today;
+          const disposedByToday = !!(stop && stop <= today);
+          const scheduledDisposal = !!(stop && stop > today);
+          const acc = future ? 0 : accumulatedAt(a, disposedByToday ? stop! : today);
+          const book = future ? 0 : round2(a.cost - acc);
+          const fully = a.depreciable !== false && !future && book - a.residualValue <= 0.005;
+          const monthDep = future || disposedByToday ? 0 : depreciationSchedule(a).find((r) => r.period === today.slice(0, 7))?.amount ?? 0;
+          return { a, acc, book, fully, future, disposed: disposedByToday, scheduledDisposal, monthDep, account: b.acc.get(a.accountId) };
         })
         .sort((x, y) => (x.a.acquisitionDate < y.a.acquisitionDate ? 1 : -1)),
     [b, today],
   );
-  const active = rows.filter((r) => !r.disposed);
+  const active = rows.filter((r) => !r.disposed && !r.future);
   const tot = {
     cost: active.reduce((s, r) => s + r.a.cost, 0),
     acc: active.reduce((s, r) => s + r.acc, 0),
@@ -122,15 +126,26 @@ export default function Assets() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ a, acc, book, fully, account }) => {
+                {rows.map(({ a, acc, book, fully, future, disposed, scheduledDisposal, account }) => {
                   const base = a.cost - a.residualValue;
                   return (
-                    <tr key={a.id} className="clickable asset-row" {...rowAction(() => setSched(a))}>
+                    <tr key={a.id} className="clickable asset-row" onClick={() => setSched(a)}>
                       <td>
                         <div className="row">
                           <IconTile icon={account?.icon} color={account?.color} size="sm" />
                           <div className="col" style={{ minWidth: 0 }}>
-                            <strong className="truncate" style={{ maxWidth: 240 }}>{a.name}</strong>
+                            <button
+                              type="button"
+                              className="row-link truncate"
+                              style={{ maxWidth: 240, fontWeight: 650 }}
+                              aria-label={`Jadwal penyusutan ${a.name}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSched(a);
+                              }}
+                            >
+                              {a.name}
+                            </button>
                             <span className="muted" style={{ fontSize: 12 }}>
                               {account?.name} · {a.ref}
                             </span>
@@ -163,14 +178,16 @@ export default function Assets() {
                         {a.depreciable === false ? <span className="muted">—</span> : <Progress value={base > 0 ? acc / base : 1} thin color={account?.color} label={`${a.name} tersusutkan`} />}
                       </td>
                       <td>
-                        {a.disposal ? (
-                          <Badge>Dilepas {formatDate(a.disposal.date)}</Badge>
+                        {disposed ? (
+                          <Badge>Dilepas {formatDate(a.disposal!.date)}</Badge>
+                        ) : scheduledDisposal ? (
+                          <Badge tone="warn">Dijadwalkan dilepas {formatDate(a.disposal!.date)}</Badge>
+                        ) : future ? (
+                          <Badge tone="warn">Belum berlaku</Badge>
                         ) : a.depreciable === false ? (
                           <Badge tone="info">Tidak disusutkan</Badge>
                         ) : fully ? (
                           <Badge tone="info">Habis disusutkan</Badge>
-                        ) : a.acquisitionDate > today ? (
-                          <Badge tone="warn">Belum berlaku</Badge>
                         ) : (
                           <Badge tone="pos" dot>
                             Aktif
@@ -219,6 +236,7 @@ export default function Assets() {
 
 function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () => void }) {
   const b = useBooks();
+  const today = useToday();
   const lockDate = useData((st) => st.data.profile.lockDate);
   const wallets = useWalletOptions(false, editing?.paidFromAccountId ? [editing.paidFromAccountId] : undefined);
   const assetAccounts = b.accounts
@@ -226,7 +244,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
     .map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color, sub: a.code }));
   const [name, setName] = useState(editing?.name ?? '');
   const [accountId, setAccountId] = useState(editing?.accountId ?? assetAccounts[0]?.value ?? '');
-  const [date, setDate] = useState(editing?.acquisitionDate ?? todayISO());
+  const [date, setDate] = useState(editing?.acquisitionDate ?? today);
   const [cost, setCost] = useState<number | null>(editing?.cost ?? null);
   const [residual, setResidual] = useState<number | null>(editing?.residualValue ?? null);
   const [life, setLife] = useState(String(editing?.usefulLifeMonths ?? 48));
@@ -281,6 +299,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
     onClose();
   };
 
+  const submitRef = useSubmitRef(submit);
   return (
     <Modal
       open
@@ -293,7 +312,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
           <span className="hint">{monthly > 0 && `≈ ${formatMoney(monthly)} / bulan (garis lurus)`}</span>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit}>
+          <Button variant="primary" onClick={() => submitRef.run()}>
             {editing ? 'Simpan' : 'Tambahkan aset'}
           </Button>
         </>
@@ -304,7 +323,10 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
         style={{ marginTop: 4 }}
         data-form
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
+          if (!isImeComposing(e) && e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            submitRef.runFrom(e.target);
+          }
         }}
       >
         <Field label="Nama aset" error={tried && errs.name} className="span-2">
@@ -385,7 +407,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
 
 function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => void }) {
   const [mode, setMode] = useState<'year' | 'month'>('year');
-  const today = todayISO();
+  const today = useToday();
   const rows = depreciationSchedule(asset);
   const stop = disposalStop(asset);
   const years = useMemo(() => {
@@ -401,8 +423,22 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
     }
     return [...m.entries()];
   }, [rows, stop]);
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   return (
-    <Modal open onClose={onClose} size="lg" title="Jadwal penyusutan" subtitle={asset.depreciable === false ? `${asset.name} · ${formatMoney(asset.cost)} · tidak disusutkan` : `${asset.name} · ${formatMoney(asset.cost)} · ${lifeLabel(asset.usefulLifeMonths)} · ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`}
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      title="Jadwal penyusutan"
+      subtitle={
+        asset.depreciable === false
+          ? hideAmounts
+            ? `${asset.name} · tidak disusutkan`
+            : `${asset.name} · ${formatMoney(asset.cost)} · tidak disusutkan`
+          : hideAmounts
+            ? `${asset.name} · ${lifeLabel(asset.usefulLifeMonths)} · ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`
+            : `${asset.name} · ${formatMoney(asset.cost)} · ${lifeLabel(asset.usefulLifeMonths)} · ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`
+      }
       headerExtra={<Segmented size="sm" value={mode} onChange={setMode} ariaLabel="Periode jadwal penyusutan" options={[{ value: 'year', label: 'Tahunan' }, { value: 'month', label: 'Bulanan' }]} />}
     >
       {asset.depreciable === false && <p className="muted" style={{ margin: '4px 0 0' }}>Aset ini tidak disusutkan, sehingga tidak ada jadwal penyusutan.</p>}
@@ -423,9 +459,9 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
                 ? years.map(([y, e]) => (
                     <tr key={y}>
                       <td>{y}</td>
-                      <td className="r num">{formatMoney(e.amount, { symbol: false })}</td>
-                      <td className="r num">{formatMoney(e.acc, { symbol: false })}</td>
-                      <td className="r num">{formatMoney(e.book, { symbol: false })}</td>
+                      <td className="r num money-val">{formatMoney(e.amount, { symbol: false })}</td>
+                      <td className="r num money-val">{formatMoney(e.acc, { symbol: false })}</td>
+                      <td className="r num money-val">{formatMoney(e.book, { symbol: false })}</td>
                       <td>{y < today.slice(0, 4) ? <Badge tone="pos">Terposting</Badge> : y === today.slice(0, 4) ? <Badge tone="accent">Berjalan</Badge> : <Badge>Mendatang</Badge>}</td>
                     </tr>
                   ))
@@ -434,9 +470,9 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
                     return (
                       <tr key={r.period} style={!posted ? { opacity: 0.55 } : undefined}>
                         <td>{formatDate(r.date)}</td>
-                        <td className="r num">{formatMoney(r.amount, { symbol: false })}</td>
-                        <td className="r num">{formatMoney(r.accumulated, { symbol: false })}</td>
-                        <td className="r num">{formatMoney(r.book, { symbol: false })}</td>
+                        <td className="r num money-val">{formatMoney(r.amount, { symbol: false })}</td>
+                        <td className="r num money-val">{formatMoney(r.accumulated, { symbol: false })}</td>
+                        <td className="r num money-val">{formatMoney(r.book, { symbol: false })}</td>
                         <td>{stop && r.date >= stop ? <Badge>Dihentikan</Badge> : posted ? <Badge tone="pos">Terposting</Badge> : <Badge>Mendatang</Badge>}</td>
                       </tr>
                     );
@@ -451,7 +487,7 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
 
 function DisposeModal({ asset, onClose }: { asset: FixedAsset; onClose: () => void }) {
   const wallets = useWalletOptions(false, asset.paidFromAccountId ? [asset.paidFromAccountId] : undefined);
-  const today = todayISO();
+  const today = useToday();
   const [date, setDate] = useState(today);
   const [proceeds, setProceeds] = useState<number | null>(null);
   const [wallet, setWallet] = useState(asset.paidFromAccountId ?? wallets[0]?.value ?? '');
@@ -476,6 +512,7 @@ function DisposeModal({ asset, onClose }: { asset: FixedAsset; onClose: () => vo
     notify(`${asset.name} dilepas`, hid);
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
   return (
     <Modal
       open
@@ -487,13 +524,22 @@ function DisposeModal({ asset, onClose }: { asset: FixedAsset; onClose: () => vo
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit} disabled={invalid}>
+          <Button variant="primary" onClick={() => submitRef.run()} disabled={invalid}>
             Catat pelepasan
           </Button>
         </>
       }
     >
-      <div className="stack">
+      <div
+        className="stack"
+        data-form
+        onKeyDown={(e) => {
+          if (!isImeComposing(e) && e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+            e.preventDefault();
+            submitRef.runFrom(e.target);
+          }
+        }}
+      >
         <Field label="Tanggal pelepasan" error={dateErr}>
           <DatePicker value={date} onChange={setDate} min={effectiveMin} max={today >= effectiveMin ? today : undefined} invalid={!!dateErr} />
         </Field>
@@ -509,7 +555,7 @@ function DisposeModal({ asset, onClose }: { asset: FixedAsset; onClose: () => vo
         </div>
         <div className={`recon-diff ${gain > 0 ? 'up' : gain < 0 ? 'down' : ''}`}>
           <span>{gain >= 0 ? 'Laba pelepasan' : 'Rugi pelepasan'}</span>
-          <strong className="num">{formatMoney(Math.abs(gain))}</strong>
+          <strong className="num money-val">{formatMoney(Math.abs(gain))}</strong>
         </div>
       </div>
     </Modal>

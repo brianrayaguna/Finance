@@ -15,11 +15,14 @@ export function useGlobalHotkeys() {
       const ui = useUI.getState();
       const prefs = usePrefs.getState();
 
+      if (e.isComposing || e.keyCode === 229) return;
       if (mod && k === 'k') {
+        if (layerCount() > 0 && !ui.palette) return;
         e.preventDefault();
         ui.setPalette(!ui.palette);
         return;
       }
+      if (layerCount() > 0) return;
       if (mod && (k === 'b' || k === '\\') && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         if (window.matchMedia('(max-width: 960px)').matches) ui.setMobileNav(!ui.mobileNav);
@@ -33,7 +36,7 @@ export function useGlobalHotkeys() {
         nav('/pengaturan');
         return;
       }
-      if (typing || layerCount() > 0) return;
+      if (typing) return;
 
       if (mod && k === 'z') {
         e.preventDefault();

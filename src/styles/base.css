@@ -10,8 +10,12 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  scroll-behavior: smooth;
   scroll-padding-top: calc(var(--topbar-h) + 12px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion='reduce']) {
+    scroll-behavior: smooth;
+  }
 }
 
 html,
@@ -247,10 +251,19 @@ textarea:focus-visible {
 .privacy button:focus-visible .money-val,
 .privacy a:focus-visible .money-val,
 .privacy .clickable:focus-visible .money-val,
-.privacy .tx-row:focus-visible .money-val,
-.privacy .debt-row:focus-visible .money-val,
-.privacy .wallet-card:focus-visible .money-val,
-.privacy .budget-card:focus-visible .money-val,
+.privacy .clickable:has(.row-link:focus-visible) .money-val,
+.privacy .tx-row:has(.tx-trigger:focus-visible) .money-val,
+.privacy .debt-row:has(.row-link:focus-visible) .money-val,
+.privacy .wallet-card:has(.row-link:focus-visible) .money-val,
+.privacy .budget-card:has(.row-link:focus-visible) .money-val,
 .privacy .je-block:focus-visible .money-val {
   filter: blur(0);
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
 }

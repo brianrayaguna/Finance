@@ -6,6 +6,8 @@ import { upsertBudget, deleteBudget, useData } from '../store/data';
 import { notify } from '../store/history';
 import { activity, budgetVsActual, type BudgetLine } from '../accounting/reports';
 import { addMonths, endOfMonth, formatMoney, formatMonth, formatPercent, startOfMonth, round2, daysBetween } from '../lib/format';
+import { useSubmitRef } from '../lib/focus';
+import { isImeComposing } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Progress } from '../components/ui/primitives';
 import { MonthSwitcher } from '../components/ui/MonthSwitcher';
@@ -131,19 +133,22 @@ export default function Budgets() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }}
                   onClick={() => setEdit({ categoryId: l.account.id, amount: l.budget })}
-                  tabIndex={0}
-                  aria-label={`Ubah anggaran ${l.account.name}`}
-                  onKeyDown={(e) => {
-                    if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
-                      e.preventDefault();
-                      setEdit({ categoryId: l.account.id, amount: l.budget });
-                    }
-                  }}
                 >
                   <div className="row">
                     <IconTile icon={l.account.icon} color={l.account.color} />
                     <div className="grow" style={{ minWidth: 0 }}>
-                      <div className="truncate" style={{ fontWeight: 620 }}>{l.account.name}</div>
+                      <button
+                        type="button"
+                        className="row-link truncate"
+                        style={{ fontWeight: 620 }}
+                        aria-label={`Ubah anggaran ${l.account.name}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEdit({ categoryId: l.account.id, amount: l.budget });
+                        }}
+                      >
+                        {l.account.name}
+                      </button>
                       <Badge tone={s.tone} icon={s.icon}>
                         {s.label}
                       </Badge>
@@ -279,6 +284,7 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
     notify(`Anggaran ${name} ${formatMoney(amount)}/bulan disimpan`, hid);
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
 
   return (
     <Modal
@@ -291,7 +297,7 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit}>
+          <Button variant="primary" onClick={() => submitRef.run()}>
             Simpan
           </Button>
         </>
@@ -301,9 +307,9 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
         className="stack"
         data-form
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+          if (!isImeComposing(e) && e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
             e.preventDefault();
-            submit();
+            submitRef.runFrom(e.target);
           }
         }}
       >

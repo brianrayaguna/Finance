@@ -18,9 +18,12 @@ import { useUI } from '../store/ui';
 import { addTransaction, updateAccount } from '../store/data';
 import { notify } from '../store/history';
 import { SUBTYPE_META, SYS } from '../accounting/coa';
+import { isLocked } from '../accounting/lock';
 import { accountBalanceSeries, walletBalances } from '../accounting/reports';
 import type { Account } from '../accounting/types';
-import { formatDate, formatMoney, round2, isZero, startOfMonth, todayISO } from '../lib/format';
+import { addDays, formatDate, formatMoney, round2, isZero, startOfMonth } from '../lib/format';
+import { useSubmitRef } from '../lib/focus';
+import { isImeComposing } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { AnimatedMoney, Button, EmptyState, IconTile, Money, Field } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
@@ -52,6 +55,8 @@ export default function Wallets() {
     return m;
   }, [b, today]);
 
+  const byOrder = (x: (typeof list)[number], y: (typeof list)[number]) =>
+    GROUP_ORDER.indexOf(x.account.subtype as (typeof GROUP_ORDER)[number]) - GROUP_ORDER.indexOf(y.account.subtype as (typeof GROUP_ORDER)[number]) || x.account.code.localeCompare(y.account.code);
   const active = list.filter((w) => !w.account.archived);
   const archived = list.filter((w) => w.account.archived);
   const sum = (pred: (a: Account) => boolean) => active.filter((w) => pred(w.account)).reduce((s, w) => s + w.balance, 0);
@@ -75,19 +80,21 @@ export default function Wallets() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03, type: 'spring', stiffness: 300, damping: 28 } }}
         onClick={() => nav(`/buku-besar?akun=${a.id}`)}
-        tabIndex={0}
-        aria-label={`${a.name}: buka buku besar`}
-        onKeyDown={(e) => {
-          if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
-            e.preventDefault();
-            nav(`/buku-besar?akun=${a.id}`);
-          }
-        }}
       >
         <div className="wc-top">
           <IconTile icon={a.icon} color={a.color} solid />
           <div className="grow" style={{ minWidth: 0 }}>
-            <div className="wc-name truncate">{a.name}</div>
+            <button
+              type="button"
+              className="row-link wc-name truncate"
+              aria-label={`${a.name}: buka buku besar`}
+              onClick={(e) => {
+                e.stopPropagation();
+                nav(`/buku-besar?akun=${a.id}`);
+              }}
+            >
+              {a.name}
+            </button>
             <div className="wc-type">
               {SUBTYPE_META[a.subtype].label} · <span className="num">{a.code}</span>
             </div>
@@ -189,9 +196,7 @@ export default function Wallets() {
         </div>
       ) : (
         <div className="wallet-grid">
-          {[...active]
-            .sort((x, y) => GROUP_ORDER.indexOf(x.account.subtype as (typeof GROUP_ORDER)[number]) - GROUP_ORDER.indexOf(y.account.subtype as (typeof GROUP_ORDER)[number]) || x.account.code.localeCompare(y.account.code))
-            .map(card)}
+          {[...active].sort(byOrder).map(card)}
           <button type="button" className="add-tile in-grid" onClick={() => modal.openNew('wallet')}>
             <Plus />
             <span>Tambah akun</span>
@@ -208,7 +213,7 @@ export default function Wallets() {
               <ChevronDown size={16} aria-hidden style={{ transform: showArchived ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
             </button>
           </h2>
-          {showArchived && <div className="wallet-grid">{archived.map(card)}</div>}
+          {showArchived && <div className="wallet-grid">{[...archived].sort(byOrder).map(card)}</div>}
         </section>
       )}
       {modal.node}
@@ -219,16 +224,20 @@ export default function Wallets() {
 
 function ReconcileModal({ account, onClose }: { account: Account; onClose: () => void }) {
   const b = useBooks();
+  const today = useToday();
   const liab = account.subtype === 'credit_card';
-  const [date, setDate] = useState(todayISO());
+  const lockDate = b.data.profile.lockDate;
+  const [date, setDate] = useState(today);
+  const dateLocked = isLocked(date, lockDate);
   // Saldo buku dihitung per TANGGAL PENYESUAIAN yang dipilih, bukan per hari ini.
   // Untuk kartu kredit, "saldo" = jumlah terutang (positif = berhutang).
   const book = useMemo(() => walletBalances(b, date).find((w) => w.account.id === account.id)?.balance ?? 0, [b, date, account.id]);
-  const [actual, setActual] = useState<number | null>(() => walletBalances(b, todayISO()).find((w) => w.account.id === account.id)?.balance ?? 0);
+  const [actual, setActual] = useState<number | null>(() => walletBalances(b, today).find((w) => w.account.id === account.id)?.balance ?? 0);
   const typed = actual ?? 0;
   // selisih dari sudut pandang kekayaan: + = bertambah (pendapatan), − = berkurang (beban)
   const diff = round2(liab ? book - typed : typed - book);
   const submit = () => {
+    if (dateLocked) return;
     if (isZero(diff)) return onClose();
     const gain = diff > 0;
     const { tx, historyId } = addTransaction(
@@ -247,6 +256,7 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
     notify(`Saldo ${account.name} disesuaikan`, historyId, { detail: tx.ref });
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
   return (
     <Modal
       open
@@ -259,13 +269,22 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit}>
+          <Button variant="primary" onClick={() => submitRef.run()} disabled={dateLocked}>
             {isZero(diff) ? 'Sudah sesuai' : 'Catat penyesuaian'}
           </Button>
         </>
       }
     >
-      <div className="stack" data-form onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && (e.preventDefault(), submit())}>
+      <div
+        className="stack"
+        data-form
+        onKeyDown={(e) => {
+          if (!isImeComposing(e) && e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+            e.preventDefault();
+            submitRef.runFrom(e.target);
+          }
+        }}
+      >
         <div className="recon-row">
           <span className="muted">{liab ? 'Tagihan menurut buku' : 'Saldo menurut buku'} per {formatDate(date)}</span>
           <strong className="num money-val">{formatMoney(book)}</strong>
@@ -273,12 +292,12 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
         <Field label={liab ? 'Tagihan aktual (jumlah terutang)' : 'Saldo aktual'} hint={liab ? 'Isi negatif bila ada kelebihan bayar' : undefined}>
           <AmountInput value={actual} onChange={setActual} autoFocus allowNegative />
         </Field>
-        <Field label="Tanggal penyesuaian">
-          <DatePicker value={date} onChange={setDate} />
+        <Field label="Tanggal penyesuaian" error={dateLocked ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci` : undefined}>
+          <DatePicker value={date} onChange={setDate} min={lockDate ? addDays(lockDate, 1) : undefined} invalid={dateLocked} />
         </Field>
         <div className={`recon-diff ${isZero(diff) ? '' : diff > 0 ? 'up' : 'down'}`}>
           <span>Selisih</span>
-          <strong className="num">{formatMoney(diff, { sign: 'always' })}</strong>
+          <strong className="num money-val">{formatMoney(diff, { sign: 'always' })}</strong>
           <span className="muted" style={{ fontSize: 12 }}>
             {isZero(diff) ? 'Tidak ada penyesuaian' : diff > 0 ? '→ Pendapatan Lain-lain' : '→ Beban Lain-lain'}
           </span>

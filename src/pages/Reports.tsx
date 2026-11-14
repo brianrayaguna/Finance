@@ -73,13 +73,13 @@ export default function Reports() {
   const [pack, setPack] = useState(params.get('ekspor') === '1');
 
   useEffect(() => {
-    if (params.get('ekspor')) {
+    if (params.get('ekspor') === '1') {
+      setPack(true);
       const p = new URLSearchParams(params);
       p.delete('ekspor');
       setParams(p, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [params, setParams]);
 
   const meta = REPORTS.find((r) => r.key === key)!;
   const from = period.preset === 'all' ? (b.entries[0]?.date ?? today) : period.from;

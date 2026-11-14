@@ -27,7 +27,8 @@ import {
 } from '../lib/glyphs';
 import { checkIntegrity } from '../accounting/integrity';
 import type { AppData } from '../accounting/types';
-import { useData, updateProfile, replaceData, isValidData, resetAll, getData, normalizeData } from '../store/data';
+import { getData, isValidData, normalizeData, replaceData, resetAll, updateProfile, useData } from '../store/data';
+import { isImeComposing } from '../lib/layers';
 import { buildSampleData } from '../store/sample';
 import {
   usePrefs,
@@ -378,10 +379,10 @@ export default function Settings() {
             <SectionHead title="Profil & buku" desc="Nama tampil di bilah sisi; nama buku tampil di kop setiap laporan." />
             <div className="set-body grid-3" data-form>
               <Field label="Nama Anda">
-                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Nama buku / entitas" hint="Tampil di kop setiap laporan">
-                <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Awal tahun buku">
                 <Select

@@ -96,8 +96,9 @@ export function CashflowChart({
     netNow: d.partial || data[i + 1]?.partial ? d.net : undefined,
   }));
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barGap={3} barCategoryGap="26%">
+    <div role="img" aria-label="Grafik arus kas bulanan" style={{ width: '100%', height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }} barGap={3} barCategoryGap="26%">
         <defs>
           <linearGradient id={`inc-${id}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--chart-inc)" stopOpacity={1} />
@@ -170,6 +171,7 @@ export function CashflowChart({
         )}
       </ComposedChart>
     </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -198,8 +200,9 @@ export function TrendArea({
   const max = Math.max(...values);
   const pad = (max - min) * 0.15 || Math.abs(max) * 0.1 || 1;
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
+    <div role="img" aria-label={label ? `Grafik ${label.toLowerCase()}` : 'Grafik tren'} style={{ width: '100%', height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={`ta-${id}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={color} stopOpacity={inverse ? 0.26 : 0.3} />
@@ -224,6 +227,7 @@ export function TrendArea({
         />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -234,6 +238,7 @@ export function Donut({
   center,
   onHover,
   active,
+  ariaLabel,
 }: {
   data: { id: string; name: string; value: number; color: string }[];
   size?: number;
@@ -241,40 +246,50 @@ export function Donut({
   center?: React.ReactNode;
   onHover?: (id: string | null) => void;
   active?: string | null;
+  ariaLabel?: string;
 }) {
   const r = size / 2;
+  const innerPct = `${Math.max(20, Math.round(((r - thickness) / r) * 100))}%`;
+  const outerPct = `${Math.max(40, Math.round(((r - 2) / r) * 100))}%`;
   const reduce = useReduceMotion();
   return (
-    <div className="donut" style={{ width: size, height: size }}>
-      <PieChart width={size} height={size}>
-        <Pie
-          data={data}
-          dataKey="value"
-          nameKey="name"
-          cx={r}
-          cy={r}
-          innerRadius={r - thickness}
-          outerRadius={r - 2}
-          paddingAngle={data.length > 1 ? 2.2 : 0}
-          cornerRadius={5}
-          stroke="none"
-          startAngle={90}
-          endAngle={-270}
-          isAnimationActive={!reduce}
-          animationDuration={800}
-          onMouseLeave={() => onHover?.(null)}
-        >
-          {data.map((d) => (
-            <Cell
-              key={d.id}
-              fill={d.color}
-              opacity={active && active !== d.id ? 0.28 : 1}
-              style={{ transition: reduce ? 'none' : 'opacity 200ms', cursor: 'pointer', outline: 'none' }}
-              onMouseEnter={() => onHover?.(d.id)}
-            />
-          ))}
-        </Pie>
-      </PieChart>
+    <div
+      className="donut"
+      role="img"
+      aria-label={ariaLabel || `Komposisi: ${data.map((d) => d.name).join(', ')}`}
+      style={{ width: `min(100%, ${size}px)`, aspectRatio: '1 / 1' }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            innerRadius={innerPct}
+            outerRadius={outerPct}
+            paddingAngle={data.length > 1 ? 2.2 : 0}
+            cornerRadius={5}
+            stroke="none"
+            startAngle={90}
+            endAngle={-270}
+            isAnimationActive={!reduce}
+            animationDuration={800}
+            onMouseLeave={() => onHover?.(null)}
+          >
+            {data.map((d) => (
+              <Cell
+                key={d.id}
+                fill={d.color}
+                opacity={active && active !== d.id ? 0.28 : 1}
+                style={{ transition: reduce ? 'none' : 'opacity 200ms', cursor: 'pointer', outline: 'none' }}
+                onMouseEnter={() => onHover?.(d.id)}
+              />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
       {center && <div className="donut-center">{center}</div>}
     </div>
   );
@@ -332,7 +347,7 @@ export function Ring({ value, size = 64, stroke = 7, color = 'var(--bar-accent)'
   const shown = reduce ? target : v;
   return (
     <div className="ring" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--fill-2)" strokeWidth={stroke} />
         <circle
           cx={size / 2}

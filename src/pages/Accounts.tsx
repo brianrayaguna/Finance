@@ -7,7 +7,6 @@ import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/
 import { activity, displayBalances } from '../accounting/reports';
 import type { Account } from '../accounting/types';
 import { formatMoney, normalize, startOfMonth, endOfMonth } from '../lib/format';
-import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, IconTile, TextInput, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -167,13 +166,32 @@ export default function Accounts() {
                     </tr>
                     {list.map((a) => {
                       const v = balOf(a);
+                      const openAcc = () =>
+                        modal.openEdit(
+                          a.type === 'revenue' || a.type === 'expense'
+                            ? 'category'
+                            : ['cash', 'bank', 'ewallet', 'investment', 'credit_card'].includes(a.subtype)
+                              ? 'wallet'
+                              : 'account',
+                          a,
+                        );
                       return (
-                        <tr key={a.id} className={`clickable${a.archived ? ' archived' : ''}`} {...rowAction(() => modal.openEdit(a.type === 'revenue' || a.type === 'expense' ? 'category' : ['cash', 'bank', 'ewallet', 'investment', 'credit_card'].includes(a.subtype) ? 'wallet' : 'account', a))}>
+                        <tr key={a.id} className={`clickable${a.archived ? ' archived' : ''}`} onClick={openAcc}>
                           <td className="code">{a.code}</td>
                           <td>
                             <span className="row">
                               <IconTile icon={a.icon} color={a.color} size="xs" />
-                              <span className="truncate">{a.name}</span>
+                              <button
+                                type="button"
+                                className="row-link truncate"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openAcc();
+                                }}
+                                aria-label={`Ubah ${a.name}`}
+                              >
+                                {a.name}
+                              </button>
                             </span>
                           </td>
                           <td className="muted">{SUBTYPE_META[a.subtype].label}</td>

@@ -26,7 +26,7 @@ import {
 import { ALL_NAV } from '../app/nav';
 import { useData } from '../store/data';
 import { usePrefs, useUI } from '../store/ui';
-import { useLayer } from '../lib/layers';
+import { isImeComposing, useLayer } from '../lib/layers';
 import { formatDate, formatMoney, normalize } from '../lib/format';
 import { TX_META } from '../accounting/engine';
 import { TYPE_LABEL } from '../accounting/coa';
@@ -65,6 +65,7 @@ export function CommandPalette() {
   const setOpen = useUI((s) => s.setPalette);
   const prevFocus = useRef<HTMLElement | null>(null);
   const ranRef = useRef(false);
+  const backdropDown = useRef(false);
   useLayer(open, () => setOpen(false));
 
   useEffect(() => {
@@ -90,7 +91,13 @@ export function CommandPalette() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
-            onMouseDown={() => setOpen(false)}
+            onPointerDown={(e) => {
+              backdropDown.current = e.target === e.currentTarget;
+            }}
+            onClick={(e) => {
+              if (backdropDown.current && e.target === e.currentTarget) setOpen(false);
+              backdropDown.current = false;
+            }}
             style={{ background: 'color-mix(in srgb, var(--overlay) 70%, transparent)' }}
           />
           <motion.div
@@ -220,7 +227,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
           group: 'Transaksi',
           title,
           sub: `${formatDate(t.date)} · ${t.ref}${cat && cat !== title ? ' · ' + cat : ''}`,
-          right: <span className={isIn ? 'pos' : ''}>{formatMoney(t.amount)}</span>,
+          right: <span className={[isIn && 'pos', 'money-val'].filter(Boolean).join(' ')}>{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
           score: s,
@@ -249,7 +256,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
           group: 'Terakhir dicatat',
           title: t.description || catAcc?.name || TX_META[t.type].label,
           sub: `${formatDate(t.date)} · ${t.ref}`,
-          right: formatMoney(t.amount),
+          right: <span className="money-val">{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
           score: 0,
@@ -277,6 +284,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
   const activeItem = items[active];
 
   const onKey = (e: React.KeyboardEvent) => {
+    if (isImeComposing(e)) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActive((a) => Math.min(items.length - 1, a + 1));

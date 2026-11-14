@@ -12,6 +12,8 @@ import { confirm } from '../../store/ui';
 import { notify } from '../../store/history';
 import { useBooks, useToday } from '../../hooks/useApp';
 import { formatDate, formatMoney, formatMonth } from '../../lib/format';
+import { useSubmitRef } from '../../lib/focus';
+import { isImeComposing } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { AmountInput } from '../ui/AmountInput';
 import { DatePicker } from '../ui/DatePicker';
@@ -118,6 +120,7 @@ export function GoalModal({ open, onClose, editing }: { open: boolean; onClose: 
     notify(editing ? `Target ${input.name} diperbarui` : `Target ${input.name} dibuat`, hid);
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
 
   const remove = async () => {
     if (!editing) return;
@@ -152,9 +155,10 @@ export function GoalModal({ open, onClose, editing }: { open: boolean; onClose: 
         className="acc-form"
         data-form
         onKeyDown={(e) => {
+          if (isImeComposing(e)) return;
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || ((e.target as HTMLElement).tagName === 'INPUT' && !(e.target as HTMLElement).closest('.icon-picker')))) {
             e.preventDefault();
-            submit();
+            submitRef.runFrom(e.target);
           }
         }}
       >

@@ -25,7 +25,7 @@ import {
   type Ratio,
 } from '../accounting/reports';
 import { makeDates, makePeriods } from '../accounting/periods';
-import type { JournalEntry, Report, ReportRow, Transaction } from '../accounting/types';
+import type { FixedAsset, JournalEntry, Report, ReportRow, Transaction } from '../accounting/types';
 import { formatDate, periodLabel, todayISO, parseISO, round2 } from '../lib/format';
 
 /* ───────── Style constants ───────── */
@@ -849,9 +849,8 @@ function writeRatios(wb: Workbook, ctx: Ctx, list: Ratio[], from: string, to: st
 }
 
 function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
-  const rows = b.data.assets.map((a) => {
-    const stop = disposalStop(a);
-    const acc = accumulatedAt(a, stop ?? to);
+  type CellVal = string | number | Date | null;
+  const toRow = (a: FixedAsset, acc: number, statusLabel: string): CellVal[] => {
     const nonDep = a.depreciable === false;
     return [
       a.ref,
@@ -864,18 +863,38 @@ function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
       nonDep ? 'Tidak disusutkan' : a.method === 'straight_line' ? 'Garis lurus' : 'Saldo menurun ganda',
       acc,
       round2(a.cost - acc),
-      stop
-        ? `Dilepas ${formatDate(stop)}`
-        : nonDep
-          ? 'Tidak disusutkan'
-          : a.cost - acc - a.residualValue <= 0.005
-            ? 'Habis disusutkan'
-            : a.acquisitionDate > to
-              ? 'Belum berlaku'
-              : 'Aktif',
+      statusLabel,
     ];
-  });
-  return writeTable(
+  };
+
+  const activeRows: CellVal[][] = [];
+  const otherRows: CellVal[][] = [];
+  for (const a of b.data.assets) {
+    const stop = disposalStop(a);
+    const future = a.acquisitionDate > to;
+    const disposedByTo = !!(stop && stop <= to);
+    const nonDep = a.depreciable === false;
+    if (future) {
+      otherRows.push(toRow(a, 0, 'Belum berlaku'));
+      continue;
+    }
+    if (disposedByTo) {
+      const acc = accumulatedAt(a, stop!);
+      otherRows.push(toRow(a, acc, `Dilepas ${formatDate(stop!)}`));
+      continue;
+    }
+    const acc = accumulatedAt(a, to);
+    const statusLabel = stop
+      ? `Dijadwalkan dilepas ${formatDate(stop)}`
+      : nonDep
+        ? 'Tidak disusutkan'
+        : a.cost - acc - a.residualValue <= 0.005
+          ? 'Habis disusutkan'
+          : 'Aktif';
+    activeRows.push(toRow(a, acc, statusLabel));
+  }
+
+  const ws = writeTable(
     wb,
     ctx,
     'Aset Tetap',
@@ -892,11 +911,40 @@ function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
       { header: 'Metode', width: 18 },
       { header: 'Akum. Penyusutan', width: 17, kind: 'money', total: true },
       { header: 'Nilai Buku', width: 17, kind: 'money', total: true },
-      { header: 'Status', width: 18 },
+      { header: 'Status', width: 22 },
     ],
-    rows,
+    activeRows,
     { landscape: true, tab: 'FF8A6546' },
   );
+
+  // Cantumkan aset yang sudah dilepas per `to` atau belum berlaku di bagian terpisah agar tidak menggeser total neraca.
+  if (otherRows.length) {
+    let r = (ws.lastRow?.number ?? 7) + 2;
+    const titleRow = ws.getRow(r);
+    ws.mergeCells(r, 1, r, 11);
+    titleRow.getCell(1).value = 'Aset Telah Dilepas / Belum Berlaku pada Tanggal Laporan (di luar saldo neraca)';
+    titleRow.getCell(1).font = font({ bold: true, italic: true, size: 10, color: { argb: INK_2 } });
+    titleRow.height = 18;
+    r++;
+    for (const vals of otherRows) {
+      const row = ws.getRow(r++);
+      vals.forEach((v, ci) => {
+        const c = row.getCell(ci + 1);
+        c.value = v as ExcelJS.CellValue;
+        c.font = font({ size: 9.5, color: { argb: INK_3 } });
+        c.border = { bottom: hair };
+        if (ci === 3) {
+          c.numFmt = DATE;
+          c.alignment = { horizontal: 'left' };
+        } else if (ci === 4 || ci === 5 || ci === 8 || ci === 9) {
+          c.numFmt = NUM;
+        } else if (ci === 6) {
+          c.numFmt = '#,##0';
+        }
+      });
+    }
+  }
+  return ws;
 }
 
 function writeCoa(wb: Workbook, ctx: Ctx, b: Books, to: string) {

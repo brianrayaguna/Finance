@@ -39,6 +39,7 @@ export default function CalendarPage() {
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
   const weekStart = usePrefs((s) => s.weekStart);
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const [params, setParams] = useSearchParams();
   // ?tanggal=YYYY-MM-DD membuka kalender pada hari tersebut (mis. dari peta panas di dasbor)
   const initial = /^\d{4}-\d{2}-\d{2}$/.test(params.get('tanggal') ?? '') ? params.get('tanggal')! : today;
@@ -234,8 +235,10 @@ export default function CalendarPage() {
                   const wk = isWeekend(d);
                   const labelParts = [formatDate(d, 'full')];
                   if (a?.count) labelParts.push(`${a.count} transaksi`);
-                  if (a && a.inc > 0) labelParts.push(`masuk ${formatMoney(a.inc)}`);
-                  if (a && a.exp > 0) labelParts.push(`keluar ${formatMoney(a.exp)}`);
+                  if (!hideAmounts) {
+                    if (a && a.inc > 0) labelParts.push(`masuk ${formatMoney(a.inc)}`);
+                    if (a && a.exp > 0) labelParts.push(`keluar ${formatMoney(a.exp)}`);
+                  }
                   if (due?.length) labelParts.push(`${due.length} jatuh tempo`);
                   return (
                     <button
@@ -370,6 +373,7 @@ function YearView({
   onPick: (d: string) => void;
 }) {
   const weekStart = usePrefs((s) => s.weekStart);
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const stats = useMemo(() => {
     let max = 0;
     let inc = 0;
@@ -432,9 +436,9 @@ function YearView({
                       type="button"
                       className={`ym-cell lv${lv}${d === today ? ' today' : ''}${dues.has(d) ? ' due' : ''}`}
                       onClick={() => onPick(d)}
-                      title={`${formatDate(d, 'full')} · pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
+                      title={hideAmounts ? formatDate(d, 'full') : `${formatDate(d, 'full')} · pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
                       aria-current={d === today ? 'date' : undefined}
-                      aria-label={`${formatDate(d, 'full')}, pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
+                      aria-label={hideAmounts ? formatDate(d, 'full') : `${formatDate(d, 'full')}, pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
                     />
                   );
                 })}

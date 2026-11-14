@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight, ChevronRight } from '../../lib/glyphs';
 import type { Books, MonthPoint, Position } from '../../accounting/reports';
 import { formatMoney, formatPercent, isZero } from '../../lib/format';
+import { usePrefs } from '../../store/ui';
 import { Sparkline } from '../charts/Charts';
 
 /** Data bersama seluruh widget dasbor (dihitung sekali per bulan terpilih). */
@@ -72,6 +73,7 @@ export function Spark({ values, color }: { values: number[]; color: string }) {
  * Bila periode sebelumnya nol, persentase tidak bermakna — tampilkan selisih rupiah.
  */
 export function Delta({ cur, prev, invert, unit = 'money', compact = true, vs = 'bulan sebelumnya' }: { cur: number; prev: number; invert?: boolean; unit?: 'money' | 'points'; compact?: boolean; vs?: string }) {
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const diff = cur - prev;
   if (isZero(prev) && isZero(cur)) return <span className="delta muted">—</span>;
   if (unit === 'money' ? isZero(diff) : Math.abs(diff) < 0.0005) return <span className="delta muted">Tetap</span>;
@@ -85,10 +87,10 @@ export function Delta({ cur, prev, invert, unit = 'money', compact = true, vs = 
     title = `${up ? 'Naik' : 'Turun'} ${formatPercent(Math.abs(diff))} poin dibanding ${vs}`;
   } else if (isZero(prev)) {
     text = <span className="money-val">{formatMoney(Math.abs(diff), { compact: compact && Math.abs(diff) >= 1e6 })}</span>;
-    title = `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))} dari nol pada ${vs}`;
+    title = hideAmounts ? `${up ? 'Naik' : 'Turun'} dari nol pada ${vs}` : `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))} dari nol pada ${vs}`;
   } else {
     text = formatPercent(Math.abs(diff / Math.abs(prev)));
-    title = `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))} dibanding ${vs}`;
+    title = hideAmounts ? `${up ? 'Naik' : 'Turun'} dibanding ${vs}` : `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))} dibanding ${vs}`;
   }
   return (
     <span className={`delta ${good ? 'good' : 'bad'}`} title={title}>

@@ -155,6 +155,11 @@
 .sum-strip > div:nth-child(4) {
   animation-delay: 135ms;
 }
+@supports (animation-delay: calc(sibling-index() * 1ms)) {
+  .sum-strip > div {
+    animation-delay: calc((sibling-index() - 1) * 45ms);
+  }
+}
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -747,11 +752,9 @@
 .tx-row {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: stretch;
   min-height: var(--row-h);
-  padding: 8px 16px;
-  cursor: pointer;
+  padding: 0;
   transition: background var(--dur-1);
 }
 .tx-row + .tx-row::before {
@@ -778,6 +781,27 @@
 }
 .tx-check {
   display: flex;
+  align-items: center;
+  flex: none;
+  padding: 8px 12px 8px 16px;
+}
+.tx-trigger {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.tx-check + .tx-trigger {
+  padding-left: 0;
+}
+.tx-trigger.static {
+  cursor: default;
 }
 .tx-main {
   flex: 1;
@@ -817,10 +841,14 @@
   font-variant-numeric: tabular-nums;
 }
 .compact-list .tx-row {
-  padding: 8px 8px;
+  padding: 0;
   margin: 0 -8px;
   border-radius: var(--radius);
   min-height: 54px;
+}
+.compact-list .tx-trigger {
+  padding: 8px;
+  border-radius: inherit;
 }
 .compact-list .tx-row::before {
   left: 56px !important;
@@ -1058,6 +1086,7 @@
   top: calc(var(--topbar-h) + 16px);
   padding: 18px;
   max-height: calc(100vh - var(--topbar-h) - 40px);
+  max-height: calc(100dvh - var(--topbar-h) - 40px);
   overflow-y: auto;
 }
 .cs-head {
@@ -1793,6 +1822,7 @@ button.tl-item:hover {
   position: sticky;
   top: calc(var(--topbar-h) + 16px);
   max-height: calc(100vh - var(--topbar-h) - 40px);
+  max-height: calc(100dvh - var(--topbar-h) - 40px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2051,6 +2081,14 @@ button.tl-item:hover {
 @media (max-width: 760px) {
   .acc-form {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .acc-fields {
+    grid-template-columns: 1fr;
+  }
+  .acc-fields .span-2 {
+    grid-column: span 1;
   }
 }
 
@@ -2813,17 +2851,53 @@ button.tl-item:hover {
    Penyempurnaan (audit desain & aksesibilitas)
    ───────────────────────────────────────────────────────────── */
 
+/* Tautan semantik di dalam baris / kartu tanpa nested interactive */
+.row-link {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+}
+.row-link.truncate,
+.row-link > .truncate {
+  display: block;
+}
+.row-link:hover {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.row-link:focus-visible {
+  outline: 2px solid var(--focus-border, var(--accent-ink));
+  outline-offset: 2px;
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Fokus keyboard yang terlihat untuk baris/kartu yang dapat diklik */
-.tx-row:focus-visible,
-.debt-row:focus-visible,
-.wallet-card:focus-visible,
-.budget-card:focus-visible {
+.tx-row:has(.tx-trigger:focus-visible),
+.debt-row:has(.row-link:focus-visible),
+.wallet-card:has(.row-link:focus-visible),
+.budget-card:has(.row-link:focus-visible) {
   outline: 2px solid var(--focus-border, var(--accent-ink));
   outline-offset: -2px;
 }
-.wallet-card:focus-visible,
-.budget-card:focus-visible {
+.wallet-card:has(.row-link:focus-visible),
+.budget-card:has(.row-link:focus-visible) {
   outline-offset: 2px;
+}
+@supports selector(:has(*)) {
+  .tx-row .tx-trigger:focus-visible,
+  .debt-row .row-link:focus-visible,
+  .wallet-card .row-link:focus-visible,
+  .budget-card .row-link:focus-visible {
+    outline: none;
+  }
 }
 
 /* Formulir transaksi: jenis dikunci karena sudah ada pembayaran */
@@ -2973,7 +3047,8 @@ button.tl-item:hover {
     flex-wrap: wrap;
     row-gap: 4px;
   }
-  .debt-row .dr-main .row > strong {
+  .debt-row .dr-main .row > strong,
+  .debt-row .dr-main .row > .row-link {
     max-width: 100%;
   }
   .debt-row .dr-actions {
@@ -3069,6 +3144,12 @@ button.tl-item:hover {
 }
 .navset-btn.star.on {
   color: var(--warn);
+}
+@media (pointer: coarse), (max-width: 960px) {
+  .navset-btn {
+    width: 44px;
+    height: 44px;
+  }
 }
 .navset-foot {
   display: flex;

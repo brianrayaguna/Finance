@@ -21,7 +21,7 @@ import { deleteTransactions, duplicateTransaction, childCount } from '../store/d
 import { notify } from '../store/history';
 import type { Transaction, TxType } from '../accounting/types';
 import { formatDate, formatMoney, normalize, endOfMonth, DAYS, parseISO, round2, isZero } from '../lib/format';
-import { isTypingTarget, layerCount, MOD } from '../lib/layers';
+import { isImeComposing, isInteractiveTarget, isTypingTarget, layerCount, MOD } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, Checkbox, EmptyState, TextInput, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -141,7 +141,8 @@ export default function Transactions() {
           const cat = b.acc.get(t.categoryId ?? '')?.name ?? '';
           const acc = b.acc.get(t.accountId ?? '')?.name ?? '';
           const to = b.acc.get(t.toAccountId ?? '')?.name ?? '';
-          const hay = normalize(`${t.description} ${cat} ${acc} ${to} ${t.ref} ${t.contact ?? ''} ${t.note ?? ''}`);
+          const lineNames = t.lines?.map((l) => `${b.acc.get(l.accountId)?.name ?? ''} ${l.memo ?? ''}`).join(' ') ?? '';
+          const hay = normalize(`${t.description} ${cat} ${acc} ${to} ${lineNames} ${t.ref} ${t.contact ?? ''} ${t.note ?? ''}`);
           const amtHit = digits.length >= 3 && String(Math.round(t.amount)).includes(digits);
           if (!hay.includes(n) && !amtHit) return false;
         }
@@ -258,7 +259,7 @@ export default function Transactions() {
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (layerCount() > 0) return;
+      if (layerCount() > 0 || isImeComposing(e)) return;
       if (isTypingTarget(e.target)) {
         if (e.key === 'Escape' && e.target === searchRef.current) {
           searchRef.current?.blur();
@@ -270,16 +271,24 @@ export default function Transactions() {
         return;
       }
       const mod = e.metaKey || e.ctrlKey;
+      const inListRow = (e.target as Element | null)?.closest?.('.tx-trigger');
       if (e.key === '/' || (mod && e.key.toLowerCase() === 'f')) {
         e.preventDefault();
         searchRef.current?.focus();
         return;
       }
       if (mod && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        setSelected(new Set(visible.map((t) => t.id)));
+        const target = e.target as Node | null;
+        if (
+          !isInteractiveTarget(e.target) &&
+          (e.target === document.body || (target && listRef.current?.contains(target)))
+        ) {
+          e.preventDefault();
+          setSelected(new Set(visible.map((t) => t.id)));
+        }
         return;
       }
+      if (isInteractiveTarget(e.target) && !inListRow) return;
       if (e.key === 'Escape' && selected.size) {
         setSelected(new Set());
         return;
@@ -297,6 +306,7 @@ export default function Transactions() {
       }
       const cur = visible[idx];
       if (!cur) return;
+      if (inListRow && (e.key === 'Enter' || e.key === ' ')) return;
       if (e.key === 'Enter') {
         e.preventDefault();
         editTx(cur);
@@ -322,7 +332,10 @@ export default function Transactions() {
     el?.scrollIntoView({ block: 'nearest' });
     // Saat navigasi keyboard, fokus DOM ikut pindah agar Enter membuka baris yang sama dengan sorotan.
     const act = document.activeElement as HTMLElement | null;
-    if (el && act && act !== el && act.classList.contains('tx-row')) el.focus({ preventScroll: true });
+    const trigger = el?.querySelector<HTMLElement>('.tx-trigger');
+    if (trigger && act && act !== trigger && act.classList.contains('tx-trigger')) {
+      trigger.focus({ preventScroll: true });
+    }
   }, [focusId]);
 
   const doExport = async (ids?: Set<string>) => {

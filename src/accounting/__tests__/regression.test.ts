@@ -1,6 +1,23 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { addAccount, addAsset, createWallet, emptyData, normalizeData, updateAccount, updateAsset, updateWallet, useData } from '../../store/data';
-import { budgetReport, debtInfos, displayBalances, getBooks } from '../reports';
+import {
+  addAccount,
+  addAsset,
+  addGoal,
+  addTransaction,
+  createWallet,
+  deleteAccount,
+  emptyData,
+  normalizeData,
+  SYS,
+  updateAccount,
+  updateAsset,
+  updateGoal,
+  updateTransaction,
+  updateWallet,
+  useData,
+} from '../../store/data';
+import { budgetReport, budgetVsActual, debtInfos, displayBalances, getBooks, ratios, worksheet } from '../reports';
+import { nextCode } from '../coa';
 import { cashDelta, txView } from '../../components/tx/txDisplay';
 import type { AppData, FixedAsset, Transaction } from '../types';
 
@@ -137,7 +154,7 @@ describe('perbaikan regresi & konsistensi data', () => {
       tx({ type: 'expense', date: '2026-04-05', amount: 400_000, accountId: 'acc-cash', categoryId: 'acc-food' }),
       tx({ type: 'expense', date: '2026-04-06', amount: 150_000, accountId: 'acc-cash', categoryId: 'acc-transport' }),
     );
-    d.budgets.push({ id: 'b1', categoryId: 'acc-food', amount: 1_000_000, month: '2026-04' });
+    d.budgets.push({ id: 'b1', categoryId: 'acc-food', amount: 1_000_000, createdAt: 1 });
 
     const rep = budgetReport(getBooks(d), { from: '2026-04-01', to: '2026-04-30', label: 'April 2026' }, 'Uji');
     const stB = rep.rows.find((r) => r.key === 'st-b');
@@ -170,5 +187,140 @@ describe('perbaikan regresi & konsistensi data', () => {
     expect(partWo.paid).toBe(300_000);
     expect(partWo.writtenOff).toBe(200_000);
     expect(partWo.remaining).toBe(0);
+  });
+
+  it('nextCode menghasilkan kode bebas bentrok saat slot numerik penuh', () => {
+    const d = emptyData();
+    for (let n = 1100; n <= 1999; n++) {
+      d.accounts.push({
+        id: `c-${n}`,
+        code: `${String(n)[0]}-${String(n).slice(1)}`,
+        name: `Kas ${n}`,
+        type: 'asset',
+        subtype: 'cash',
+        icon: 'wallet',
+        color: '#163300',
+        createdAt: 1,
+      });
+    }
+    const existingFallback = `1-1100-${d.accounts.length + 1}`;
+    d.accounts.push({
+      id: 'c-collide',
+      code: existingFallback,
+      name: 'Bentrok',
+      type: 'asset',
+      subtype: 'cash',
+      icon: 'wallet',
+      color: '#163300',
+      createdAt: 1,
+    });
+    const code = nextCode(d.accounts, 'cash');
+    expect(new Set(d.accounts.map((a) => a.code)).has(code)).toBe(false);
+    expect(code).not.toBe(existingFallback);
+  });
+
+  it('worksheet mengurutkan baris Saldo Laba (a-re) berdasarkan kode akun', () => {
+    const d = emptyData();
+    d.accounts = d.accounts.filter((a) => a.subtype !== 'retained_earnings');
+    d.transactions.push(
+      tx({ type: 'income', date: '2026-01-10', amount: 1_000_000, accountId: SYS.cash, categoryId: 'acc-salary', ref: 'MSK/1' }),
+      tx({ type: 'expense', date: '2026-02-05', amount: 250_000, accountId: SYS.cash, categoryId: 'acc-food', ref: 'KLR/1' }),
+    );
+    const w = worksheet(getBooks(d), { from: '2026-02-01', to: '2026-02-28', label: 'Feb 2026' }, 'Uji');
+    const accRows = w.rows.filter((r) => r.key.startsWith('a-'));
+    const reIdx = accRows.findIndex((r) => r.key === 'a-re');
+    const foodIdx = accRows.findIndex((r) => r.key === 'a-acc-food');
+    expect(reIdx).toBeGreaterThanOrEqual(0);
+    expect(accRows[reIdx].code).toBe('3-2000');
+    expect(reIdx).toBeLessThan(foodIdx);
+  });
+
+  it('budgetVsActual memprorata rentang bulan dan membatasi realisasi dengan actualTo', () => {
+    const d = emptyData();
+    d.budgets.push({ id: 'bg1', categoryId: 'acc-food', amount: 1_000_000, createdAt: 1 });
+    d.transactions.push(
+      tx({ type: 'expense', date: '2026-01-05', amount: 300_000, accountId: SYS.cash, categoryId: 'acc-food', ref: 'KLR/1' }),
+      tx({ type: 'expense', date: '2026-01-20', amount: 400_000, accountId: SYS.cash, categoryId: 'acc-food', ref: 'KLR/2' }),
+    );
+    const partial = budgetVsActual(getBooks(d), '2026-01-01', '2026-01-31', '2026-01-10');
+    expect(partial[0].budget).toBe(1_000_000);
+    expect(partial[0].actual).toBe(300_000);
+
+    const quarter = budgetVsActual(getBooks(d), '2026-01-01', '2026-03-31');
+    expect(quarter[0].budget).toBe(3_000_000);
+  });
+
+  it('ratios menghitung dana darurat proporsional dan DSR mencakup cicilan pinjaman & jurnal', () => {
+    const d = emptyData();
+    const { account: loan } = (() => {
+      useData.setState({ data: d, past: [], future: [], lastId: null });
+      return createWallet({ name: 'Kredit Bank', subtype: 'loan', icon: 'landmark', color: '#333333' });
+    })();
+    const cur = useData.getState().data;
+    cur.transactions.push(
+      tx({ type: 'opening', date: '2026-04-01', amount: 12_000_000, accountId: SYS.cash, ref: 'SA/1' }),
+      tx({ type: 'income', date: '2026-04-02', amount: 10_000_000, accountId: SYS.cash, categoryId: 'acc-salary', ref: 'MSK/1' }),
+      tx({ type: 'expense', date: '2026-04-03', amount: 1_000_000, accountId: SYS.cash, categoryId: 'acc-food', ref: 'KLR/1' }),
+      tx({ type: 'transfer', date: '2026-04-04', amount: 1_500_000, accountId: SYS.cash, toAccountId: loan.id, ref: 'TRF/1' }),
+      tx({
+        type: 'journal',
+        date: '2026-04-05',
+        amount: 500_000,
+        ref: 'JRN/1',
+        lines: [
+          { accountId: SYS.interestExpense, debit: 500_000, credit: 0 },
+          { accountId: SYS.cash, debit: 0, credit: 500_000 },
+        ],
+      }),
+    );
+    const list = ratios(getBooks(cur), { from: '2026-04-01', to: '2026-04-10', label: '10 hari' });
+    const emergency = list.find((r) => r.name === 'Cakupan Dana Darurat')!;
+    const dsr = list.find((r) => r.name === 'Rasio Pembayaran Hutang (DSR)')!;
+    // Kas akhir 19.000.000; 1.000.000 selama 10 hari -> beban bulanan ekstrapolasi = 1.000.000 * (365/12) / 10
+    expect(emergency.value!).toBeCloseTo(19_000_000 / ((1_000_000 * (365 / 12)) / 10), 4);
+    expect(dsr.value).toBeCloseTo(2_000_000 / 10_000_000, 4);
+  });
+
+  it('updateTransaction menjaga ref kustom dan deleteAccount menolak akun sistem/terpakai', () => {
+    const { account: custom } = addAccount({ name: 'Bank Uji', subtype: 'bank', type: 'asset', icon: 'landmark', color: '#111111' });
+    const { tx: created } = addTransaction({ type: 'expense', date: '2026-05-01', amount: 50_000, accountId: custom.id, categoryId: 'acc-food', description: 'Makan', ref: 'KST/99' });
+    updateTransaction(created.id, { date: '2026-06-02', amount: 75_000 });
+    expect(useData.getState().data.transactions.find((x) => x.id === created.id)?.ref).toBe('KST/99');
+
+    expect(deleteAccount(SYS.cash)).toBe('');
+    expect(deleteAccount(custom.id)).toBe('');
+
+    const { account: idle } = addAccount({ name: 'Dompet Kosong', subtype: 'bank', type: 'asset', icon: 'landmark', color: '#222222' });
+    expect(deleteAccount(idle.id)).not.toBe('');
+    expect(useData.getState().data.accounts.some((a) => a.id === idle.id)).toBe(false);
+  });
+
+  it('updateWallet membersihkan duplikat opening dan addGoal/updateGoal memvalidasi target', () => {
+    const { account: w } = createWallet({ name: 'Tabungan', subtype: 'bank', icon: 'landmark', color: '#163300', opening: 100_000, openingDate: '2026-01-01' });
+    useData.setState((s) => ({
+      ...s,
+      data: {
+        ...s.data,
+        transactions: [
+          ...s.data.transactions,
+          tx({ id: 'dup-open', type: 'opening', date: '2026-01-02', amount: 200_000, accountId: w.id, ref: 'SA/DUP' }),
+        ],
+      },
+    }));
+    updateWallet(w.id, { name: 'Tabungan Utama' }, { amount: 250_000, date: '2026-01-01' });
+    const openings = useData.getState().data.transactions.filter((t) => t.type === 'opening' && t.accountId === w.id);
+    expect(openings).toHaveLength(1);
+    expect(openings[0].amount).toBe(250_000);
+
+    expect(addGoal({ name: '  ', target: 0, accountIds: [w.id], icon: 'flag', color: '#163300' })).toBe('');
+    expect(addGoal({ name: 'Dana Darurat', target: -500, accountIds: [w.id], icon: 'flag', color: '#163300' })).toBe('');
+    const gid = addGoal({ name: '  Dana Darurat  ', target: 5_000_000, accountIds: [w.id], icon: 'flag', color: '#163300' });
+    expect(gid).not.toBe('');
+    const goal = useData.getState().data.goals[0];
+    expect(goal.name).toBe('Dana Darurat');
+    updateGoal(goal.id, { name: '   ', target: 0 });
+    const unchanged = useData.getState().data.goals[0];
+    expect(unchanged.name).toBe('Dana Darurat');
+    expect(unchanged.target).toBe(5_000_000);
   });
 });

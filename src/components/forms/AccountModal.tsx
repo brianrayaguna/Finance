@@ -16,6 +16,8 @@ import { confirm } from '../../store/ui';
 import { notify } from '../../store/history';
 import { isLocked } from '../../accounting/lock';
 import { addDays, formatDate, todayISO } from '../../lib/format';
+import { useSubmitRef } from '../../lib/focus';
+import { isImeComposing } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { AmountInput } from '../ui/AmountInput';
@@ -119,6 +121,7 @@ export function AccountModal({
     }
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
 
   const toggleArchive = () => {
     if (!editing) return;
@@ -182,12 +185,13 @@ export function AccountModal({
         className="acc-form"
         data-form
         onKeyDown={(e) => {
+          if (isImeComposing(e)) return;
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
-            submit();
+            submitRef.runFrom(e.target);
           } else if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && !(e.target as HTMLElement).closest('.icon-picker')) {
             e.preventDefault();
-            submit();
+            submitRef.runFrom(e.target);
           }
         }}
       >

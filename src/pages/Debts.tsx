@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Handshake, HandCoins, Search, Ellipsis, Pencil, Trash2, Eye, CircleCheck, Receipt, X, CalendarClock } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
-import { useUI, confirm } from '../store/ui';
+import { usePrefs, useUI, confirm } from '../store/ui';
 import { deleteTransactions, childCount } from '../store/data';
 import { notify } from '../store/history';
 import { debtInfos, AGING_BUCKETS, type DebtInfo } from '../accounting/reports';
@@ -47,6 +47,7 @@ export default function Debts() {
   const today = useToday();
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const [kind, setKind] = useState<'payable' | 'receivable'>('payable');
   const [status, setStatus] = useState<'active' | 'paid' | 'all'>('active');
   const [q, setQ] = useState('');
@@ -134,7 +135,7 @@ export default function Debts() {
           <div className="aging-bar">
             {aging.map((v, i) =>
               v > 0 ? (
-                <Tooltip key={i} label={`${AGING_BUCKETS[i]} · ${formatMoney(v)}`}>
+                <Tooltip key={i} label={hideAmounts ? AGING_BUCKETS[i] : `${AGING_BUCKETS[i]} · ${formatMoney(v)}`}>
                   <span style={{ flex: v, background: agingColors[i] }} />
                 </Tooltip>
               ) : null,
@@ -211,19 +212,26 @@ export default function Debts() {
                   exit={{ opacity: 0 }}
                   className={`debt-row st-${d.status}`}
                   onClick={() => setDetail(d.tx.id)}
-                  tabIndex={0}
-                  aria-label={`${d.tx.contact || 'Tanpa nama'}, sisa ${formatMoney(d.remaining)}`}
-                  onKeyDown={(e) => {
-                    if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) {
-                      e.preventDefault();
-                      setDetail(d.tx.id);
-                    }
-                  }}
                 >
                   <Avatar name={d.tx.contact || '?'} />
                   <div className="dr-main">
                     <div className="row" style={{ gap: 8 }}>
-                      <strong className="truncate">{d.tx.contact}</strong>
+                      <button
+                        type="button"
+                        className="row-link truncate"
+                        style={{ fontWeight: 700 }}
+                        aria-label={
+                          hideAmounts
+                            ? `Detail ${d.tx.contact || 'Tanpa nama'}`
+                            : `${d.tx.contact || 'Tanpa nama'}, sisa ${formatMoney(d.remaining)}`
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDetail(d.tx.id);
+                        }}
+                      >
+                        {d.tx.contact || 'Tanpa nama'}
+                      </button>
                       <StatusBadge d={d} />
                     </div>
                     <div className="muted truncate" style={{ fontSize: 13 }}>
