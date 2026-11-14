@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight } from '../../lib/glyphs';
+import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight, Eye, EyeOff } from '../../lib/glyphs';
 import { ALL_NAV, navLabel, navSection } from '../../app/nav';
 import { REPORTS } from '../../app/reports';
 import { usePrefs, useUI } from '../../store/ui';
@@ -19,6 +19,7 @@ import { recordMenuItems } from '../tx/recordMenu';
 export function Topbar() {
   const scrolled = useScrolled(8);
   const setPalette = useUI((s) => s.setPalette);
+  const mobileNav = useUI((s) => s.mobileNav);
   const setMobileNav = useUI((s) => s.setMobileNav);
   const canUndo = useData((s) => s.past.length > 0);
   const canRedo = useData((s) => s.future.length > 0);
@@ -30,8 +31,15 @@ export function Topbar() {
   return (
     <header className={`topbar no-print${scrolled ? ' scrolled' : ''}`}>
       <div className="tb-left">
-        <button type="button" className="tb-btn tb-menu" onClick={() => setMobileNav(true)} aria-label="Buka menu">
-          <MenuIcon />
+        <button
+          type="button"
+          className="tb-btn tb-menu"
+          onClick={() => setMobileNav(true)}
+          aria-expanded={mobileNav}
+          aria-controls="main-sidebar"
+          aria-label="Buka menu"
+        >
+          <MenuIcon aria-hidden />
         </button>
         <LogoMark size={26} className="tb-logo" />
         <Breadcrumb />
@@ -50,12 +58,12 @@ export function Topbar() {
             >
               <Tooltip label={canUndo ? `Urungkan: ${nextLabel}` : 'Urungkan'} kbd={[MOD, 'Z']}>
                 <button type="button" className="tb-btn" onClick={undo} disabled={!canUndo} aria-label="Urungkan">
-                  <Undo2 />
+                  <Undo2 aria-hidden />
                 </button>
               </Tooltip>
               <Tooltip label={canRedo ? `Ulangi: ${redoLabel}` : 'Ulangi'} kbd={[MOD, '⇧', 'Z']}>
                 <button type="button" className="tb-btn" onClick={redo} disabled={!canRedo} aria-label="Ulangi">
-                  <Redo2 />
+                  <Redo2 aria-hidden />
                 </button>
               </Tooltip>
             </motion.div>
@@ -63,13 +71,33 @@ export function Topbar() {
         </AnimatePresence>
         <Tooltip label="Cari" kbd={[MOD, 'K']}>
           <button type="button" className="tb-btn tb-search-icon" onClick={() => setPalette(true)} aria-label="Cari transaksi, akun, atau menu">
-            <Search />
+            <Search aria-hidden />
           </button>
         </Tooltip>
+        <PrivacyToggle />
         <ReminderBell />
         <RecordButton />
       </div>
     </header>
+  );
+}
+
+/** Tombol cepat mode privasi nominal (juga tersedia via tombol H & menu profil). */
+function PrivacyToggle() {
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
+  const setPrefs = usePrefs((s) => s.set);
+  return (
+    <Tooltip label={hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal'} kbd={['H']}>
+      <button
+        type="button"
+        className={`tb-btn tb-privacy${hideAmounts ? ' on' : ''}`}
+        onClick={() => setPrefs({ hideAmounts: !hideAmounts })}
+        aria-pressed={hideAmounts}
+        aria-label="Sembunyikan nominal"
+      >
+        {hideAmounts ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -118,12 +146,13 @@ function ReminderBell() {
           onClick={() => setOpen((v) => !v)}
           aria-label={items.length ? `Pengingat, ${items.length} perlu perhatian` : 'Pengingat'}
           aria-expanded={open}
+          aria-haspopup="dialog"
         >
-          <Bell />
+          <Bell aria-hidden />
           {items.length > 0 && <span className={`tb-count${urgent ? ' neg' : ''}`}>{items.length > 9 ? '9+' : items.length}</span>}
         </button>
       </Tooltip>
-      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={348} autoFocus>
+      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={348} ariaLabel="Pengingat" autoFocus>
         <div className="rem">
           <div className="rem-head">
             <strong>Pengingat</strong>
@@ -190,7 +219,7 @@ function RecordButton() {
         minWidth={236}
         items={items}
         trigger={(p) => (
-          <button type="button" className="btn btn-primary tb-cta-more" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-label="Pilih jenis transaksi atau favorit">
+          <button type="button" className="btn btn-primary tb-cta-more" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']} aria-label="Pilih jenis transaksi atau favorit">
             <ChevronDown aria-hidden />
           </button>
         )}

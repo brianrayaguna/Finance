@@ -1218,6 +1218,7 @@ i.ym-cell {
   margin: 0 2px 10px;
   width: calc(100% - 4px);
 }
+.wg-head h2,
 .wg-head h3 {
   font-size: 15px;
   font-weight: 680;
@@ -1252,6 +1253,7 @@ i.ym-cell {
   border-radius: 0 0 2px 2px;
   background: var(--c);
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--dur-2);
 }
 .wallet-card:hover::after {
@@ -2310,6 +2312,7 @@ button.tl-item:hover {
 .ratio-group {
   margin-top: 22px;
 }
+.ratio-group h2,
 .ratio-group h4 {
   font-size: var(--fs-xs);
   font-weight: 750;
@@ -2424,15 +2427,72 @@ button.tl-item:hover {
   }
 }
 @media print {
-  .reports-layout {
+  .reports-page > .page-head {
+    display: none !important;
+  }
+  .reports-layout,
+  .ledger-layout,
+  .cal-layout,
+  .settings-layout {
     display: block;
   }
-  .paper {
-    box-shadow: none;
-    padding: 0;
+  .table-wrap {
+    overflow: visible !important;
+  }
+  thead {
+    display: table-header-group;
+  }
+  .stmt.cols-10 .st-label,
+  .table th,
+  .tx-day-head {
+    position: static !important;
+    box-shadow: none !important;
+  }
+  .card,
+  .wallet-card,
+  .budget-card,
+  .debt-row,
+  .tx-row,
+  .kpi,
+  .set-card,
+  .stmt tr,
+  .table tr,
+  .ratio-card,
+  .ratio-group,
+  .paper-foot {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .paper-head,
+  .k-section,
+  .k-group {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  .paper,
+  .paper.wide {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
   }
   .paper::before {
     display: none;
+  }
+  .stmt.cols-10 {
+    font-size: 10px;
+  }
+  .stmt.cols-10 th,
+  .stmt.cols-10 td {
+    padding: 4px 5px;
+    height: auto;
+  }
+  .stmt.cols-10 .st-label {
+    min-width: 120px;
+    white-space: normal;
+  }
+  .stmt.cols-10 td.r {
+    min-width: 62px;
+    font-size: 9.5px;
   }
   .stmt tr.clickable:hover td {
     background: none;
@@ -2508,6 +2568,7 @@ button.tl-item:hover {
   gap: 14px;
   padding: 20px 22px 4px;
 }
+.set-head h2,
 .set-head h3 {
   font-size: 19px;
   font-weight: 620;
@@ -2711,14 +2772,20 @@ button.tl-item:hover {
 
 /* Fokus keyboard yang terlihat untuk baris/kartu yang dapat diklik */
 .tx-row:focus-visible,
+.tx-row:has(.stretch-trigger:focus-visible),
 .debt-row:focus-visible,
+.debt-row:has(.stretch-trigger:focus-visible),
 .wallet-card:focus-visible,
-.budget-card:focus-visible {
+.wallet-card:has(.stretch-trigger:focus-visible),
+.budget-card:focus-visible,
+.budget-card:has(.stretch-trigger:focus-visible) {
   outline: 2px solid var(--focus-border, var(--accent-ink));
   outline-offset: -2px;
 }
 .wallet-card:focus-visible,
-.budget-card:focus-visible {
+.wallet-card:has(.stretch-trigger:focus-visible),
+.budget-card:focus-visible,
+.budget-card:has(.stretch-trigger:focus-visible) {
   outline-offset: 2px;
 }
 

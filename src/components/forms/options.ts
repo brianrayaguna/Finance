@@ -7,13 +7,15 @@ import { useData } from '../../store/data';
 import { formatMoney, formatDate } from '../../lib/format';
 import type { SelectOption } from '../ui/Select';
 
-export function useWalletOptions(includeArchived = false): SelectOption[] {
+export function useWalletOptions(includeArchived = false, keepIds?: string[]): SelectOption[] {
   const b = useBooks();
   const today = useToday();
+  const keep = (keepIds ?? []).filter(Boolean).join('|');
   return useMemo(() => {
+    const kept = new Set(keep ? keep.split('|') : []);
     const bals = new Map(walletBalances(b, today).map((w) => [w.account.id, w.balance]));
     return b.accounts
-      .filter((a) => WALLET_SUBTYPES.includes(a.subtype) && (includeArchived || !a.archived))
+      .filter((a) => WALLET_SUBTYPES.includes(a.subtype) && (includeArchived || !a.archived || kept.has(a.id)))
       .sort((x, y) => WALLET_SUBTYPES.indexOf(x.subtype) - WALLET_SUBTYPES.indexOf(y.subtype) || x.code.localeCompare(y.code))
       .map((a) => {
         const v = bals.get(a.id) ?? 0;
@@ -26,25 +28,25 @@ export function useWalletOptions(includeArchived = false): SelectOption[] {
           sub: formatMoney(a.subtype === 'credit_card' ? -v : v, { compact: Math.abs(v) >= 1e9 }),
         };
       });
-  }, [b, today, includeArchived]);
+  }, [b, today, includeArchived, keep]);
 }
 
-export function useCategoryOptions(type: 'revenue' | 'expense'): SelectOption[] {
+export function useCategoryOptions(type: 'revenue' | 'expense', keepIds?: string[]): SelectOption[] {
   const accounts = useData((s) => s.data.accounts);
-  return useMemo(
-    () =>
-      sortAccounts(accounts)
-        .filter((a) => a.type === type && !a.archived)
-        .map((a) => ({
-          value: a.id,
-          label: a.name,
-          icon: a.icon,
-          color: a.color,
-          group: SUBTYPE_META[a.subtype].label,
-          keywords: a.code,
-        })),
-    [accounts, type],
-  );
+  const keep = (keepIds ?? []).filter(Boolean).join('|');
+  return useMemo(() => {
+    const kept = new Set(keep ? keep.split('|') : []);
+    return sortAccounts(accounts)
+      .filter((a) => a.type === type && (!a.archived || kept.has(a.id)))
+      .map((a) => ({
+        value: a.id,
+        label: a.name,
+        icon: a.icon,
+        color: a.color,
+        group: SUBTYPE_META[a.subtype].label,
+        keywords: a.code,
+      }));
+  }, [accounts, type, keep]);
 }
 
 export function useAccountOptions(filter?: (a: Account) => boolean, keepIds?: string[]): SelectOption[] {

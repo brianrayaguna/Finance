@@ -467,6 +467,32 @@
 }
 
 /* ───────── Command palette ───────── */
+.palette-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: hidden;
+  padding: 12vh 16px 16px;
+}
+.palette-dialog:not([open]) {
+  display: none;
+}
+.palette-dialog[open] {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.palette-dialog::backdrop {
+  background: transparent;
+}
 .palette-root {
   position: fixed;
   inset: 0;
@@ -575,6 +601,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 18px 28px;
 }
+.sc-group h3,
 .sc-group h4 {
   font-size: var(--fs-xs);
   font-weight: 650;

@@ -21,7 +21,7 @@ import { deleteTransactions, duplicateTransaction, childCount } from '../store/d
 import { notify } from '../store/history';
 import type { Transaction, TxType } from '../accounting/types';
 import { formatDate, formatMoney, normalize, endOfMonth, DAYS, parseISO, round2, isZero } from '../lib/format';
-import { isTypingTarget, layerCount, MOD } from '../lib/layers';
+import { isImeComposing, isTypingTarget, layerCount, MOD } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, Checkbox, EmptyState, TextInput, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -244,7 +244,7 @@ export default function Transactions() {
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (layerCount() > 0) return;
+      if (isImeComposing(e) || layerCount() > 0) return;
       if (isTypingTarget(e.target)) {
         if (e.key === 'Escape' && e.target === searchRef.current) {
           searchRef.current?.blur();
@@ -307,8 +307,11 @@ export default function Transactions() {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-id="${focusId}"]`);
     el?.scrollIntoView({ block: 'nearest' });
     // Saat navigasi keyboard, fokus DOM ikut pindah agar Enter membuka baris yang sama dengan sorotan.
+    const target = el?.querySelector<HTMLElement>('[data-tx-open]') ?? el;
     const act = document.activeElement as HTMLElement | null;
-    if (el && act && act !== el && act.classList.contains('tx-row')) el.focus({ preventScroll: true });
+    if (target && act && act !== target && (act.classList.contains('tx-row') || act.hasAttribute('data-tx-open'))) {
+      target.focus({ preventScroll: true });
+    }
   }, [focusId]);
 
   const doExport = async (ids?: Set<string>) => {

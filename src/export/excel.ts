@@ -7,14 +7,13 @@
 import ExcelJS from 'exceljs';
 import type { Borders, Cell, Fill, Font, Worksheet, Workbook } from 'exceljs';
 import { SUBTYPE_META, TYPE_LABEL, normalSide } from '../accounting/coa';
-import { TX_META, accumulatedAt, entryTotals } from '../accounting/engine';
+import { TX_META, accumulatedAt, disposalStop, entryTotals } from '../accounting/engine';
 import {
-  balancesAt,
-  bal,
   balanceSheet,
   budgetReport,
   cashFlowStatement,
   closingEntries,
+  displayBalances,
   equityStatement,
   incomeStatement,
   ledger,
@@ -26,7 +25,7 @@ import {
   type Ratio,
 } from '../accounting/reports';
 import { makeDates, makePeriods } from '../accounting/periods';
-import type { JournalEntry, Report, ReportRow, Transaction } from '../accounting/types';
+import type { FixedAsset, JournalEntry, Report, ReportRow, Transaction } from '../accounting/types';
 import { formatDate, periodLabel, todayISO, parseISO, round2 } from '../lib/format';
 
 /* ───────── Style constants ───────── */
@@ -70,6 +69,42 @@ const xDate = (iso: string) => {
 };
 
 const safeName = (s: string) => s.replace(/[\\/*?:[\]]/g, '').slice(0, 31);
+const qSheet = (s: string) => `'${safeName(s).replace(/'/g, "''")}'`;
+const sheetTarget = (s: string, cell: string) => `#${qSheet(s)}!${cell}`;
+
+/** Perluas lebar kolom secukupnya agar nominal panjang atau teks tidak terpotong menjadi ###. */
+function fitColumns(ws: Worksheet, fromRow: number, maxWidths: Record<number, number> = {}, toRow = Infinity) {
+  const widths = new Map<number, number>();
+  ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber < fromRow || rowNumber > toRow) return;
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      if (cell.isMerged) return;
+      const raw =
+        cell.value && typeof cell.value === 'object' && 'result' in cell.value
+          ? cell.value.result
+          : cell.value && typeof cell.value === 'object' && 'text' in cell.value
+            ? cell.value.text
+            : cell.value;
+      let len = 0;
+      if (raw instanceof Date) len = 10;
+      else if (typeof raw === 'number' && Number.isFinite(raw)) {
+        if (cell.numFmt === PCT) len = `${Math.abs(raw * 100).toFixed(1)}%`.length + (raw < 0 ? 2 : 0);
+        else if (cell.numFmt === '0.0" bln"') len = `${raw.toFixed(1)} bln`.length;
+        else if (cell.numFmt === '0.00"x"') len = `${raw.toFixed(2)}x`.length;
+        else len = Math.round(Math.abs(raw)).toLocaleString('en-US').length + (raw < 0 ? 2 : 0);
+      } else if (typeof raw === 'string' && raw) {
+        len = Math.max(...raw.split('\n').map((s) => s.length));
+      }
+      if (len > 0) widths.set(colNumber, Math.max(widths.get(colNumber) ?? 0, len + 2));
+    });
+  });
+  for (const [colNumber, measured] of widths) {
+    const col = ws.getColumn(colNumber);
+    const cur = col.width ?? 10;
+    const cap = maxWidths[colNumber] ?? 48;
+    if (measured > cur) col.width = Math.min(cap, measured);
+  }
+}
 
 interface Ctx {
   entity: string;
@@ -220,6 +255,7 @@ function writeReport(wb: Workbook, ctx: Ctx, report: Report, sheetName: string, 
     return parts.replace(/^\+/, '') || '0';
   };
 
+  const dataStart = r;
   for (const row of report.rows) {
     const x = ws.getRow(r);
     refs.set(row.key, { cell: `${colL(firstVal)}${r}`, value: row.values[0] ?? 0 });
@@ -268,6 +304,22 @@ function writeReport(wb: Workbook, ctx: Ctx, report: Report, sheetName: string, 
         }
         return;
       }
+      if (report.id === 'budget' && ['account', 'subtotal', 'grandtotal'].includes(row.kind)) {
+        const A = `${colL(firstVal)}${r}`;
+        const B = `${colL(firstVal + 1)}${r}`;
+        if (ci === 2) {
+          cell.value = { formula: `${A}-${B}`, result: round2((row.values[0] ?? 0) - (row.values[1] ?? 0)) };
+          cell.numFmt = NUM;
+          return;
+        }
+        if (ci === 3) {
+          const budgetVal = row.values[0] ?? 0;
+          const actualVal = row.values[1] ?? 0;
+          cell.value = { formula: `IF(${A}=0,"",${B}/${A})`, result: budgetVal ? actualVal / budgetVal : '' };
+          cell.numFmt = PCT;
+          return;
+        }
+      }
       const v = row.values[ci];
       if (v === null || v === undefined) return;
       const isPct = fmtFor(row, ci) === PCT;
@@ -296,6 +348,7 @@ function writeReport(wb: Workbook, ctx: Ctx, report: Report, sheetName: string, 
     x.height = row.kind === 'section' ? 20 : row.kind === 'grandtotal' ? 20 : 17;
     r++;
   }
+  const dataEnd = r - 1;
 
   // Kontrol berbasis rumus
   const check = (label: string, a: string, bRef: string) => {
@@ -324,47 +377,96 @@ function writeReport(wb: Workbook, ctx: Ctx, report: Report, sheetName: string, 
   if (report.id === 'trial-balance' && ref('t-tb', 0)) check('Kontrol: Debit − Kredit', ref('t-tb', 0)!, ref('t-tb', 1)!);
   if (report.id === 'cash-flow' && ref('st-op') && ref('ind-total')) check('Kontrol: Metode langsung − tidak langsung', ref('st-op')!, ref('ind-total')!);
   if (isWS && ref('t-final', 8)) check('Kontrol: Kolom neraca Debit − Kredit', ref('t-final', 8)!, ref('t-final', 9)!);
+  const fitEndRow = r;
 
   // Uji & catatan
   if (report.checks?.length || report.notes?.length) r++;
   for (const c of report.checks ?? []) {
     r++;
-    const x = ws.getRow(r).getCell(labelCol);
-    x.value = `${c.ok ? '✓' : '✗'} ${c.label}`;
+    const text = `${c.ok ? '✓' : '✗'} ${c.label}`;
+    const rowRef = ws.getRow(r);
+    if (lastCol > labelCol) ws.mergeCells(r, labelCol, r, lastCol);
+    const x = rowRef.getCell(labelCol);
+    x.value = text;
     x.font = font({ size: 9, color: { argb: c.ok ? POS : NEG } });
+    x.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    rowRef.height = Math.max(16, Math.ceil(text.length / 80) * 14);
   }
   for (const n of report.notes ?? []) {
     r++;
-    const x = ws.getRow(r).getCell(labelCol);
+    const rowRef = ws.getRow(r);
+    if (lastCol > labelCol) ws.mergeCells(r, labelCol, r, lastCol);
+    const x = rowRef.getCell(labelCol);
     x.value = n;
     x.font = font({ size: 9, italic: true, color: { argb: INK_2 } });
+    x.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+    rowRef.height = Math.max(16, Math.ceil(n.length / 80) * 14);
   }
 
-  // Anggaran: pewarnaan kondisional kolom "Terpakai"
-  if (report.id === 'budget') {
-    const first = 6 + headerRows + 1;
-    const range = `${colL(firstVal + 3)}${first}:${colL(firstVal + 3)}${r}`;
+  // Anggaran: pewarnaan kondisional kolom "Terpakai" & "Selisih" (guarded ISNUMBER agar sel "" tidak dianggap > 1)
+  if (report.id === 'budget' && dataEnd >= dataStart) {
+    const uCol = colL(firstVal + 3);
+    const vCol = colL(firstVal + 2);
     ws.addConditionalFormatting({
-      ref: range,
+      ref: `${uCol}${dataStart}:${uCol}${dataEnd}`,
       rules: [
-        { type: 'cellIs', operator: 'greaterThan', formulae: ['1'], priority: 1, style: { font: { color: { argb: NEG }, bold: true } } },
-        { type: 'cellIs', operator: 'between', formulae: ['0.85', '1'], priority: 2, style: { font: { color: { argb: 'FF8F6112' } } } },
+        {
+          type: 'expression',
+          formulae: [`AND(ISNUMBER(${uCol}${dataStart}),${uCol}${dataStart}>1)`],
+          priority: 1,
+          style: { font: { color: { argb: NEG }, bold: true } },
+        },
+        {
+          type: 'expression',
+          formulae: [`AND(ISNUMBER(${uCol}${dataStart}),${uCol}${dataStart}>=0.85,${uCol}${dataStart}<=1)`],
+          priority: 2,
+          style: { font: { color: { argb: 'FF8F6112' } } },
+        },
       ],
     });
     ws.addConditionalFormatting({
-      ref: `${colL(firstVal + 2)}${first}:${colL(firstVal + 2)}${r}`,
-      rules: [{ type: 'cellIs', operator: 'lessThan', formulae: ['0'], priority: 3, style: { font: { color: { argb: NEG } } } }],
+      ref: `${vCol}${dataStart}:${vCol}${dataEnd}`,
+      rules: [
+        {
+          type: 'expression',
+          formulae: [`AND(ISNUMBER(${vCol}${dataStart}),${vCol}${dataStart}<0)`],
+          priority: 3,
+          style: { font: { color: { argb: NEG } } },
+        },
+      ],
     });
   }
-  // Rasio negatif dalam laporan perubahan → merah
-  if (report.columns.some((c) => c.kind === 'change')) {
+  // Rasio & selisih negatif dalam laporan perbandingan → merah
+  if (report.columns.some((c) => c.kind === 'change') && dataEnd >= dataStart) {
     const idx = report.columns.findIndex((c) => c.kind === 'change');
-    const first = 6 + headerRows + 1;
+    const c1 = colL(firstVal + idx);
+    const c2 = colL(firstVal + idx + 1);
     ws.addConditionalFormatting({
-      ref: `${colL(firstVal + idx)}${first}:${colL(firstVal + idx + 1)}${r}`,
-      rules: [{ type: 'cellIs', operator: 'lessThan', formulae: ['0'], priority: 4, style: { font: { color: { argb: NEG } } } }],
+      ref: `${c1}${dataStart}:${c1}${dataEnd}`,
+      rules: [
+        {
+          type: 'expression',
+          formulae: [`AND(ISNUMBER(${c1}${dataStart}),${c1}${dataStart}<0)`],
+          priority: 4,
+          style: { font: { color: { argb: NEG } } },
+        },
+      ],
+    });
+    ws.addConditionalFormatting({
+      ref: `${c2}${dataStart}:${c2}${dataEnd}`,
+      rules: [
+        {
+          type: 'expression',
+          formulae: [`AND(ISNUMBER(${c2}${dataStart}),${c2}${dataStart}<0)`],
+          priority: 5,
+          style: { font: { color: { argb: NEG } } },
+        },
+      ],
     });
   }
+  const caps: Record<number, number> = { [labelCol]: isWS ? 42 : 56 };
+  for (let i = 0; i < nVal; i++) caps[firstVal + i] = 24;
+  fitColumns(ws, dataStart - headerRows, caps, fitEndRow);
   return ws;
 }
 
@@ -434,10 +536,9 @@ function writeTable(
   const last = r - 1;
   if (rows.length) {
     ws.autoFilter = { from: { row: headRow, column: 1 }, to: { row: last, column: cols.length } };
-    if (cols.some((c) => c.total)) {
+    const firstTotal = cols.findIndex((c) => c.total);
+    if (firstTotal >= 0) {
       const x = ws.getRow(r);
-      const lab = x.getCell(1);
-      lab.value = 'JUMLAH (sesuai filter)';
       cols.forEach((c, ci) => {
         const cell = x.getCell(ci + 1);
         cell.font = font({ bold: true });
@@ -450,9 +551,28 @@ function writeTable(
           cell.numFmt = NUM;
         }
       });
+      if (firstTotal > 0) {
+        const lab = x.getCell(1);
+        lab.value = 'JUMLAH (sesuai filter)';
+        lab.alignment = { horizontal: 'left', vertical: 'middle' };
+        if (firstTotal > 1) ws.mergeCells(r, 1, r, firstTotal);
+      }
       x.height = 20;
     }
+  } else {
+    const emptyRow = ws.getRow(r);
+    if (cols.length > 1) ws.mergeCells(r, 1, r, cols.length);
+    const ec = emptyRow.getCell(1);
+    ec.value = 'Tidak ada data pada periode ini.';
+    ec.font = font({ italic: true, size: 10, color: { argb: INK_3 } });
+    ec.alignment = { horizontal: 'left', vertical: 'middle' };
+    emptyRow.height = 20;
   }
+  const caps: Record<number, number> = {};
+  cols.forEach((c, i) => {
+    caps[i + 1] = c.kind === 'money' || c.kind === 'int' ? 24 : Math.max(c.width + 12, 48);
+  });
+  fitColumns(ws, headRow, caps);
   return ws;
 }
 
@@ -464,8 +584,9 @@ function writeTransactions(wb: Workbook, ctx: Ctx, b: Books, txs: Transaction[],
   const sorted = [...txs].sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : x.createdAt - y.createdAt));
   const rows = sorted.map((t, i) => {
     const total = t.amount + (t.fee || 0) + (t.interest || 0);
-    const inflow = ['income', 'receivable_collect'].includes(t.type) || (t.type === 'payable_new' && t.counter === 'wallet');
-    const outflow = ['expense', 'payable_pay'].includes(t.type) || (t.type === 'receivable_new' && t.counter === 'wallet');
+    const walletDebt = t.counter !== 'category' && t.counter !== 'opening' && !!t.accountId;
+    const inflow = ['income', 'receivable_collect'].includes(t.type) || (t.type === 'payable_new' && walletDebt);
+    const outflow = ['expense', 'payable_pay'].includes(t.type) || (t.type === 'receivable_new' && walletDebt);
     const contact = t.contact || (t.parentId ? byId.get(t.parentId)?.contact : '') || '';
     return [
       i + 1,
@@ -514,16 +635,22 @@ function writeTransactions(wb: Workbook, ctx: Ctx, b: Books, txs: Transaction[],
 function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[], period: string, sheet = 'Jurnal Umum') {
   const ws = addSheet(wb, sheet, { landscape: true, tab: 'FF57609F', freeze: 7 });
   footer(ws, ctx, sheet);
-  const widths = [12, 17, 10, 36, 40, 17, 17];
+  const widths = [12, 20, 10, 36, 40, 17, 17];
   widths.forEach((w, i) => (ws.getColumn(i + 1).width = w));
   let r = letterhead(ws, ctx, sheet, period, 7);
   const hr = ws.getRow(r);
   ['Tanggal', 'No. Bukti', 'Kode', 'Nama Akun', 'Keterangan', 'Debit', 'Kredit'].forEach((h, i) => headerCell(hr.getCell(i + 1), h, i >= 5 ? 'right' : 'left'));
   hr.height = 20;
   ws.pageSetup.printTitlesRow = `${r}:${r}`;
+  const headRow = r;
   r++;
   const first = r;
+  let totD = 0;
+  let totC = 0;
   for (const e of entries) {
+    const t = entryTotals(e);
+    totD += t.debit;
+    totC += t.credit;
     const lines = [...e.lines].sort((x, y) => (x.debit ? 0 : 1) - (y.debit ? 0 : 1));
     lines.forEach((l, i) => {
       const x = ws.getRow(r);
@@ -532,7 +659,7 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
         x.getCell(1).value = xDate(e.date);
         x.getCell(1).numFmt = DATE;
         x.getCell(2).value = e.ref + (e.adjusting ? ' (AJP)' : '');
-        x.getCell(5).value = e.description;
+        x.getCell(5).value = l.memo ? `${e.description} · ${l.memo}` : e.description;
       } else if (l.memo) x.getCell(5).value = l.memo;
       x.getCell(3).value = a?.code ?? '';
       x.getCell(4).value = a?.name ?? '';
@@ -549,11 +676,20 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
     });
   }
   const last = r - 1;
-  const x = ws.getRow(r);
+  if (!entries.length) {
+    const emptyRow = ws.getRow(r);
+    ws.mergeCells(r, 1, r, 7);
+    emptyRow.getCell(1).value = 'Tidak ada entri jurnal pada periode ini.';
+    emptyRow.getCell(1).font = font({ italic: true, size: 10, color: { argb: INK_3 } });
+    emptyRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+    emptyRow.height = 20;
+    r++;
+  }
+  const totalRow = r;
+  const x = ws.getRow(totalRow);
   x.getCell(4).value = 'JUMLAH';
-  const tot = entries.reduce((s, e) => s + entryTotals(e).debit, 0);
-  x.getCell(6).value = { formula: `SUM(F${first}:F${last})`, result: round2(tot) };
-  x.getCell(7).value = { formula: `SUM(G${first}:G${last})`, result: round2(tot) };
+  x.getCell(6).value = entries.length ? { formula: `SUM(F${first}:F${last})`, result: round2(totD) } : 0;
+  x.getCell(7).value = entries.length ? { formula: `SUM(G${first}:G${last})`, result: round2(totC) } : 0;
   for (let c = 1; c <= 7; c++) {
     const cell = x.getCell(c);
     cell.font = font({ bold: true });
@@ -561,15 +697,21 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
     cell.border = { top: inkThin, bottom: { style: 'double', color: { argb: INK } } };
     if (c >= 6) cell.numFmt = NUM;
   }
-  r += 2;
+  x.height = 20;
+  r = totalRow + 2;
   const k = ws.getRow(r);
+  const diff = round2(totD - totC);
+  const balanced = Math.abs(diff) < 1;
   k.getCell(4).value = 'Kontrol: Debit − Kredit';
   k.getCell(4).font = font({ italic: true, size: 9.5, color: { argb: INK_3 } });
-  k.getCell(6).value = { formula: `F${r - 2}-G${r - 2}`, result: 0 };
+  k.getCell(6).value = { formula: `F${totalRow}-G${totalRow}`, result: diff };
   k.getCell(6).numFmt = NUM;
-  k.getCell(7).value = { formula: `IF(ABS(F${r})<1,"✓ Seimbang","✗ Periksa")`, result: '✓ Seimbang' };
-  k.getCell(7).font = font({ bold: true, size: 9.5, color: { argb: POS } });
+  k.getCell(6).font = font({ italic: true, size: 9.5, color: { argb: INK_3 } });
+  k.getCell(6).alignment = { horizontal: 'right' };
+  k.getCell(7).value = { formula: `IF(ABS(F${r})<1,"✓ Seimbang","✗ Periksa")`, result: balanced ? '✓ Seimbang' : '✗ Periksa' };
+  k.getCell(7).font = font({ bold: true, size: 9.5, color: { argb: balanced ? POS : NEG } });
   k.getCell(7).alignment = { horizontal: 'right' };
+  fitColumns(ws, headRow, { 2: 26, 4: 44, 5: 52, 6: 24, 7: 24 });
   return ws;
 }
 
@@ -596,18 +738,22 @@ function writeLedger(wb: Workbook, ctx: Ctx, b: Books, from: string, to: string,
   ['Tanggal', 'No. Bukti', 'Keterangan', 'Akun Lawan', 'Debit', 'Kredit', 'Saldo'].forEach((h, i) => headerCell(hr.getCell(i + 1), h, i >= 4 ? 'right' : 'left'));
   hr.height = 20;
   ws.pageSetup.printTitlesRow = `${r}:${r}`;
+  const headRow = r;
   r += 2;
   const accounts = (ids ? ids.map((id) => b.acc.get(id)!).filter(Boolean) : b.accounts).filter((a) => a.subtype !== 'income_summary');
+  let written = 0;
   for (const a of accounts) {
     const v = ledger(b, a.id, from, to);
     if (!v) continue;
     if (!ids && !v.rows.length && Math.abs(v.opening) < 0.005) continue;
+    written++;
     const debitNormal = normalSide(a) === 'debit';
     // judul akun
     const t = ws.getRow(r);
     ws.mergeCells(r, 1, r, 7);
     t.getCell(1).value = `${a.code}  ${a.name}   ·   ${TYPE_LABEL[a.type]} — ${SUBTYPE_META[a.subtype].label} — saldo normal ${debitNormal ? 'debit' : 'kredit'}`;
     t.getCell(1).font = font({ bold: true, size: 10.5, color: { argb: INK } });
+    t.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
     t.getCell(1).fill = fill(HEAD_FILL);
     t.getCell(1).border = { top: thin, bottom: thin };
     t.height = 20;
@@ -655,11 +801,20 @@ function writeLedger(wb: Workbook, ctx: Ctx, b: Books, from: string, to: string,
     }
     r += 3;
   }
+  if (!written) {
+    const emptyRow = ws.getRow(r);
+    ws.mergeCells(r, 1, r, 7);
+    emptyRow.getCell(1).value = 'Tidak ada saldo atau mutasi akun pada periode ini.';
+    emptyRow.getCell(1).font = font({ italic: true, size: 10, color: { argb: INK_3 } });
+    emptyRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+    emptyRow.height = 20;
+  }
+  fitColumns(ws, headRow, { 3: 50, 4: 38, 5: 24, 6: 24, 7: 24 });
   return ws;
 }
 
 function writeRatios(wb: Workbook, ctx: Ctx, list: Ratio[], from: string, to: string) {
-  const fmtVal = (r: Ratio) => (r.value === null ? null : r.value);
+  const fmtVal = (r: Ratio) => (r.value === null ? '—' : r.value);
   const status = { good: 'Sehat', warn: 'Perlu perhatian', bad: 'Lemah', na: 'Tidak tersedia' };
   const ws = writeTable(
     wb,
@@ -680,31 +835,66 @@ function writeRatios(wb: Workbook, ctx: Ctx, list: Ratio[], from: string, to: st
   );
   list.forEach((r, i) => {
     const c = ws.getRow(8 + i).getCell(3);
-    c.numFmt = r.unit === '%' ? PCT : r.unit === 'bulan' ? '0.0" bln"' : '0.00"x"';
+    if (r.value !== null) {
+      c.numFmt = r.unit === '%' ? PCT : r.unit === 'bulan' ? '0.0" bln"' : '0.00"x"';
+    } else {
+      c.font = font({ size: 10, color: { argb: INK_3 } });
+      c.alignment = { horizontal: 'right' };
+    }
     const s = ws.getRow(8 + i).getCell(5);
     s.font = font({ size: 10, bold: true, color: { argb: r.status === 'good' ? POS : r.status === 'bad' ? NEG : r.status === 'warn' ? 'FF8F6112' : INK_3 } });
   });
+  fitColumns(ws, 7, { 3: 18, 6: 64 });
   return ws;
 }
 
 function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
-  const rows = b.data.assets.map((a) => {
-    const acc = accumulatedAt(a, a.disposal ? a.disposal.date : to);
+  type CellVal = string | number | Date | null;
+  const toRow = (a: FixedAsset, acc: number, statusLabel: string): CellVal[] => {
+    const nonDep = a.depreciable === false;
     return [
       a.ref,
       a.name,
       b.acc.get(a.accountId)?.name ?? '',
       xDate(a.acquisitionDate),
       a.cost,
-      a.residualValue,
-      a.usefulLifeMonths,
-      a.method === 'straight_line' ? 'Garis lurus' : 'Saldo menurun ganda',
+      nonDep ? null : a.residualValue,
+      nonDep ? null : a.usefulLifeMonths,
+      nonDep ? 'Tidak disusutkan' : a.method === 'straight_line' ? 'Garis lurus' : 'Saldo menurun ganda',
       acc,
       round2(a.cost - acc),
-      a.disposal ? `Dilepas ${formatDate(a.disposal.date)}` : a.cost - acc - a.residualValue <= 0.005 ? 'Habis disusutkan' : 'Aktif',
+      statusLabel,
     ];
-  });
-  return writeTable(
+  };
+
+  const activeRows: CellVal[][] = [];
+  const otherRows: CellVal[][] = [];
+  for (const a of b.data.assets) {
+    const stop = disposalStop(a);
+    const future = a.acquisitionDate > to;
+    const disposedByTo = !!(stop && stop <= to);
+    const nonDep = a.depreciable === false;
+    if (future) {
+      otherRows.push(toRow(a, 0, 'Belum berlaku'));
+      continue;
+    }
+    if (disposedByTo) {
+      const acc = accumulatedAt(a, stop!);
+      otherRows.push(toRow(a, acc, `Dilepas ${formatDate(stop!)}`));
+      continue;
+    }
+    const acc = accumulatedAt(a, to);
+    const statusLabel = stop
+      ? `Dijadwalkan dilepas ${formatDate(stop)}`
+      : nonDep
+        ? 'Tidak disusutkan'
+        : a.cost - acc - a.residualValue <= 0.005
+          ? 'Habis disusutkan'
+          : 'Aktif';
+    activeRows.push(toRow(a, acc, statusLabel));
+  }
+
+  const ws = writeTable(
     wb,
     ctx,
     'Aset Tetap',
@@ -721,18 +911,47 @@ function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
       { header: 'Metode', width: 18 },
       { header: 'Akum. Penyusutan', width: 17, kind: 'money', total: true },
       { header: 'Nilai Buku', width: 17, kind: 'money', total: true },
-      { header: 'Status', width: 18 },
+      { header: 'Status', width: 22 },
     ],
-    rows,
+    activeRows,
     { landscape: true, tab: 'FF8A6546' },
   );
+
+  // Cantumkan aset yang sudah dilepas per `to` atau belum berlaku di bagian terpisah agar tidak menggeser total neraca.
+  if (otherRows.length) {
+    let r = (ws.lastRow?.number ?? 7) + 2;
+    const titleRow = ws.getRow(r);
+    ws.mergeCells(r, 1, r, 11);
+    titleRow.getCell(1).value = 'Aset Telah Dilepas / Belum Berlaku pada Tanggal Laporan (di luar saldo neraca)';
+    titleRow.getCell(1).font = font({ bold: true, italic: true, size: 10, color: { argb: INK_2 } });
+    titleRow.height = 18;
+    r++;
+    for (const vals of otherRows) {
+      const row = ws.getRow(r++);
+      vals.forEach((v, ci) => {
+        const c = row.getCell(ci + 1);
+        c.value = v as ExcelJS.CellValue;
+        c.font = font({ size: 9.5, color: { argb: INK_3 } });
+        c.border = { bottom: hair };
+        if (ci === 3) {
+          c.numFmt = DATE;
+          c.alignment = { horizontal: 'left' };
+        } else if (ci === 4 || ci === 5 || ci === 8 || ci === 9) {
+          c.numFmt = NUM;
+        } else if (ci === 6) {
+          c.numFmt = '#,##0';
+        }
+      });
+    }
+  }
+  return ws;
 }
 
 function writeCoa(wb: Workbook, ctx: Ctx, b: Books, to: string) {
-  const m = balancesAt(b, to);
+  const balOf = displayBalances(b, to);
   const rows = b.accounts
     .filter((a) => a.subtype !== 'income_summary')
-    .map((a) => [a.code, a.name, TYPE_LABEL[a.type], SUBTYPE_META[a.subtype].label, normalSide(a) === 'debit' ? 'Debit' : 'Kredit', bal(a, m), a.archived ? 'Arsip' : a.system ? 'Sistem' : 'Aktif']);
+    .map((a) => [a.code, a.name, TYPE_LABEL[a.type], SUBTYPE_META[a.subtype].label, normalSide(a) === 'debit' ? 'Debit' : 'Kredit', balOf(a), a.archived ? 'Arsip' : a.system ? 'Sistem' : 'Aktif']);
   return writeTable(
     wb,
     ctx,
@@ -768,14 +987,13 @@ function writeCover(ws: Worksheet, ctx: Ctx, from: string, to: string, toc: { sh
   };
   for (let c = 2; c <= 5; c++) ws.getRow(2).getCell(c).fill = fill(ACCENT);
   ws.getRow(2).height = 6;
-  put('B4', 'LAPORAN KEUANGAN', { size: 24, bold: true }, 34);
-  put('B5', ctx.entity, { size: 16, color: { argb: ACCENT }, bold: true }, 24);
-  put('B6', `Untuk periode ${periodLabel(from, to)}`, { size: 11, color: { argb: INK_2 } }, 18);
-  put('B7', `Disusun oleh ${ctx.owner || '—'} · ${formatDate(todayISO(), 'long')}`, { size: 9.5, color: { argb: INK_3 } });
+  for (const rowNum of [4, 5, 6, 7]) ws.mergeCells(`B${rowNum}:E${rowNum}`);
+  put('B4', 'LAPORAN KEUANGAN', { size: 24, bold: true }, 34).alignment = { vertical: 'middle', horizontal: 'left' };
+  put('B5', ctx.entity, { size: 16, color: { argb: ACCENT }, bold: true }, 24).alignment = { vertical: 'middle', horizontal: 'left' };
+  put('B6', `Untuk periode ${periodLabel(from, to)}`, { size: 11, color: { argb: INK_2 } }, 18).alignment = { vertical: 'middle', horizontal: 'left' };
+  put('B7', `Disusun oleh ${ctx.owner || '—'} · ${formatDate(todayISO(), 'long')}`, { size: 9.5, color: { argb: INK_3 } }, 16).alignment = { vertical: 'middle', horizontal: 'left' };
 
   let r = 10;
-  put(`B${r}`, 'IKHTISAR KEUANGAN', { size: 10.5, bold: true, color: { argb: INK_2 } }, 20);
-  r++;
   const kpis: [string, string, string][] = [
     ['Laba Rugi', 'st-rev', 'Pendapatan utama'],
     ['Laba Rugi', 't-op', 'Laba (rugi) operasional'],
@@ -786,45 +1004,55 @@ function writeCover(ws: Worksheet, ctx: Ctx, from: string, to: string, toc: { sh
     ['Arus Kas', 'st-op', 'Kas bersih dari aktivitas operasi'],
     ['Arus Kas', 't-end', 'Kas dan setara kas akhir periode'],
   ];
-  for (const [sheet, key, label] of kpis) {
-    const hit = ctx.refs.get(sheet)?.get(key);
-    if (!hit) continue;
-    const cellRef = hit.cell;
-    const x = ws.getRow(r);
-    x.getCell(3).value = label;
-    x.getCell(3).font = font({ size: 10.5 });
-    const v = x.getCell(4);
-    v.value = { formula: `'${sheet}'!${cellRef}`, result: hit.value };
-    v.numFmt = NUM;
-    v.font = font({ size: 10.5, bold: key === 't-net' || key === 't-end' });
-    v.alignment = { horizontal: 'right' };
-    const s = x.getCell(5);
-    s.value = { text: `→ ${sheet}`, hyperlink: `#'${sheet}'!${cellRef}` };
-    s.font = font({ size: 9, color: { argb: INK_3 }, underline: false });
-    for (const c of [3, 4, 5]) x.getCell(c).border = { bottom: hair };
-    x.height = 19;
+  const kpiHits = kpis
+    .map(([sheet, key, label]) => ({ sheet, key, label, hit: ctx.refs.get(safeName(sheet))?.get(key) }))
+    .filter((x): x is { sheet: string; key: string; label: string; hit: { cell: string; value: number } } => !!x.hit);
+
+  if (kpiHits.length > 0) {
+    put(`B${r}`, 'IKHTISAR KEUANGAN', { size: 10.5, bold: true, color: { argb: INK_2 } }, 20);
     r++;
+    for (const { sheet, key, label, hit } of kpiHits) {
+      const cellRef = hit.cell;
+      const x = ws.getRow(r);
+      x.getCell(3).value = label;
+      x.getCell(3).font = font({ size: 10.5 });
+      const v = x.getCell(4);
+      v.value = { formula: `${qSheet(sheet)}!${cellRef}`, result: hit.value };
+      v.numFmt = NUM;
+      v.font = font({ size: 10.5, bold: key === 't-net' || key === 't-end' });
+      v.alignment = { horizontal: 'right' };
+      const s = x.getCell(5);
+      s.value = { text: `→ ${sheet}`, hyperlink: sheetTarget(sheet, cellRef) };
+      s.font = font({ size: 9, color: { argb: INK_3 }, underline: false });
+      for (const c of [3, 4, 5]) x.getCell(c).border = { bottom: hair };
+      x.height = 19;
+      r++;
+    }
+    r += 2;
   }
 
-  r += 2;
   put(`B${r}`, 'DAFTAR ISI', { size: 10.5, bold: true, color: { argb: INK_2 } }, 20);
   r++;
   const hr = ws.getRow(r);
   headerCell(hr.getCell(2), 'No.', 'center');
   headerCell(hr.getCell(3), 'Lembar kerja');
-  headerCell(hr.getCell(4), '');
+  headerCell(hr.getCell(4), 'Isi');
   headerCell(hr.getCell(5), 'Isi');
+  hr.height = 22;
+  ws.mergeCells(r, 4, r, 5);
   r++;
   toc.forEach((t, i) => {
     const x = ws.getRow(r);
     x.getCell(2).value = i + 1;
     x.getCell(2).alignment = { horizontal: 'center' };
     x.getCell(2).font = font({ size: 10, color: { argb: INK_2 } });
-    x.getCell(3).value = { text: t.sheet, hyperlink: `#'${t.sheet}'!A1` };
+    x.getCell(3).value = { text: t.sheet, hyperlink: sheetTarget(t.sheet, 'A1') };
     x.getCell(3).font = font({ size: 10.5, color: { argb: 'FF2E5A7E' }, underline: true });
-    x.getCell(5).value = t.desc;
-    x.getCell(5).font = font({ size: 9.5, color: { argb: INK_2 } });
+    x.getCell(4).value = t.desc;
+    x.getCell(4).font = font({ size: 9.5, color: { argb: INK_2 } });
+    x.getCell(4).alignment = { horizontal: 'left', vertical: 'middle' };
     for (const c of [2, 3, 4, 5]) x.getCell(c).border = { bottom: hair };
+    ws.mergeCells(r, 4, r, 5);
     x.height = 18;
     r++;
   });
@@ -886,8 +1114,8 @@ export async function exportRatios(b: Books, list: Ratio[], p: { from: string; t
 export async function exportTransactions(b: Books, txs: Transaction[], p: { from: string; to: string }) {
   const wb = newWorkbook(b, 'Daftar Transaksi');
   const ctx = ctxOf(b);
-  const from = p.from === '1900-01-01' ? txs.reduce((m, t) => (t.date < m ? t.date : m), todayISO()) : p.from;
-  const to = p.to === '2999-12-31' ? todayISO() : p.to;
+  const from = p.from === '1900-01-01' ? txs.reduce((m, t) => (t.date < m ? t.date : m), txs[0]?.date ?? todayISO()) : p.from;
+  const to = p.to === '2999-12-31' ? txs.reduce((m, t) => (t.date > m ? t.date : m), txs[0]?.date ?? todayISO()) : p.to;
   writeTransactions(wb, ctx, b, txs, `Periode ${periodLabel(from, to)} · ${txs.length} transaksi`);
   await download(wb, `${ctx.entity} - Transaksi ${from} sd ${to}`);
 }
@@ -895,8 +1123,8 @@ export async function exportTransactions(b: Books, txs: Transaction[], p: { from
 export async function exportJournal(b: Books, entries: JournalEntry[], p: { from: string; to: string }) {
   const wb = newWorkbook(b, 'Jurnal Umum');
   const ctx = ctxOf(b);
-  const from = p.from === '1900-01-01' ? entries[0]?.date ?? todayISO() : p.from;
-  const to = p.to === '2999-12-31' ? todayISO() : p.to;
+  const from = p.from === '1900-01-01' ? entries.reduce((m, e) => (e.date < m ? e.date : m), entries[0]?.date ?? todayISO()) : p.from;
+  const to = p.to === '2999-12-31' ? entries.reduce((m, e) => (e.date > m ? e.date : m), entries[0]?.date ?? todayISO()) : p.to;
   writeJournal(wb, ctx, b, entries, `Untuk periode ${periodLabel(from, to)}`);
   await download(wb, `${ctx.entity} - Jurnal Umum ${from} sd ${to}`);
 }
@@ -904,8 +1132,8 @@ export async function exportJournal(b: Books, entries: JournalEntry[], p: { from
 export async function exportLedger(b: Books, p: { from: string; to: string }, ids?: string[]) {
   const wb = newWorkbook(b, 'Buku Besar');
   const ctx = ctxOf(b);
-  const from = p.from === '1900-01-01' ? b.entries[0]?.date ?? todayISO() : p.from;
-  const to = p.to === '2999-12-31' ? todayISO() : p.to;
+  const from = p.from === '1900-01-01' ? b.entries.reduce((m, e) => (e.date < m ? e.date : m), b.entries[0]?.date ?? todayISO()) : p.from;
+  const to = p.to === '2999-12-31' ? b.entries.reduce((m, e) => (e.date > m ? e.date : m), b.entries[0]?.date ?? todayISO()) : p.to;
   writeLedger(wb, ctx, b, from, to, ids);
   const name = ids?.length === 1 ? b.acc.get(ids[0])?.name ?? 'Akun' : 'Semua Akun';
   await download(wb, `${ctx.entity} - Buku Besar ${name} ${from} sd ${to}`);

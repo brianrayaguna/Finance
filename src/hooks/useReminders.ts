@@ -59,7 +59,7 @@ export function computeReminders(data: AppData, today: string): Reminders {
       to: '/hutang-piutang',
     });
   }
-  const over = budgetVsActual(getBooks(data), startOfMonth(today), endOfMonth(today)).filter((l) => l.used > 1);
+  const over = budgetVsActual(getBooks(data), startOfMonth(today), endOfMonth(today), today).filter((l) => l.used > 1);
   for (const l of over)
     items.push({
       id: 'budget-' + l.account.id,

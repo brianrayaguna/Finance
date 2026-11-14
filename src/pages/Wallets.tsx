@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Plus,
@@ -18,9 +18,12 @@ import { useUI } from '../store/ui';
 import { addTransaction, updateAccount } from '../store/data';
 import { notify } from '../store/history';
 import { SUBTYPE_META, SYS } from '../accounting/coa';
+import { isLocked } from '../accounting/lock';
 import { accountBalanceSeries, walletBalances } from '../accounting/reports';
 import type { Account } from '../accounting/types';
-import { formatDate, formatMoney, round2, isZero, startOfMonth, todayISO } from '../lib/format';
+import { addDays, formatDate, formatMoney, round2, isZero, startOfMonth } from '../lib/format';
+import { useSubmitRef } from '../lib/focus';
+import { isImeComposing } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { AnimatedMoney, Button, EmptyState, IconTile, Money, Field } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
@@ -74,23 +77,20 @@ export default function Wallets() {
         style={{ '--c': a.color } as React.CSSProperties}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03, type: 'spring', stiffness: 300, damping: 28 } }}
-        onClick={() => nav(`/buku-besar?akun=${a.id}`)}
-        role="link"
-        tabIndex={0}
-        aria-label={`${a.name}: buka buku besar`}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.target === e.currentTarget) nav(`/buku-besar?akun=${a.id}`);
-        }}
       >
         <div className="wc-top">
           <IconTile icon={a.icon} color={a.color} solid />
           <div className="grow" style={{ minWidth: 0 }}>
-            <div className="wc-name truncate">{a.name}</div>
+            <div className="wc-name">
+              <Link to={`/buku-besar?akun=${a.id}`} className="stretch-trigger truncate" aria-label={`${a.name}: buka buku besar`}>
+                {a.name}
+              </Link>
+            </div>
             <div className="wc-type">
               {SUBTYPE_META[a.subtype].label} · <span className="num">{a.code}</span>
             </div>
           </div>
-          <div onClick={(e) => e.stopPropagation()}>
+          <div className="row-front">
             <Menu
               items={[
                 { label: 'Ubah', icon: Pencil, onSelect: () => modal.openEdit('wallet', a) },
@@ -99,11 +99,33 @@ export default function Wallets() {
                 { label: 'Buka buku besar', icon: BookOpenText, onSelect: () => nav(`/buku-besar?akun=${a.id}`) },
                 { separator: true },
                 a.archived
-                  ? { label: 'Aktifkan kembali', icon: ArchiveRestore, onSelect: () => notify(`${a.name} diaktifkan`, updateAccount(a.id, { archived: false }, 'Aktifkan akun')) }
-                  : { label: 'Arsipkan', icon: Archive, onSelect: () => notify(`${a.name} diarsipkan`, updateAccount(a.id, { archived: true }, 'Arsipkan akun')) },
+                  ? {
+                      label: 'Aktifkan kembali',
+                      icon: ArchiveRestore,
+                      onSelect: () => {
+                        const hid = updateAccount(a.id, { archived: false }, 'Aktifkan akun');
+                        if (hid) notify(`${a.name} diaktifkan`, hid);
+                      },
+                    }
+                  : {
+                      label: 'Arsipkan',
+                      icon: Archive,
+                      onSelect: () => {
+                        const hid = updateAccount(a.id, { archived: true }, 'Arsipkan akun');
+                        if (hid) notify(`${a.name} diarsipkan`, hid);
+                      },
+                    },
               ]}
               trigger={(p) => (
-                <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label="Menu akun">
+                <button
+                  type="button"
+                  className="tb-btn"
+                  ref={p.ref}
+                  onClick={p.onClick}
+                  aria-expanded={p['aria-expanded']}
+                  aria-haspopup={p['aria-haspopup']}
+                  aria-label="Menu akun"
+                >
                   <Ellipsis />
                 </button>
               )}
@@ -187,7 +209,7 @@ export default function Wallets() {
       {archived.length > 0 && (
         <section className="wallet-group">
           <button type="button" className="wg-head toggle" onClick={() => setShowArchived((v) => !v)}>
-            <h3>Diarsipkan ({archived.length})</h3>
+            <h2>Diarsipkan ({archived.length})</h2>
             <ChevronDown size={16} style={{ transform: showArchived ? 'rotate(180deg)' : undefined, transition: 'transform .2s' }} />
           </button>
           {showArchived && <div className="wallet-grid">{archived.map(card)}</div>}
@@ -201,16 +223,20 @@ export default function Wallets() {
 
 function ReconcileModal({ account, onClose }: { account: Account; onClose: () => void }) {
   const b = useBooks();
+  const today = useToday();
   const liab = account.subtype === 'credit_card';
-  const [date, setDate] = useState(todayISO());
+  const lockDate = b.data.profile.lockDate;
+  const [date, setDate] = useState(today);
+  const dateLocked = isLocked(date, lockDate);
   // Saldo buku dihitung per TANGGAL PENYESUAIAN yang dipilih, bukan per hari ini.
   // Untuk kartu kredit, "saldo" = jumlah terutang (positif = berhutang).
   const book = useMemo(() => walletBalances(b, date).find((w) => w.account.id === account.id)?.balance ?? 0, [b, date, account.id]);
-  const [actual, setActual] = useState<number | null>(() => walletBalances(b, todayISO()).find((w) => w.account.id === account.id)?.balance ?? 0);
+  const [actual, setActual] = useState<number | null>(() => walletBalances(b, today).find((w) => w.account.id === account.id)?.balance ?? 0);
   const typed = actual ?? 0;
   // selisih dari sudut pandang kekayaan: + = bertambah (pendapatan), − = berkurang (beban)
   const diff = round2(liab ? book - typed : typed - book);
   const submit = () => {
+    if (dateLocked) return;
     if (isZero(diff)) return onClose();
     const gain = diff > 0;
     const { tx, historyId } = addTransaction(
@@ -229,6 +255,7 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
     notify(`Saldo ${account.name} disesuaikan`, historyId, { detail: tx.ref });
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
   return (
     <Modal
       open
@@ -241,13 +268,22 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit}>
+          <Button variant="primary" onClick={() => submitRef.run()} disabled={dateLocked}>
             {isZero(diff) ? 'Sudah sesuai' : 'Catat penyesuaian'}
           </Button>
         </>
       }
     >
-      <div className="stack" data-form onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && (e.preventDefault(), submit())}>
+      <div
+        className="stack"
+        data-form
+        onKeyDown={(e) => {
+          if (!isImeComposing(e) && e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+            e.preventDefault();
+            submitRef.runFrom(e.target);
+          }
+        }}
+      >
         <div className="recon-row">
           <span className="muted">{liab ? 'Tagihan menurut buku' : 'Saldo menurut buku'} per {formatDate(date)}</span>
           <strong className="num money-val">{formatMoney(book)}</strong>
@@ -255,12 +291,12 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
         <Field label={liab ? 'Tagihan aktual (jumlah terutang)' : 'Saldo aktual'} hint={liab ? 'Isi negatif bila ada kelebihan bayar' : undefined}>
           <AmountInput value={actual} onChange={setActual} autoFocus allowNegative />
         </Field>
-        <Field label="Tanggal penyesuaian">
-          <DatePicker value={date} onChange={setDate} />
+        <Field label="Tanggal penyesuaian" error={dateLocked ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci` : undefined}>
+          <DatePicker value={date} onChange={setDate} min={lockDate ? addDays(lockDate, 1) : undefined} invalid={dateLocked} />
         </Field>
         <div className={`recon-diff ${isZero(diff) ? '' : diff > 0 ? 'up' : 'down'}`}>
           <span>Selisih</span>
-          <strong className="num">{formatMoney(diff, { sign: 'always' })}</strong>
+          <strong className="num money-val">{formatMoney(diff, { sign: 'always' })}</strong>
           <span className="muted" style={{ fontSize: 12 }}>
             {isZero(diff) ? 'Tidak ada penyesuaian' : diff > 0 ? '→ Pendapatan Lain-lain' : '→ Beban Lain-lain'}
           </span>

@@ -38,11 +38,11 @@ export default function Accounts() {
     return (
       <section className="cat-section">
         <div className="wg-head">
-          <h3 className="row" style={{ gap: 8 }}>
-            {type === 'revenue' ? <TrendingUp size={17} className="pos" /> : <TrendingDown size={17} className="neg" />}
+          <h2 className="row" style={{ gap: 8 }}>
+            {type === 'revenue' ? <TrendingUp size={17} className="pos" aria-hidden /> : <TrendingDown size={17} className="neg" aria-hidden />}
             {type === 'revenue' ? 'Kategori pendapatan' : 'Kategori beban'}
             <span className="muted" style={{ fontWeight: 500 }}>{list.length}</span>
-          </h3>
+          </h2>
           <Button size="sm" variant="ghost" icon={Plus} onClick={() => modal.openNew('category', type === 'revenue' ? 'operating_revenue' : 'operating_expense')}>
             Tambah
           </Button>

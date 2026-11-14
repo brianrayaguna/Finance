@@ -31,7 +31,12 @@ function Avatar({ name }: { name: string }) {
 }
 
 function StatusBadge({ d }: { d: DebtInfo }) {
-  if (d.status === 'paid') return <Badge tone="pos" icon={CircleCheck}>Lunas</Badge>;
+  if (d.status === 'paid') {
+    if (d.writtenOff > 0.005) {
+      return d.paid <= 0.005 ? <Badge>Dihapusbukukan</Badge> : <Badge tone="pos" icon={CircleCheck}>Selesai · sebagian dihapus</Badge>;
+    }
+    return <Badge tone="pos" icon={CircleCheck}>Lunas</Badge>;
+  }
   if (d.status === 'overdue') return <Badge tone="neg" dot>Lewat {-(d.daysToDue ?? 0)} hari</Badge>;
   if (d.status === 'due_soon') return <Badge tone="warn" dot>{d.daysToDue === 0 ? 'Jatuh tempo hari ini' : `${d.daysToDue} hari lagi`}</Badge>;
   if (d.tx.dueDate) return <Badge dot>JT {formatDate(d.tx.dueDate)}</Badge>;
@@ -203,18 +208,20 @@ export default function Debts() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className={`debt-row st-${d.status}`}
-                  onClick={() => setDetail(d.tx.id)}
-                  role="link"
-                  tabIndex={0}
-                  aria-label={`${d.tx.contact || 'Tanpa nama'}, sisa ${formatMoney(d.remaining)}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target === e.currentTarget) setDetail(d.tx.id);
-                  }}
                 >
                   <Avatar name={d.tx.contact || '?'} />
                   <div className="dr-main">
                     <div className="row" style={{ gap: 8 }}>
-                      <strong className="truncate">{d.tx.contact}</strong>
+                      <strong>
+                        <button
+                          type="button"
+                          className="stretch-trigger truncate"
+                          onClick={() => setDetail(d.tx.id)}
+                          aria-label={`${d.tx.contact || 'Tanpa nama'}, sisa ${formatMoney(d.remaining)}`}
+                        >
+                          {d.tx.contact || 'Tanpa nama'}
+                        </button>
+                      </strong>
                       <StatusBadge d={d} />
                     </div>
                     <div className="muted truncate" style={{ fontSize: 13 }}>
@@ -233,7 +240,7 @@ export default function Debts() {
                       dari {formatMoney(d.tx.amount)}
                     </span>
                   </div>
-                  <div className="dr-actions" onClick={(e) => e.stopPropagation()}>
+                  <div className="dr-actions row-front">
                     {d.status !== 'paid' && (
                       <Button size="sm" variant="tinted" onClick={() => act(d)}>
                         {payLabel}
@@ -250,7 +257,15 @@ export default function Debts() {
                         { label: 'Hapus', icon: Trash2, danger: true, onSelect: () => remove(d) },
                       ]}
                       trigger={(p) => (
-                        <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label={`Menu ${d.tx.contact ?? ''}`.trim()}>
+                        <button
+                          type="button"
+                          className="tb-btn"
+                          ref={p.ref}
+                          onClick={p.onClick}
+                          aria-expanded={p['aria-expanded']}
+                          aria-haspopup={p['aria-haspopup']}
+                          aria-label={`Menu ${d.tx.contact ?? ''}`.trim()}
+                        >
                           <Ellipsis />
                         </button>
                       )}

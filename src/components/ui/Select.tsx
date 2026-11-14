@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronDown, Search } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { IconTile, useFieldCtx } from './primitives';
 import { normalize } from '../../lib/format';
 import { focusNext } from '../../lib/focus';
+import { isImeComposing } from '../../lib/layers';
 
 export interface SelectOption<T extends string = string> {
   value: T;
@@ -58,6 +59,8 @@ export function Select<T extends string>({
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
+  const listId = useId();
+  const optId = (i: number) => `${listId}-opt-${i}`;
   const trigger = useRef<HTMLButtonElement | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -85,8 +88,9 @@ export function Select<T extends string>({
   const openList = (initialQ = '') => {
     if (disabled) return;
     setQ(initialQ);
-    const idx = Math.max(0, options.findIndex((o) => o.value === value));
-    setActive(initialQ ? 0 : idx);
+    const idx = options.findIndex((o) => o.value === value && !o.disabled);
+    const first = Math.max(0, options.findIndex((o) => !o.disabled));
+    setActive(initialQ ? first : idx >= 0 ? idx : first);
     setOpen(true);
   };
 
@@ -149,6 +153,7 @@ export function Select<T extends string>({
         }
         break;
       case 'Enter':
+        if (isImeComposing(e)) return;
         if (e.metaKey || e.ctrlKey) {
           setOpen(false);
           setQ('');
@@ -178,6 +183,7 @@ export function Select<T extends string>({
   };
 
   let lastGroup: string | undefined;
+  const activeDescendant = filtered[active] ? optId(active) : undefined;
 
   return (
     <>
@@ -190,6 +196,7 @@ export function Select<T extends string>({
         className={['select-trigger', invalid && 'invalid', compact && 'compact'].filter(Boolean).join(' ')}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listId : undefined}
         aria-label={ariaLabel}
         disabled={disabled}
         data-field
@@ -224,12 +231,17 @@ export function Select<T extends string>({
         )}
         <ChevronDown className="chev" />
       </button>
-      <Popover open={open} onClose={() => close()} anchor={trigger} width={width} minWidth={compact ? 220 : undefined} role="listbox">
+      <Popover open={open} onClose={() => close()} anchor={trigger} width={width} minWidth={compact ? 220 : undefined} role="none">
         {isSearch && (
           <div className="popover-search">
-            <Search />
+            <Search aria-hidden />
             <input
               ref={search}
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={listId}
+              aria-activedescendant={activeDescendant}
+              aria-label="Cari opsi"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={onListKey}
@@ -238,15 +250,25 @@ export function Select<T extends string>({
             />
           </div>
         )}
-        <div className="listbox" ref={list} tabIndex={-1} onKeyDown={isSearch ? undefined : onListKey} style={{ outline: 'none' }}>
+        <div
+          id={listId}
+          role="listbox"
+          aria-activedescendant={!isSearch ? activeDescendant : undefined}
+          className="listbox"
+          ref={list}
+          tabIndex={-1}
+          onKeyDown={isSearch ? undefined : onListKey}
+          style={{ outline: 'none' }}
+        >
           {filtered.length === 0 && <div className="list-empty">{emptyText}</div>}
           {filtered.map((o, i) => {
             const head = o.group && o.group !== lastGroup ? o.group : null;
             lastGroup = o.group;
             return (
-              <div key={o.value}>
+              <div key={o.value} role="presentation">
                 {head && <div className="list-group">{head}</div>}
                 <div
+                  id={optId(i)}
                   role="option"
                   aria-selected={o.value === value}
                   aria-disabled={o.disabled}

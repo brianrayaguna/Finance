@@ -1,8 +1,21 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronRight, type Glyph } from '../../lib/glyphs';
 import { useLayer } from '../../lib/layers';
+
+const ParentPopoverCtx = createContext<string | null>(null);
+
+function isDescendantPopover(target: EventTarget | null, ancestorId: string): boolean {
+  let cur = target instanceof Element ? target.closest('[data-popover-id]') : null;
+  while (cur) {
+    const parent = cur.getAttribute('data-parent-popover');
+    if (!parent) return false;
+    if (parent === ancestorId) return true;
+    cur = document.querySelector(`[data-popover-id="${CSS.escape(parent)}"]`);
+  }
+  return false;
+}
 
 export type Anchor = RefObject<HTMLElement | null> | { x: number; y: number };
 
@@ -24,8 +37,11 @@ interface PopoverProps {
   style?: CSSProperties;
   closeOnOutside?: boolean;
   role?: string;
-  /** Pindahkan fokus ke kontrol pertama saat dibuka dan kembalikan ke pemicu saat ditutup */
+  ariaLabel?: string;
+  /** Pindahkan fokus ke kontrol pertama saat dibuka */
   autoFocus?: boolean;
+  /** Kembalikan fokus ke pemicu saat popover ditutup */
+  returnFocus?: boolean;
 }
 
 export function Popover({
@@ -41,31 +57,56 @@ export function Popover({
   style,
   closeOnOutside = true,
   role = 'dialog',
+  ariaLabel,
   autoFocus = false,
+  returnFocus = true,
 }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const popId = useId();
+  const parentId = useContext(ParentPopoverCtx);
   const [pos, setPos] = useState<{ top: number; left: number; origin: string; w?: number } | null>(null);
   useLayer(open, onClose);
 
   const place = useCallback(() => {
     const el = ref.current;
     if (!el) return;
+    if (typeof el.showPopover === 'function' && !el.matches(':popover-open')) {
+      try {
+        el.showPopover();
+      } catch {
+        /* abaikan bila belum terhubung */
+      }
+    }
     const r = anchorRect(anchor);
-    const w = width === 'anchor' ? r.width : typeof width === 'number' ? width : undefined;
+    const rawW = width === 'anchor' ? r.width : typeof width === 'number' ? width : undefined;
+    const w = rawW !== undefined && minWidth !== undefined ? Math.max(rawW, minWidth) : rawW;
     // Ukuran tata letak (offset*), bukan getBoundingClientRect: saat animasi masuk popover masih
     // diskalakan 0,96 sehingga lebarnya terukur lebih kecil dan popover di tepi kanan meluber.
-    const pw = w ?? el.offsetWidth;
+    const pw = Math.max(w ?? el.offsetWidth, minWidth ?? 0);
     const ph = el.offsetHeight;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let top: number;
     let left: number;
     let origin = 'top';
+    let originX = placement.endsWith('end') ? 'right' : 'left';
     if (placement === 'right-start') {
       // baris pertama anak menu sejajar dengan baris pemicunya (menu punya padding 5–6px)
       left = r.right + offset;
       top = r.top - 6;
-      if (left + pw > vw - 8) left = r.left - offset - pw;
+      originX = 'left';
+      if (left + pw > vw - 8) {
+        const altLeft = r.left - offset - pw;
+        if (altLeft >= 8) {
+          left = altLeft;
+          originX = 'right';
+        } else {
+          // Layar sempit: tempatkan di bawah baris pemicu sedikit menjorok agar tidak menimpa induknya.
+          left = Math.min(r.left + 12, vw - pw - 8);
+          top = r.bottom + 4;
+          originX = 'left';
+        }
+      }
     } else {
       const below = r.bottom + offset;
       const above = r.top - offset - ph;
@@ -85,11 +126,11 @@ export function Popover({
     }
     top = Math.max(8, Math.min(top, vh - ph - 8));
     left = Math.max(8, Math.min(left, vw - pw - 8));
-    const next = { top, left, origin: `${origin} ${placement.endsWith('end') ? 'right' : 'left'}`, w };
+    const next = { top, left, origin: `${origin} ${originX}`, w };
     setPos((p) =>
       p && Math.abs(p.top - next.top) < 0.5 && Math.abs(p.left - next.left) < 0.5 && p.origin === next.origin && p.w === next.w ? p : next,
     );
-  }, [anchor, placement, width, offset]);
+  }, [anchor, placement, width, minWidth, offset]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -102,16 +143,22 @@ export function Popover({
   }, [open, place]);
 
   useEffect(() => {
-    if (!open || !autoFocus) return;
-    const t = requestAnimationFrame(() =>
-      ref.current?.querySelector<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus(),
-    );
+    if (!open) return;
+    let t = 0;
+    if (autoFocus) {
+      t = requestAnimationFrame(() =>
+        ref.current?.querySelector<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus(),
+      );
+    }
     return () => {
-      cancelAnimationFrame(t);
+      if (t) cancelAnimationFrame(t);
+      if (!returnFocus) return;
       const a = document.activeElement;
-      if ('current' in anchor && (!a || a === document.body || ref.current?.contains(a))) anchor.current?.focus();
+      if ('current' in anchor && anchor.current?.isConnected && (!a || a === document.body || ref.current?.contains(a))) {
+        anchor.current.focus();
+      }
     };
-  }, [open, autoFocus, anchor]);
+  }, [open, autoFocus, returnFocus, anchor]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,8 +171,8 @@ export function Popover({
       const t = e.target as Node;
       if (ref.current?.contains(t)) return;
       if ('current' in anchor && anchor.current?.contains(t)) return;
-      // klik di popover lain yang dibuka dari dalam popover ini (mis. daftar pilihan) bukan klik di luar
-      if (t instanceof Element && t.closest('.popover')) return;
+      // Hanya abaikan klik pada popover turunan yang dibuka dari dalam popover ini (bukan popover terpisah).
+      if (isDescendantPopover(t, popId)) return;
       onClose();
     };
     window.addEventListener('resize', place);
@@ -139,14 +186,18 @@ export function Popover({
       document.removeEventListener('mousedown', onDown, true);
       ro?.disconnect();
     };
-  }, [open, place, anchor, onClose, closeOnOutside]);
+  }, [open, place, anchor, onClose, closeOnOutside, popId]);
 
   return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
           ref={ref}
+          popover="manual"
+          data-popover-id={popId}
+          data-parent-popover={parentId || undefined}
           role={role}
+          aria-label={ariaLabel}
           className={`popover ${className}`}
           style={{
             top: pos?.top ?? -9999,
@@ -162,7 +213,7 @@ export function Popover({
           exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          {children}
+          <ParentPopoverCtx.Provider value={popId}>{children}</ParentPopoverCtx.Provider>
         </motion.div>
       )}
     </AnimatePresence>,
@@ -197,14 +248,17 @@ export function MenuList({
   onClose,
   onBack,
   popClassName,
+  ariaLabel,
 }: {
   items: MenuItem[];
   onClose: () => void;
   onBack?: () => void;
   /** Kelas popover yang diteruskan ke anak menu agar gayanya sama dengan induknya */
   popClassName?: string;
+  ariaLabel?: string;
 }) {
   const actionable = items.map((it, i) => ({ it, i })).filter((x) => isAction(x.it));
+  const menuId = useId();
   const [active, setActive] = useState(-1);
   const [sub, setSub] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -257,11 +311,22 @@ export function MenuList({
     }
   };
 
+  const itemId = (i: number) => `${menuId}-opt-${i}`;
+
   return (
-    <div className="menu" role="menu" tabIndex={-1} ref={ref} onKeyDown={onKey} style={{ outline: 'none' }}>
+    <div
+      className="menu"
+      role="menu"
+      aria-label={ariaLabel}
+      aria-activedescendant={active >= 0 ? itemId(active) : undefined}
+      tabIndex={-1}
+      ref={ref}
+      onKeyDown={onKey}
+      style={{ outline: 'none' }}
+    >
       {items.map((it, i) =>
         it.separator ? (
-          <div key={i} className="menu-sep" role="separator" />
+          <hr key={i} className="menu-sep" />
         ) : it.note ? (
           <div key={i} className="menu-note truncate">
             {it.note}
@@ -273,6 +338,7 @@ export function MenuList({
         ) : (
           <button
             key={i}
+            id={itemId(i)}
             ref={(el) => {
               itemRefs.current[i] = el;
             }}
@@ -306,7 +372,7 @@ export function MenuList({
         ),
       )}
       {sub !== null && items[sub]?.submenu && (
-        <Popover open onClose={closeSub} anchor={subAnchor} placement="right-start" offset={6} minWidth={200} role="none" className={popClassName}>
+        <Popover open onClose={closeSub} anchor={subAnchor} placement="right-start" offset={6} minWidth={200} role="none" returnFocus={false} className={popClassName}>
           <MenuList
             items={items[sub].submenu!}
             onClose={() => {
@@ -315,6 +381,7 @@ export function MenuList({
             }}
             onBack={closeSub}
             popClassName={popClassName}
+            ariaLabel={items[sub].label}
           />
         </Popover>
       )}
@@ -328,12 +395,14 @@ export function Menu({
   placement = 'bottom-end',
   minWidth = 210,
   className,
+  ariaLabel,
 }: {
-  trigger: (props: { ref: RefObject<HTMLButtonElement | null>; onClick: (e: React.MouseEvent) => void; 'aria-expanded': boolean }) => ReactNode;
+  trigger: (props: { ref: RefObject<HTMLButtonElement | null>; onClick: (e: React.MouseEvent) => void; 'aria-expanded': boolean; 'aria-haspopup': 'menu' }) => ReactNode;
   items: MenuItem[];
   placement?: PopoverProps['placement'];
   minWidth?: number;
   className?: string;
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement | null>(null);
@@ -347,9 +416,10 @@ export function Menu({
           setOpen((v) => !v);
         },
         'aria-expanded': open,
+        'aria-haspopup': 'menu' as const,
       })}
       <Popover open={open} onClose={close} anchor={ref} placement={placement} minWidth={minWidth} role="none" className={className}>
-        <MenuList items={items} onClose={close} popClassName={className} />
+        <MenuList items={items} onClose={close} popClassName={className} ariaLabel={ariaLabel} />
       </Popover>
     </>
   );

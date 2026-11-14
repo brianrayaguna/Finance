@@ -3,7 +3,7 @@
  *  kepala (merek + ciutkan) · Cari & Catat transaksi · menu berkelompok yang dapat dilipat ·
  *  daftar saldo rekening · profil dengan menu pengaturan.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -26,12 +26,12 @@ import {
   Star,
   type Glyph,
 } from '../../lib/glyphs';
-import { buildNav, toneOf, type NavItem } from '../../app/nav';
+import { buildNav, type NavItem } from '../../app/nav';
 import { downloadBackup } from '../../app/backup';
 import { usePrefs, useUI, type ThemeMode } from '../../store/ui';
 import { useData } from '../../store/data';
 import { useReminders } from '../../hooks/useReminders';
-import { useBooks, useToday } from '../../hooks/useApp';
+import { useBooks, useNarrow, useToday } from '../../hooks/useApp';
 import { walletBalances } from '../../accounting/reports';
 import { formatMoney, initials } from '../../lib/format';
 import { ALT, MOD, isMac } from '../../lib/layers';
@@ -58,55 +58,45 @@ function NavRow({
   onNavigate: () => void;
 }) {
   const Icon: Glyph = it.icon;
+  const collapsedAriaLabel = collapsed ? (badge ? `${it.label}, ${badge} perlu perhatian` : it.label) : undefined;
   return (
-    <Tooltip
-      label={
-        <span className="tip-stack">
-          {it.label}
-          {group && <small>{group}</small>}
-        </span>
-      }
-      side="right"
-      disabled={!collapsed}
-      kbd={it.hotkey ? [ALT, it.hotkey] : undefined}
-    >
-      <NavLink
-        to={it.to}
-        end={it.to === '/'}
-        className={`sb-item${active ? ' active' : ''}`}
-        onClick={onNavigate}
-        aria-current={active ? 'page' : undefined}
-        aria-label={collapsed ? it.label : undefined}
+    <li>
+      <Tooltip
+        label={
+          <span className="tip-stack">
+            {it.label}
+            {group && <small>{group}</small>}
+          </span>
+        }
+        side="right"
+        disabled={!collapsed}
+        kbd={it.hotkey ? [ALT, it.hotkey] : undefined}
       >
-        {active && <motion.span layoutId="sb-pill" className="sb-pill" transition={SPRING} />}
-        <span className="sb-ico" style={{ '--tone': toneOf(it.to) } as CSSProperties} aria-hidden>
-          <Icon solid={active} />
-        </span>
-        <span className="sb-text">{it.label}</span>
-        {!!badge && (
-          <>
-            <span className="sb-badge" aria-label={`${badge} perlu perhatian`}>
-              {badge}
-            </span>
-            <span className="sb-dot" aria-hidden />
-          </>
-        )}
-      </NavLink>
-    </Tooltip>
+        <NavLink
+          to={it.to}
+          end={it.to === '/'}
+          className={`sb-item${active ? ' active' : ''}`}
+          onClick={onNavigate}
+          aria-current={active ? 'page' : undefined}
+          aria-label={collapsedAriaLabel}
+        >
+          {active && <motion.span layoutId="sb-pill" className="sb-pill" transition={SPRING} />}
+          <span className="sb-ico" aria-hidden>
+            <Icon solid={active} />
+          </span>
+          <span className="sb-text">{it.label}</span>
+          {!!badge && (
+            <>
+              <span className="sb-badge" aria-label={`${badge} perlu perhatian`}>
+                {badge}
+              </span>
+              <span className="sb-dot" aria-hidden />
+            </>
+          )}
+        </NavLink>
+      </Tooltip>
+    </li>
   );
-}
-
-/** Layar sempit: sidebar tampil sebagai laci penuh walau preferensi "ciut" aktif. */
-function useNarrow() {
-  const q = '(max-width: 960px)';
-  const [narrow, setNarrow] = useState(() => window.matchMedia(q).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(q);
-    const on = () => setNarrow(mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, []);
-  return narrow;
 }
 
 /** Bayangan pudar di tepi atas/bawah area gulir — tanda masih ada menu di luar layar. */
@@ -155,6 +145,9 @@ function SectionLabel({
   aside?: ReactNode;
   icon?: ReactNode;
 }) {
+  if (collapsed) {
+    return <div className="sb-label sb-sep" role="separator" aria-hidden="true" />;
+  }
   return (
     <button
       type="button"
@@ -162,7 +155,6 @@ function SectionLabel({
       onClick={onToggle}
       aria-expanded={!folded}
       aria-controls={`sb-sec-${id}`}
-      tabIndex={collapsed ? -1 : 0}
       title={folded ? `Tampilkan ${label}` : `Lipat ${label}`}
     >
       {icon}
@@ -191,7 +183,7 @@ const Fold = ({ open, id, children }: { open: boolean; id: string; children: Rea
         exit={{ height: 0, opacity: 0 }}
         transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
       >
-        {children}
+        <ul className="sb-list">{children}</ul>
       </motion.div>
     )}
   </AnimatePresence>
@@ -202,6 +194,7 @@ function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boole
   const b = useBooks();
   const today = useToday();
   const compact = usePrefs((s) => s.compactNumbers);
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const { search, pathname } = useLocation();
   const list = useMemo(() => walletBalances(b, today).filter((w) => !w.account.archived), [b, today]);
   if (!list.length || collapsed) return null;
@@ -224,24 +217,27 @@ function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boole
         {shown.map((w) => {
           const v = signed(w);
           return (
-            <Link
-              key={w.account.id}
-              to={`/transaksi?akun=${w.account.id}`}
-              className={`sb-acct${activeId === w.account.id ? ' active' : ''}`}
-              onClick={onNavigate}
-              aria-current={activeId === w.account.id ? 'page' : undefined}
-              title={`${w.account.name} · ${formatMoney(v)}`}
-            >
-              <span className="sb-acct-dot" style={{ background: w.account.color }} aria-hidden />
-              <span className="sb-acct-name">{w.account.name}</span>
-              <span className={`sb-acct-val money-val num${v < -0.004 ? ' neg' : ''}`}>{money(v)}</span>
-            </Link>
+            <li key={w.account.id}>
+              <Link
+                to={`/transaksi?akun=${w.account.id}`}
+                className={`sb-acct${activeId === w.account.id ? ' active' : ''}`}
+                onClick={onNavigate}
+                aria-current={activeId === w.account.id ? 'page' : undefined}
+                title={hideAmounts ? w.account.name : `${w.account.name} · ${formatMoney(v)}`}
+              >
+                <span className="sb-acct-dot" style={{ background: w.account.color }} aria-hidden />
+                <span className="sb-acct-name">{w.account.name}</span>
+                <span className={`sb-acct-val money-val num${v < -0.004 ? ' neg' : ''}`}>{money(v)}</span>
+              </Link>
+            </li>
           );
         })}
         {list.length > shown.length && (
-          <Link to="/dompet" className="sb-acct sb-acct-more" onClick={onNavigate}>
-            Lihat semua {list.length} rekening
-          </Link>
+          <li>
+            <Link to="/dompet" className="sb-acct sb-acct-more" onClick={onNavigate}>
+              Lihat semua {list.length} rekening
+            </Link>
+          </li>
         )}
       </Fold>
     </div>
@@ -333,9 +329,9 @@ export function Sidebar() {
   const collapsed = collapsedPref && !narrow;
   const setPrefs = usePrefs((s) => s.set);
   const setNav = usePrefs((s) => s.setNav);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const navPrefs = usePrefs((s) => s.nav);
   const mode = usePrefs((s) => s.mode);
+  const mobileNav = useUI((s) => s.mobileNav);
   const setMobileNav = useUI((s) => s.setMobileNav);
   const setPalette = useUI((s) => s.setPalette);
   const openTx = useUI((s) => s.openTx);
@@ -347,9 +343,19 @@ export function Sidebar() {
   const model = useMemo(() => buildNav(navPrefs, mode), [navPrefs, mode]);
   const folded = new Set(navPrefs.folded);
 
-  const toggle = () => {
-    if (narrow) setMobileNav(false);
-    else setPrefs({ sidebarCollapsed: !collapsedPref });
+  const toggleHeader = (fromKeyboard: boolean) => {
+    if (narrow) {
+      setMobileNav(false);
+      return;
+    }
+    const next = !collapsedPref;
+    setPrefs({ sidebarCollapsed: next });
+    if (fromKeyboard) {
+      requestAnimationFrame(() => {
+        const sel = next ? '#main-sidebar .brand-toggle' : '#main-sidebar .sb-toggle';
+        document.querySelector<HTMLElement>(sel)?.focus();
+      });
+    }
   };
   const isActive = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
   const closeMobile = () => setMobileNav(false);
@@ -366,18 +372,48 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="sidebar" aria-label="Navigasi utama">
+    <aside
+      id="main-sidebar"
+      className="sidebar"
+      role={narrow ? 'dialog' : undefined}
+      aria-modal={narrow && mobileNav ? true : undefined}
+      aria-label="Panel menu"
+      inert={narrow && !mobileNav ? true : undefined}
+    >
       <div className="sb-head">
-        {/* Tombol tutup/buka di kiri, sebelum merek — satu tempat yang konsisten di desktop dan laci ponsel */}
-        <Tooltip label={narrow ? 'Tutup menu' : collapsed ? 'Buka sidebar' : 'Tutup sidebar'} kbd={narrow ? undefined : [MOD, 'B']} side={collapsed ? 'right' : 'bottom'}>
-          <button type="button" className="sb-icon sb-toggle" onClick={toggle} aria-label={narrow ? 'Tutup menu' : collapsed ? 'Buka sidebar' : 'Tutup sidebar'}>
-            {narrow ? <X aria-hidden /> : collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
-          </button>
-        </Tooltip>
-        <Link to="/" className="brand" onClick={closeMobile} aria-label="Keuanganku — Ringkasan" tabIndex={collapsed ? -1 : 0}>
-          <LogoMark size={26} className="brand-mark" />
-          <span className="brand-name">Keuanganku</span>
-        </Link>
+        {/* Merek di kiri & tombol ciut/tutup di kanan; saat desktop diciutkan, tombol buka digabung di logo */}
+        {collapsed ? (
+          <Tooltip label="Buka sidebar" kbd={[MOD, 'B']} side="right">
+            <button
+              type="button"
+              className="brand-toggle"
+              onClick={(e) => toggleHeader(e.detail === 0)}
+              aria-expanded={false}
+              aria-label="Buka sidebar"
+            >
+              <LogoMark size={26} className="brand-mark" />
+              <PanelLeftOpen className="brand-open-ico" aria-hidden />
+            </button>
+          </Tooltip>
+        ) : (
+          <>
+            <Link to="/" className="brand" onClick={closeMobile} aria-label="Keuanganku — Ringkasan">
+              <LogoMark size={26} className="brand-mark" />
+              <span className="brand-name">Keuanganku</span>
+            </Link>
+            <Tooltip label={narrow ? 'Tutup menu' : 'Ciutkan sidebar'} kbd={narrow ? undefined : [MOD, 'B']} side="bottom">
+              <button
+                type="button"
+                className="sb-icon sb-toggle"
+                onClick={(e) => toggleHeader(e.detail === 0)}
+                aria-expanded={narrow ? mobileNav : true}
+                aria-label={narrow ? 'Tutup menu' : 'Ciutkan sidebar'}
+              >
+                {narrow ? <X aria-hidden /> : <PanelLeftClose aria-hidden />}
+              </button>
+            </Tooltip>
+          </>
+        )}
       </div>
 
       <div className="sb-actions">
@@ -422,12 +458,14 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="sb-nav" ref={navRef as React.RefObject<HTMLElement>} aria-label="Halaman">
+      <nav className="sb-nav" ref={navRef as React.RefObject<HTMLElement>} aria-label="Utama">
         {primaryItems.length > 0 && (
           <div className="sb-section sb-primary-group">
-            {primaryItems.map((it) => (
-              <NavRow key={it.to} it={it} active={isActive(it.to)} badge={badgeFor(it.to)} collapsed={collapsed} onNavigate={closeMobile} />
-            ))}
+            <ul className="sb-list">
+              {primaryItems.map((it) => (
+                <NavRow key={it.to} it={it} active={isActive(it.to)} badge={badgeFor(it.to)} collapsed={collapsed} onNavigate={closeMobile} />
+              ))}
+            </ul>
           </div>
         )}
 
@@ -454,7 +492,9 @@ export function Sidebar() {
               </Fold>
               {/* Halaman aktif tetap terlihat walau kelompoknya dilipat */}
               {isFolded && activeInside && (
-                <NavRow it={activeInside} active badge={badgeFor(activeInside.to)} collapsed={collapsed} group={sec.section} onNavigate={closeMobile} />
+                <ul className="sb-list">
+                  <NavRow it={activeInside} active badge={badgeFor(activeInside.to)} collapsed={collapsed} group={sec.section} onNavigate={closeMobile} />
+                </ul>
               )}
             </div>
           );
@@ -465,17 +505,6 @@ export function Sidebar() {
 
       <div className="sb-foot">
         <ProfileMenu collapsed={collapsed} onNavigate={closeMobile} />
-        <Tooltip label={hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal'} kbd={['H']} side="top">
-          <button
-            type="button"
-            className={`sb-icon sb-privacy${hideAmounts ? ' on' : ''}`}
-            onClick={() => setPrefs({ hideAmounts: !hideAmounts })}
-            aria-pressed={hideAmounts}
-            aria-label="Sembunyikan nominal"
-          >
-            {hideAmounts ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
-          </button>
-        </Tooltip>
       </div>
     </aside>
   );

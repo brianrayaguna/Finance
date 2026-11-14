@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -17,9 +17,12 @@ export function Tooltip({
   disabled?: boolean;
   children: ReactNode;
 }) {
+  const id = useId();
   const wrap = useRef<HTMLSpanElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
   const timer = useRef<number>(0);
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  const [coords, setCoords] = useState<{ left: number; top: number } | null>(null);
 
   const show = () => {
     if (disabled) return;
@@ -27,23 +30,76 @@ export function Tooltip({
     timer.current = window.setTimeout(() => {
       const el = (wrap.current?.firstElementChild as HTMLElement | null) ?? wrap.current;
       if (!el) return;
-      const r = el.getBoundingClientRect();
-      if (side === 'right') setPos({ x: r.right + 10, y: r.top + r.height / 2 });
-      else if (side === 'top') setPos({ x: r.left + r.width / 2, y: r.top - 8 });
-      else setPos({ x: r.left + r.width / 2, y: r.bottom + 8 });
+      setAnchor(el.getBoundingClientRect());
     }, delay);
   };
   const hide = () => {
     window.clearTimeout(timer.current);
-    setPos(null);
+    setAnchor(null);
+    setCoords(null);
   };
   useEffect(() => () => window.clearTimeout(timer.current), []);
   useEffect(() => {
     if (disabled) hide();
   }, [disabled]);
 
-  const tx = side === 'right' ? '0%' : '-50%';
-  const ty = side === 'right' ? '-50%' : side === 'top' ? '-100%' : '0%';
+  useEffect(() => {
+    if (!anchor) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') hide();
+    };
+    const onScroll = () => hide();
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [anchor]);
+
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    const el = tipRef.current;
+    if (!el) return;
+    if (typeof el.showPopover === 'function' && !el.matches(':popover-open')) {
+      try {
+        el.showPopover();
+      } catch {
+        /* abaikan bila belum siap */
+      }
+    }
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left: number;
+    let top: number;
+    if (side === 'right') {
+      left = anchor.right + 10;
+      if (left + w > vw - 8 && anchor.left - 10 - w >= 8) left = anchor.left - 10 - w;
+      top = anchor.top + anchor.height / 2 - h / 2;
+    } else {
+      left = anchor.left + anchor.width / 2 - w / 2;
+      const below = anchor.bottom + 8;
+      const above = anchor.top - 8 - h;
+      top = side === 'top' ? (above >= 8 ? above : below) : below + h <= vh - 8 || above < 8 ? below : above;
+    }
+    left = Math.max(8, Math.min(left, vw - w - 8));
+    top = Math.max(8, Math.min(top, vh - h - 8));
+    setCoords((c) => (c && Math.abs(c.left - left) < 0.5 && Math.abs(c.top - top) < 0.5 ? c : { left, top }));
+  }, [anchor, side, label, kbd]);
+
+  const triggerNode = isValidElement(children)
+    ? cloneElement(children as React.ReactElement<Record<string, unknown>>, {
+        'aria-describedby':
+          [
+            (children.props as Record<string, unknown>)['aria-describedby'] as string | undefined,
+            anchor ? id : undefined,
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined,
+      })
+    : children;
 
   return (
     <>
@@ -58,14 +114,22 @@ export function Tooltip({
         onBlur={hide}
         onMouseDown={hide}
       >
-        {children}
+        {triggerNode}
       </span>
       {createPortal(
         <AnimatePresence>
-          {pos && (
+          {anchor && (
             <motion.div
+              ref={tipRef}
+              id={id}
+              role="tooltip"
+              popover="manual"
               className="tooltip"
-              style={{ left: pos.x, top: pos.y, x: tx, y: ty }}
+              style={{
+                left: coords?.left ?? -9999,
+                top: coords?.top ?? -9999,
+                visibility: coords ? 'visible' : 'hidden',
+              }}
               initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1, transition: { duration: 0.14, ease: [0.2, 0.8, 0.2, 1] } }}
               exit={{ opacity: 0, transition: { duration: 0.08 } }}

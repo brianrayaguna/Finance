@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, ChevronDown } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import {
@@ -40,6 +40,8 @@ export function MiniCalendar({
   const [focused, setFocused] = useState(value || today);
   const [month, setMonth] = useState(startOfMonth(value || today));
   const grid = useRef<HTMLDivElement>(null);
+  const gridId = useId();
+  const dayId = (d: string) => `${gridId}-${d}`;
   const weekStart = usePrefs((s) => s.weekStart);
   const days = useMemo(() => monthMatrix(month, weekStart), [month, weekStart]);
 
@@ -97,13 +99,14 @@ export function MiniCalendar({
           </span>
         ))}
       </div>
-      <div className="mc-grid" ref={grid} tabIndex={0} onKeyDown={onKey} role="grid" aria-label="Kalender">
+      <div className="mc-grid" ref={grid} tabIndex={0} onKeyDown={onKey} role="grid" aria-label="Kalender" aria-activedescendant={dayId(focused)}>
         {days.map((d) => {
           const out = d.slice(0, 7) !== month.slice(0, 7);
           const blocked = outOfRange(d);
           return (
             <button
               key={d}
+              id={dayId(d)}
               type="button"
               tabIndex={-1}
               className={[
@@ -119,6 +122,8 @@ export function MiniCalendar({
               onClick={() => !blocked && onSelect(d)}
               onMouseEnter={() => setFocused(d)}
               aria-label={formatDate(d, 'full')}
+              aria-selected={d === value}
+              aria-current={d === today ? 'date' : undefined}
               aria-disabled={blocked || undefined}
             >
               {Number(d.slice(8))}
@@ -194,6 +199,7 @@ export function DatePicker({
         type="button"
         data-field
         className={['select-trigger', invalid && 'invalid', compact && 'compact'].filter(Boolean).join(' ')}
+        aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => {
@@ -227,7 +233,7 @@ export function DatePicker({
         )}
         <ChevronDown className="chev" />
       </button>
-      <Popover open={open} onClose={close} anchor={ref} minWidth={292}>
+      <Popover open={open} onClose={close} anchor={ref} minWidth={292} ariaLabel="Pilih tanggal">
         <MiniCalendar value={value || undefined} onSelect={pick} autoFocus min={min} max={max} />
         <div className="mc-foot">
           {(presets ?? [

@@ -54,7 +54,7 @@ import { Select } from '../components/ui/Select';
 import { Segmented } from '../components/ui/Segmented';
 import { LogoMark } from '../components/brand/Logo';
 import { useIsDark } from '../hooks/useApp';
-import { modKey } from '../lib/layers';
+import { isImeComposing, modKey } from '../lib/layers';
 
 const SECTIONS: { id: string; label: string; icon: Glyph }[] = [
   { id: 'profil', label: 'Profil & buku', icon: User },
@@ -177,7 +177,7 @@ function SectionHead({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="set-head">
       <div>
-        <h3>{title}</h3>
+        <h2>{title}</h2>
         <p>{desc}</p>
       </div>
     </div>
@@ -370,10 +370,10 @@ export default function Settings() {
             <SectionHead title="Profil & buku" desc="Nama tampil di bilah sisi; nama buku tampil di kop setiap laporan." />
             <div className="set-body grid-3" data-form>
               <Field label="Nama Anda">
-                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Nama buku / entitas" hint="Tampil di kop setiap laporan">
-                <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Awal tahun buku">
                 <Select

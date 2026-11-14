@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import {
   Area,
   AreaChart,
@@ -17,7 +18,14 @@ import {
 } from 'recharts';
 import { ChartColumnBig } from '../../lib/glyphs';
 import { compactNumber, formatMoney, isZero, niceTicks } from '../../lib/format';
+import { usePrefs } from '../../store/ui';
 import { EmptyState } from '../ui/primitives';
+
+function useChartReducedMotion() {
+  const pref = usePrefs((s) => s.reduceMotion);
+  const fm = useReducedMotion();
+  return pref || Boolean(fm);
+}
 
 const axisTick = { fill: 'var(--text-3)', fontSize: 12, fontWeight: 520, fontFamily: 'var(--font-sans)' };
 const axisTickInverse = { ...axisTick, fill: 'rgba(245, 247, 242, 0.72)' };
@@ -63,6 +71,7 @@ export function CashflowChart({
   showNet?: boolean;
 }) {
   const id = useId().replace(/:/g, '');
+  const reduced = useChartReducedMotion();
   const ticks = niceTicks(
     Math.min(...data.map((d) => Math.min(d.income, d.expense, showNet ? d.net : 0))),
     Math.max(...data.map((d) => Math.max(d.income, d.expense, showNet ? d.net : 0))),
@@ -76,7 +85,7 @@ export function CashflowChart({
   if (data.every((d) => isZero(d.income) && isZero(d.expense))) {
     return (
       <div className="chart-empty" style={{ height }}>
-        <EmptyState compact icon={ChartColumnBig} title="Belum ada arus kas" text="Grafik terisi otomatis setelah Anda mencatat pemasukan atau pengeluaran." />
+        <EmptyState compact heading="h3" icon={ChartColumnBig} title="Belum ada arus kas" text="Grafik terisi otomatis setelah Anda mencatat pemasukan atau pengeluaran." />
       </div>
     );
   }
@@ -110,12 +119,12 @@ export function CashflowChart({
             />
           )}
         />
-        <Bar dataKey="income" fill={`url(#inc-${id})`} radius={[5, 5, 2, 2]} maxBarSize={20} animationDuration={800} animationEasing="ease-out">
+        <Bar dataKey="income" fill={`url(#inc-${id})`} radius={[5, 5, 2, 2]} maxBarSize={20} isAnimationActive={!reduced} animationDuration={800} animationEasing="ease-out">
           {rows.map((d) => (
             <Cell key={d.label} fillOpacity={d.partial ? 0.45 : 1} />
           ))}
         </Bar>
-        <Bar dataKey="expense" fill={`url(#exp-${id})`} radius={[5, 5, 2, 2]} maxBarSize={20} animationDuration={800} animationBegin={90} animationEasing="ease-out">
+        <Bar dataKey="expense" fill={`url(#exp-${id})`} radius={[5, 5, 2, 2]} maxBarSize={20} isAnimationActive={!reduced} animationDuration={800} animationBegin={90} animationEasing="ease-out">
           {rows.map((d) => (
             <Cell key={d.label} fillOpacity={d.partial ? 0.45 : 1} />
           ))}
@@ -128,6 +137,7 @@ export function CashflowChart({
             strokeWidth={2.2}
             dot={{ r: 3, fill: 'var(--surface)', stroke: 'var(--chart-net)', strokeWidth: 2 }}
             activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--surface)' }}
+            isAnimationActive={!reduced}
             animationDuration={900}
           />
         )}
@@ -147,6 +157,7 @@ export function CashflowChart({
               )
             }
             activeDot={false}
+            isAnimationActive={!reduced}
             animationDuration={900}
             legendType="none"
           />
@@ -175,6 +186,7 @@ export function TrendArea({
   inverse?: boolean;
 }) {
   const id = useId().replace(/:/g, '');
+  const reduced = useChartReducedMotion();
   const values = data.map((d) => Number(d[dataKey]) || 0);
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -200,6 +212,7 @@ export function TrendArea({
           stroke={color}
           strokeWidth={2.2}
           fill={`url(#ta-${id})`}
+          isAnimationActive={!reduced}
           animationDuration={1000}
           activeDot={{ r: 4.5, strokeWidth: 2, stroke: inverse ? 'var(--brand-ink)' : 'var(--surface)', fill: color }}
         />
@@ -224,6 +237,7 @@ export function Donut({
   active?: string | null;
 }) {
   const r = size / 2;
+  const reduced = useChartReducedMotion();
   return (
     <div className="donut" style={{ width: size, height: size }}>
       <PieChart width={size} height={size}>
@@ -240,6 +254,7 @@ export function Donut({
           stroke="none"
           startAngle={90}
           endAngle={-270}
+          isAnimationActive={!reduced}
           animationDuration={800}
           onMouseLeave={() => onHover?.(null)}
         >
@@ -297,11 +312,17 @@ export function Sparkline({ values, color = 'var(--chart-nw)', height = 32, widt
 export function Ring({ value, size = 64, stroke = 7, color = 'var(--bar-accent)', children }: { value: number; size?: number; stroke?: number; color?: string; children?: React.ReactNode }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const [v, setV] = useState(0);
+  const reduced = useChartReducedMotion();
+  const target = Math.max(0, Math.min(1, value));
+  const [v, setV] = useState(reduced ? target : 0);
   useEffect(() => {
-    const id = requestAnimationFrame(() => setV(Math.max(0, Math.min(1, value))));
+    if (reduced) {
+      setV(target);
+      return;
+    }
+    const id = requestAnimationFrame(() => setV(target));
     return () => cancelAnimationFrame(id);
-  }, [value]);
+  }, [target, reduced]);
   return (
     <div className="ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
@@ -316,7 +337,7 @@ export function Ring({ value, size = 64, stroke = 7, color = 'var(--bar-accent)'
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - v)}
-          style={{ transition: 'stroke-dashoffset 900ms cubic-bezier(.16,1,.3,1)' }}
+          style={reduced ? undefined : { transition: 'stroke-dashoffset 900ms cubic-bezier(.16,1,.3,1)' }}
         />
       </svg>
       <div className="ring-center">{children}</div>

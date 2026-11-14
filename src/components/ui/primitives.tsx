@@ -177,19 +177,21 @@ export function EmptyState({
   text,
   action,
   compact,
+  heading: Heading = 'h2',
 }: {
   icon: Glyph;
   title: string;
   text?: ReactNode;
   action?: ReactNode;
   compact?: boolean;
+  heading?: 'h2' | 'h3';
 }) {
   return (
     <div className={`empty${compact ? ' compact' : ''}`}>
       <div className="empty-art">
-        <I />
+        <I aria-hidden />
       </div>
-      <h3>{title}</h3>
+      <Heading>{title}</Heading>
       {text && <p>{text}</p>}
       {action}
     </div>

@@ -1,9 +1,10 @@
 import { ChevronLeft, ChevronRight } from '../../lib/glyphs';
-import { addMonths, formatMonth, todayISO } from '../../lib/format';
+import { addMonths, formatMonth } from '../../lib/format';
+import { useToday } from '../../hooks/useApp';
 import { Tooltip } from './Tooltip';
 
 export function MonthSwitcher({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const cur = todayISO().slice(0, 7);
+  const cur = useToday().slice(0, 7);
   const shift = (n: number) => onChange(addMonths(value + '-01', n).slice(0, 7));
   return (
     <div className="month-switch">

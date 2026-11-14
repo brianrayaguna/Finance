@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CircleCheck, CircleAlert, Info, X } from '../../lib/glyphs';
@@ -6,19 +6,17 @@ import { useToasts, type Toast } from '../../store/ui';
 
 function ToastItem({ t }: { t: Toast }) {
   const dismiss = useToasts((s) => s.dismiss);
+  const persistent = t.tone === 'danger' || !!t.action || t.duration === Infinity;
   const [paused, setPaused] = useState(false);
   const remaining = useRef(t.duration ?? 3600);
   const started = useRef(Date.now());
-  const [progress, setProgress] = useState(1);
 
   useEffect(() => {
-    if (paused) return;
+    if (persistent || paused) return;
     started.current = Date.now();
-    const total = t.duration ?? 3600;
     let raf = 0;
     const tick = () => {
       const left = remaining.current - (Date.now() - started.current);
-      setProgress(Math.max(0, left / total));
       if (left <= 0) dismiss(t.id);
       else raf = requestAnimationFrame(tick);
     };
@@ -27,7 +25,7 @@ function ToastItem({ t }: { t: Toast }) {
       cancelAnimationFrame(raf);
       remaining.current -= Date.now() - started.current;
     };
-  }, [paused, t.id, t.duration, dismiss]);
+  }, [persistent, paused, t.id, t.duration, dismiss]);
 
   const Icon = t.tone === 'danger' ? CircleAlert : t.tone === 'info' ? Info : t.tone === 'success' ? CircleCheck : null;
 
@@ -35,12 +33,18 @@ function ToastItem({ t }: { t: Toast }) {
     <motion.div
       layout
       className="toast"
-      role="status"
+      role={t.tone === 'danger' ? 'alert' : 'status'}
+      aria-live={t.tone === 'danger' ? 'assertive' : 'polite'}
+      aria-atomic="true"
       initial={{ opacity: 0, y: 24, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 32 } }}
       exit={{ opacity: 0, y: 12, scale: 0.97, transition: { duration: 0.16 } }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setPaused(false);
+      }}
       style={{ position: 'relative' }}
     >
       {Icon && <Icon className={`t-icon ${t.tone}`} />}
@@ -63,19 +67,33 @@ function ToastItem({ t }: { t: Toast }) {
       <button type="button" className="t-close" aria-label="Tutup" onClick={() => dismiss(t.id)}>
         <X />
       </button>
-      {t.action && (
-        <span className="t-bar">
-          <span style={{ display: 'block', height: '100%', width: `${progress * 100}%`, background: 'rgba(255,255,255,.45)', borderRadius: 2 }} />
-        </span>
-      )}
     </motion.div>
   );
 }
 
 export function Toasts() {
   const toasts = useToasts((s) => s.toasts);
+  const stackRef = useRef<HTMLDivElement>(null);
+  const toastKeys = toasts.map((t) => t.id).join(',');
+
+  useLayoutEffect(() => {
+    const el = stackRef.current;
+    if (!el || typeof el.showPopover !== 'function') return;
+    const promote = () => {
+      try {
+        if (el.matches(':popover-open')) el.hidePopover();
+        if (toasts.length > 0) el.showPopover();
+      } catch {
+        /* abaikan bila browser belum mendukung */
+      }
+    };
+    promote();
+    window.addEventListener('top-layer-open', promote);
+    return () => window.removeEventListener('top-layer-open', promote);
+  }, [toastKeys, toasts.length]);
+
   return createPortal(
-    <div className="toast-stack" aria-live="polite">
+    <div ref={stackRef} popover="manual" className="toast-stack">
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
           <ToastItem key={t.id} t={t} />

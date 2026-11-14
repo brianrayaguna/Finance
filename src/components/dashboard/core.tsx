@@ -210,13 +210,13 @@ export function KpiWidget({ layout }: WidgetProps) {
   const d = useDash();
   const phone = d.width < 560;
   const budget = useMemo(() => {
-    const lines = budgetVsActual(d.b, d.from, d.asOf);
+    const lines = budgetVsActual(d.b, d.from, d.to, d.asOf);
     return {
       budget: lines.reduce((s, l) => s + l.budget, 0),
       actual: lines.reduce((s, l) => s + l.actual, 0),
       over: lines.filter((l) => l.used > 1).length,
     };
-  }, [d.b, d.from, d.asOf]);
+  }, [d.b, d.from, d.to, d.asOf]);
   return (
     <div className="kpi-grid">
       {layout.kpi.map((k) => {
@@ -321,7 +321,7 @@ export function CompositionWidget({ settings }: WidgetProps) {
       <CardHead title={`Komposisi ${word}`} sub={formatMonth(month)} to="/laporan?r=laba-rugi" link="Rinci" />
       <div className="card-body">
         {cats.list.length === 0 ? (
-          <EmptyState compact icon={Receipt} title={`Belum ada ${word}`} text={`${kind === 'expense' ? 'Beban' : 'Pendapatan'} bulan ini akan tampil di sini.`} />
+          <EmptyState compact heading="h3" icon={Receipt} title={`Belum ada ${word}`} text={`${kind === 'expense' ? 'Beban' : 'Pendapatan'} bulan ini akan tampil di sini.`} />
         ) : (
           <div className="donut-wrap">
             <Donut
@@ -395,6 +395,7 @@ export function RecentWidget({ settings }: WidgetProps) {
         {recent.length === 0 ? (
           <EmptyState
             compact
+            heading="h3"
             icon={Receipt}
             title="Belum ada transaksi"
             text="Catat pemasukan atau pengeluaran — jurnal dan laporan tersusun otomatis."
@@ -460,7 +461,7 @@ export function BudgetsWidget({ settings }: WidgetProps) {
   const { b, from, to, asOf, month, today, compact } = useDash();
   const nav = useNavigate();
   const count = Number(settings.count) || 5;
-  const all = useMemo(() => budgetVsActual(b, from, asOf), [b, from, asOf]);
+  const all = useMemo(() => budgetVsActual(b, from, to, asOf), [b, from, to, asOf]);
   const budgets = useMemo(() => {
     const list = settings.sort === 'code' ? [...all].sort((x, y) => x.account.code.localeCompare(y.account.code, 'en', { numeric: true })) : all;
     return list.slice(0, count);
@@ -479,6 +480,7 @@ export function BudgetsWidget({ settings }: WidgetProps) {
         {budgets.length === 0 ? (
           <EmptyState
             compact
+            heading="h3"
             icon={Target}
             title="Tetapkan anggaran"
             text="Batasi beban per kategori setiap bulan."

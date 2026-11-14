@@ -128,7 +128,7 @@ export function PeriodPicker({
   const sub = value.preset === 'all' ? '' : `${formatDate(value.from)} – ${formatDate(value.to)}`;
   return (
     <>
-      <button ref={ref} type="button" className="select-trigger compact period-trigger" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <button ref={ref} type="button" className="select-trigger compact period-trigger" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <CalendarRange size={15} style={{ color: 'var(--text-3)' }} />
         <span className="truncate">{describePeriod(value)}</span>
         <ChevronDown className="chev" />

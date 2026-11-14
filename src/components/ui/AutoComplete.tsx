@@ -1,7 +1,8 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Glyph } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { normalize } from '../../lib/format';
+import { isImeComposing } from '../../lib/layers';
 import { useFieldCtx } from './primitives';
 
 export interface Suggestion {
@@ -39,6 +40,8 @@ export function AutoComplete({
   const [focused, setFocused] = useState(false);
   const [active, setActive] = useState(-1);
   const [dismissed, setDismissed] = useState(false);
+  const listId = useId();
+  const optId = (i: number) => `${listId}-opt-${i}`;
 
   const list = useMemo(() => {
     const q = normalize(value.trim());
@@ -69,6 +72,10 @@ export function AutoComplete({
       <input
         ref={input}
         id={id ?? field?.id}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={open && active >= 0 ? optId(active) : undefined}
         aria-describedby={field?.describedBy}
         aria-invalid={invalid || undefined}
         aria-autocomplete="list"
@@ -90,7 +97,7 @@ export function AutoComplete({
           setActive(-1);
         }}
         onKeyDown={(e) => {
-          if (!open) return;
+          if (!open || isImeComposing(e)) return;
           if (e.key === 'ArrowDown') {
             e.preventDefault();
             setActive((a) => (a + 1) % list.length);
@@ -104,14 +111,15 @@ export function AutoComplete({
           }
         }}
       />
-      <Popover open={open} onClose={() => setDismissed(true)} anchor={wrap} width="anchor" closeOnOutside={false} role="listbox">
-        <div className="listbox" style={{ maxHeight: 240 }}>
+      <Popover open={open} onClose={() => setDismissed(true)} anchor={wrap} width="anchor" closeOnOutside={false} role="none">
+        <div id={listId} role="listbox" className="listbox" style={{ maxHeight: 240 }}>
           <div className="list-group" style={{ display: 'flex' }}>
             <span>Saran</span>
             <span style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>↑↓ lalu ↵</span>
           </div>
           {list.map((s, i) => (
             <div
+              id={optId(i)}
               key={s.value}
               role="option"
               aria-selected={i === active}

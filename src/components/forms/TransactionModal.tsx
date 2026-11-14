@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowUpRight,
@@ -30,8 +30,8 @@ import { addTemplate, addTransaction, deleteTransactions, getData, updateTransac
 import { confirm, usePrefs, useUI } from '../../store/ui';
 import { notify } from '../../store/history';
 import { addDays, formatDate, formatMoney, isoFromTs, nowTime, round2, todayISO, daysBetween } from '../../lib/format';
-import { focusNext } from '../../lib/focus';
-import { MOD } from '../../lib/layers';
+import { focusNext, useSubmitRef } from '../../lib/focus';
+import { isImeComposing, MOD } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { Segmented } from '../ui/Segmented';
 import { AmountInput } from '../ui/AmountInput';
@@ -147,13 +147,9 @@ const MODES = [
 export function TransactionModalHost() {
   const st = useUI((s) => s.tx);
   const close = useUI((s) => s.closeTx);
-  const [key, setKey] = useState(0);
-  useEffect(() => {
-    if (st.open) setKey((k) => k + 1);
-  }, [st.open, st.editing, st.defaults]);
   const isJournal = st.editing?.type === 'journal' || st.defaults?.type === 'journal';
-  if (isJournal) return <JournalModal key={key} open={st.open} onClose={close} editing={st.editing} defaults={st.defaults} />;
-  return <TransactionModal key={key} open={st.open} onClose={close} editing={st.editing} defaults={st.defaults} />;
+  if (isJournal) return <JournalModal open={st.open} onClose={close} editing={st.editing} defaults={st.defaults} />;
+  return <TransactionModal open={st.open} onClose={close} editing={st.editing} defaults={st.defaults} />;
 }
 
 function TransactionModal({
@@ -173,6 +169,26 @@ function TransactionModal({
   const [tried, setTried] = useState(false);
   const [showNote, setShowNote] = useState(!!editing?.note);
   const [showJournal, setShowJournal] = useState(false);
+  const autoDebtAmt = useRef<number | null>(null);
+  const accountTouched = useRef(!!(editing || defaults?.accountId));
+  const wasOpen = useRef(open);
+  const prevEdit = useRef(editing);
+  const prevDef = useRef(defaults);
+
+  useLayoutEffect(() => {
+    const opening = open && !wasOpen.current;
+    wasOpen.current = open;
+    if (!open) return;
+    if (!opening && editing === prevEdit.current && defaults === prevDef.current) return;
+    prevEdit.current = editing;
+    prevDef.current = defaults;
+    setD(initDraft(editing, defaults));
+    setTried(false);
+    setShowNote(!!editing?.note);
+    setShowJournal(false);
+    autoDebtAmt.current = null;
+    accountTouched.current = !!(editing || defaults?.accountId);
+  }, [open, editing, defaults]);
   const amountRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLDivElement>(null);
 
@@ -183,9 +199,11 @@ function TransactionModal({
   const lockedEdit = !!editing && isLocked(editing.date, lockDate);
   const minDate = lockDate && !lockedEdit ? addDays(lockDate, 1) : undefined;
 
-  const wallets = useWalletOptions();
-  const expenseCats = useCategoryOptions('expense');
-  const revenueCats = useCategoryOptions('revenue');
+  const walletKeep = useMemo(() => [editing?.accountId, editing?.toAccountId].filter((x): x is string => !!x), [editing]);
+  const catKeep = useMemo(() => (editing?.categoryId ? [editing.categoryId] : undefined), [editing]);
+  const wallets = useWalletOptions(false, walletKeep);
+  const expenseCats = useCategoryOptions('expense', catKeep);
+  const revenueCats = useCategoryOptions('revenue', catKeep);
   const contacts = useContacts();
   const payables = useOpenDebtOptions('payable', editing?.parentId);
   const receivables = useOpenDebtOptions('receivable', editing?.parentId);
@@ -247,10 +265,18 @@ function TransactionModal({
   // sisa hutang tidak termasuk transaksi yang sedang diubah
   const remainingForEdit = debt ? round2(debt.remaining + (editing && editing.parentId === debt.tx.id ? editing.amount : 0)) : 0;
 
-  // isi otomatis nominal saat memilih hutang/piutang
+  // isi otomatis nominal saat memilih hutang/piutang (tetap perbarui jika nominal masih berasal dari pilihan sebelumnya)
   const pickDebt = (id: string) => {
     const info = debtInfos(getData(), '9999-12-31').find((x) => x.tx.id === id);
-    setD((p) => ({ ...p, parentId: id, amount: p.amount && p.amount > 0 ? p.amount : info ? info.remaining : p.amount }));
+    const nextAmt = info ? info.remaining : null;
+    setD((p) => {
+      const shouldFill = p.amount == null || p.amount <= 0 || (autoDebtAmt.current !== null && p.amount === autoDebtAmt.current);
+      if (shouldFill && nextAmt !== null) {
+        autoDebtAmt.current = nextAmt;
+        return { ...p, parentId: id, amount: nextAmt };
+      }
+      return { ...p, parentId: id };
+    });
   };
 
   const errors = useMemo(() => {
@@ -423,6 +449,7 @@ function TransactionModal({
       categoryId: type === 'transfer' ? undefined : d.categoryId || undefined,
       description: d.description.trim() || undefined,
     });
+    if (!historyId) return;
     notify(`${template.name} disimpan ke favorit`, historyId, { detail: 'Catat ulang dari tombol Catat atau widget Favorit' });
   };
 
@@ -430,7 +457,7 @@ function TransactionModal({
     if (lockedEdit) return;
     setTried(true);
     if (hasErrors) {
-      const first = formRef.current?.querySelector<HTMLElement>('.invalid input, .invalid, [aria-invalid="true"]');
+      const first = formRef.current?.querySelector<HTMLElement>('.invalid input, .invalid textarea, button.invalid, [aria-invalid="true"]');
       first?.focus();
       return;
     }
@@ -449,10 +476,13 @@ function TransactionModal({
     }
     if (then === 'new' && !editing) {
       setD((p) => ({ ...p, amount: null, description: '', note: '', fee: null, interest: null, parentId: '', contact: '', dueDate: '', time: nowTime() }));
+      autoDebtAmt.current = null;
+      accountTouched.current = false;
       setTried(false);
       requestAnimationFrame(() => amountRef.current?.focus());
     } else onClose();
   };
+  const submitRef = useSubmitRef(submit);
 
   const remove = async () => {
     if (!editing) return;
@@ -473,9 +503,10 @@ function TransactionModal({
   };
 
   const onKey = (e: React.KeyboardEvent) => {
+    if (isImeComposing(e)) return;
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      submit(e.shiftKey ? 'new' : 'close');
+      submitRef.runFrom(e.target, e.shiftKey ? 'new' : 'close');
       return;
     }
     if (e.altKey && /^Digit[1-5]$/.test(e.code) && !lockedType && d.mode !== 'opening') {
@@ -484,11 +515,11 @@ function TransactionModal({
       if (m) switchMode(m.value);
       return;
     }
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       const t = e.target as HTMLElement;
       if (t.tagName === 'INPUT') {
         e.preventDefault();
-        if (!focusNext(t)) submit('close');
+        if (!focusNext(t)) submitRef.runFrom(t, 'close');
       }
     }
   };
@@ -595,11 +626,11 @@ function TransactionModal({
             </span>
             <span className="spacer" />
             {!editing && (
-              <Button onClick={() => submit('new')} icon={Plus}>
+              <Button onClick={() => submitRef.run('new')} icon={Plus}>
                 Simpan &amp; baru
               </Button>
             )}
-            <Button variant="primary" onClick={() => submit('close')}>
+            <Button variant="primary" onClick={() => submitRef.run('close')}>
               {editing ? 'Simpan perubahan' : 'Simpan'}
             </Button>
           </>
@@ -678,7 +709,10 @@ function TransactionModal({
             <AmountInput
               ref={amountRef}
               value={d.amount}
-              onChange={(v) => set('amount', v)}
+              onChange={(v) => {
+                if (v !== autoDebtAmt.current) autoDebtAmt.current = null;
+                set('amount', v);
+              }}
               invalid={!!err('amount')}
               tone={modeTone}
               autoFocus={!editing && !(d.sub === 'pay' || d.sub === 'collect' || d.sub === 'writeoff')}
@@ -695,7 +729,6 @@ function TransactionModal({
                   className="chip"
                   aria-pressed={d.categoryId === a.id}
                   onClick={() => set('categoryId', a.id)}
-                  tabIndex={-1}
                   style={{ '--cc': a.color } as React.CSSProperties}
                 >
                   <IconTile icon={a.icon} color={a.color} size="xs" round />
@@ -777,7 +810,17 @@ function TransactionModal({
           {/* Akun dompet */}
           {!(d.sub === 'writeoff') && !((d.mode === 'payable' || d.mode === 'receivable') && d.sub === 'new' && d.counter !== 'wallet') && (
             <Field label={walletLabel} error={err('accountId')}>
-              <Select value={d.accountId} onChange={(v) => set('accountId', v)} options={wallets} placeholder="Pilih akun…" invalid={!!err('accountId')} advance />
+              <Select
+                value={d.accountId}
+                onChange={(v) => {
+                  accountTouched.current = true;
+                  set('accountId', v);
+                }}
+                options={wallets}
+                placeholder="Pilih akun…"
+                invalid={!!err('accountId')}
+                advance
+              />
             </Field>
           )}
 
@@ -807,12 +850,12 @@ function TransactionModal({
           )}
 
           <Field label="Tanggal" error={err('date')}>
-            <DatePicker value={d.date} onChange={(v) => set('date', v)} advance min={minDate} />
+            <DatePicker value={d.date} onChange={(v) => set('date', v)} advance min={minDate} invalid={!!err('date')} />
           </Field>
 
           {(d.mode === 'payable' || d.mode === 'receivable') && d.sub === 'new' && (
             <Field label="Jatuh tempo" optional error={err('dueDate')}>
-              <DatePicker value={d.dueDate} onChange={(v) => set('dueDate', v)} clearable placeholder="Tanpa jatuh tempo" advance />
+              <DatePicker value={d.dueDate} onChange={(v) => set('dueDate', v)} clearable placeholder="Tanpa jatuh tempo" advance invalid={!!err('dueDate')} />
             </Field>
           )}
 
@@ -823,7 +866,12 @@ function TransactionModal({
               suggestions={descSuggestions}
               onPick={(s) => {
                 const hit = descSuggestions.find((x) => x.value === s.value)?.tx;
-                if (hit) setD((p) => ({ ...p, categoryId: p.categoryId || hit.categoryId || '', accountId: p.accountId || hit.accountId || '' }));
+                if (hit)
+                  setD((p) => ({
+                    ...p,
+                    categoryId: p.categoryId || hit.categoryId || '',
+                    accountId: (!accountTouched.current && hit.accountId) || p.accountId || hit.accountId || '',
+                  }));
               }}
               placeholder={
                 d.mode === 'expense' ? 'mis. Makan siang bersama tim' : d.mode === 'income' ? 'mis. Gaji bulan ini' : 'Tambahkan keterangan'
@@ -861,7 +909,7 @@ function TransactionModal({
               <TextArea value={d.note} onChange={(v) => set('note', v)} placeholder="Catatan tambahan (tidak tampil di laporan)" rows={2} autoFocus={!editing?.note} />
             </div>
           )}
-          {canFavorite && !showNote && (
+          {canFavorite && (
             <button
               type="button"
               className="link-btn fav-link"
@@ -911,8 +959,8 @@ function TransactionModal({
                               <td style={{ paddingLeft: l.credit ? 26 : 8 }}>
                                 <span className="code">{a?.code}</span> {a?.name}
                               </td>
-                              <td className="r num">{l.debit ? formatMoney(l.debit, { symbol: false }) : ''}</td>
-                              <td className="r num">{l.credit ? formatMoney(l.credit, { symbol: false }) : ''}</td>
+                              <td className="r num money-val">{l.debit ? formatMoney(l.debit, { symbol: false }) : ''}</td>
+                              <td className="r num money-val">{l.credit ? formatMoney(l.credit, { symbol: false }) : ''}</td>
                             </tr>
                           );
                         })}

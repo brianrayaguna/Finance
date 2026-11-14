@@ -73,13 +73,13 @@ export default function Reports() {
   const [pack, setPack] = useState(params.get('ekspor') === '1');
 
   useEffect(() => {
-    if (params.get('ekspor')) {
+    if (params.get('ekspor') === '1') {
+      setPack(true);
       const p = new URLSearchParams(params);
       p.delete('ekspor');
       setParams(p, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [params, setParams]);
 
   const meta = REPORTS.find((r) => r.key === key)!;
   const from = period.preset === 'all' ? (b.entries[0]?.date ?? today) : period.from;
@@ -106,7 +106,7 @@ export default function Reports() {
   };
 
   return (
-    <div>
+    <div className="reports-page">
       <PageHeader
         title="Laporan Keuangan"
         subtitle={`${b.data.profile.entityName || 'Buku keuangan'} · ${periodLabel(from, asOf)}`}
@@ -194,7 +194,7 @@ function RatiosView({ list, from, to, entity }: { list: Ratio[]; from: string; t
       </div>
       {groups.map((g) => (
         <div key={g} className="ratio-group">
-          <h4>{g}</h4>
+          <h2>{g}</h2>
           <div className="ratio-grid">
             {list
               .filter((r) => r.group === g)

@@ -56,7 +56,7 @@ export function buildInsights(b: Books, month: string, today: string, limit = 5)
     out.push({ id: 'cat-down', tone: 'pos', text: `${down.name} turun ${formatPercent(-down.pct, 0)} — hemat ${formatMoney(-down.diff)} ${cmp}.`, to: `/transaksi?kategori=${down.id}&bulan=${month}` });
 
   // 2. Anggaran
-  const lines = budgetVsActual(b, from, monthEnd);
+  const lines = budgetVsActual(b, from, monthEnd, to);
   const daysInMonth = Number(monthEnd.slice(8));
   const pace = isCur ? Number(today.slice(8)) / daysInMonth : 1;
   const over = lines.filter((l) => l.used > 1);

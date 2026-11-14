@@ -9,7 +9,15 @@ import {
   sanitizeAmount,
 } from '../../lib/amount';
 import { formatMoney } from '../../lib/format';
+import { isImeComposing } from '../../lib/layers';
 import { useFieldCtx } from './primitives';
+
+function hasInvalidExpr(s: string, allowNegative?: boolean): boolean {
+  const t = s.trim();
+  if (!t) return false;
+  const raw = evaluateAmount(t);
+  return raw === null || (!allowNegative && raw < 0);
+}
 
 interface Props {
   value: number | null;
@@ -39,14 +47,20 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
   const inner = useRef<HTMLInputElement | null>(null);
   const pendingCaret = useRef<number | null>(null);
   const lastEmitted = useRef<number | null>(value);
+  const focused = useRef(false);
+  const textRef = useRef(text);
+  textRef.current = text;
 
-  // sinkron bila nilai berubah dari luar
+  // sinkron bila nilai berubah dari luar atau tersisa teks tidak lengkap saat tidak fokus
   useEffect(() => {
+    const expected = amountToDisplay(value);
     if (value !== lastEmitted.current) {
-      setText(amountToDisplay(value));
+      setText(expected);
       lastEmitted.current = value;
+    } else if (!focused.current && !hasInvalidExpr(textRef.current, allowNegative) && textRef.current !== expected) {
+      setText(expected);
     }
-  }, [value]);
+  }, [value, allowNegative]);
 
   useLayoutEffect(() => {
     if (pendingCaret.current !== null && inner.current && document.activeElement === inner.current) {
@@ -57,8 +71,8 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
   });
 
   const emit = (s: string) => {
-    let v = s.trim() ? evaluateAmount(s) : null;
-    if (v !== null && !allowNegative && v < 0) v = Math.abs(v);
+    const raw = s.trim() ? evaluateAmount(s) : null;
+    const v = raw !== null && !allowNegative && raw < 0 ? null : raw;
     lastEmitted.current = v;
     onChange(v);
   };
@@ -72,9 +86,15 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
   };
 
   const settle = () => {
-    if (hasOperator(text)) {
-      const v = evaluateAmount(text);
-      const d = amountToDisplay(v === null ? null : allowNegative ? v : Math.abs(v));
+    if (!text.trim()) return;
+    const raw = evaluateAmount(text);
+    // Pertahankan ekspresi tak valid / negatif agar pengguna bisa melihat dan mengoreksinya alih-alih hilang diam-diam.
+    if (raw === null || (!allowNegative && raw < 0)) {
+      emit(text);
+      return;
+    }
+    const d = amountToDisplay(raw);
+    if (hasOperator(text) || d !== text) {
       setText(d);
       emit(d);
     }
@@ -106,7 +126,10 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
     apply(next + text.slice(end), next.length);
   };
 
-  const calc = hasOperator(text) ? evaluateAmount(text) : null;
+  const rawCalc = hasOperator(text) ? evaluateAmount(text) : null;
+  const calc = rawCalc === null ? null : !allowNegative && rawCalc < 0 ? null : rawCalc;
+  const exprInvalid = hasInvalidExpr(text, allowNegative);
+  const isInvalid = !!(invalid || exprInvalid);
 
   const input = (
     <input
@@ -122,18 +145,23 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
       autoComplete="off"
       spellCheck={false}
       aria-label={ariaLabel ?? (field?.hasLabel ? undefined : 'Nominal')}
-      aria-invalid={invalid}
+      aria-invalid={isInvalid || undefined}
       autoFocus={autoFocus}
       placeholder={placeholder}
       value={text}
       onFocus={(e) => {
+        focused.current = true;
         const el = e.currentTarget;
         requestAnimationFrame(() => el.select());
       }}
       onChange={(e) => apply(e.target.value, e.target.selectionStart ?? e.target.value.length)}
-      onBlur={settle}
+      onBlur={() => {
+        focused.current = false;
+        settle();
+      }}
       onPaste={paste}
       onKeyDown={(e) => {
+        if (isImeComposing(e)) return;
         if (!e.metaKey && !e.ctrlKey && !e.altKey) {
           const k = e.key.toLowerCase();
           if (k === 'k' || k === 'r') {
@@ -161,14 +189,14 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
 
   if (variant === 'inline') {
     return (
-      <div className={`input amount-inline ${invalid ? 'invalid' : ''} ${className}`}>
+      <div className={`input amount-inline ${isInvalid ? 'invalid' : ''} ${className}`}>
         {input}
         {calc !== null && <span className="input-affix" style={{ color: 'var(--accent-ink)' }}>= {formatMoney(calc, { symbol: false })}</span>}
       </div>
     );
   }
   return (
-    <div className={['amount-input', invalid && 'invalid', tone && `tone-${tone}`, className].filter(Boolean).join(' ')}>
+    <div className={['amount-input', isInvalid && 'invalid', tone && `tone-${tone}`, className].filter(Boolean).join(' ')}>
       <span className="cur">Rp</span>
       {input}
       {calc !== null && <span className="calc num">= {formatMoney(calc)}</span>}

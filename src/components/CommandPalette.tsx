@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -12,6 +12,7 @@ import {
   HandCoins,
   Sun,
   Moon,
+  Eye,
   EyeOff,
   Keyboard,
   FileSpreadsheet,
@@ -26,10 +27,11 @@ import {
 import { ALL_NAV } from '../app/nav';
 import { useData } from '../store/data';
 import { usePrefs, useUI } from '../store/ui';
-import { useLayer } from '../lib/layers';
+import { isImeComposing, useLayer } from '../lib/layers';
 import { formatDate, formatMoney, normalize } from '../lib/format';
 import { TX_META } from '../accounting/engine';
 import { TYPE_LABEL } from '../accounting/coa';
+import { useDialogTopLayer, useFocusTrap } from './ui/Modal';
 import { IconTile } from './ui/primitives';
 import { runTemplate } from './tx/templates';
 
@@ -63,31 +65,62 @@ const glyphTile = (I: Glyph, color = 'var(--accent-ink)') => <IconTile icon={I} 
 export function CommandPalette() {
   const open = useUI((s) => s.palette);
   const setOpen = useUI((s) => s.setPalette);
-  useLayer(open, () => setOpen(false));
+  const close = () => setOpen(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const backdropDown = useRef(false);
+  const { dlg, present, finishExit } = useDialogTopLayer(open);
+  useLayer(open, close);
+  useFocusTrap(open, ref, 'input');
+
+  if (!present) return null;
+
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <div className="palette-root">
-          <motion.div
-            className="modal-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16 }}
-            onMouseDown={() => setOpen(false)}
-            style={{ background: 'color-mix(in srgb, var(--overlay) 70%, transparent)' }}
-          />
-          <motion.div
-            className="palette"
-            initial={{ opacity: 0, scale: 0.97, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 480, damping: 34 } }}
-            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
-          >
-            <PaletteBody onClose={() => setOpen(false)} />
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>,
+    <dialog
+      ref={dlg}
+      className="palette-dialog"
+      aria-modal="true"
+      aria-label="Cari transaksi, akun, atau perintah"
+      onCancel={(e) => {
+        // Escape dikelola terpusat oleh useLayer (LIFO).
+        e.preventDefault();
+      }}
+      onClose={() => {
+        if (open) close();
+      }}
+    >
+      <AnimatePresence onExitComplete={finishExit}>
+        {open && (
+          <>
+            <motion.div
+              key="backdrop"
+              className="modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              onPointerDown={(e) => {
+                backdropDown.current = e.target === e.currentTarget;
+              }}
+              onClick={(e) => {
+                if (backdropDown.current && e.target === e.currentTarget) close();
+                backdropDown.current = false;
+              }}
+              style={{ background: 'color-mix(in srgb, var(--overlay) 70%, transparent)' }}
+            />
+            <motion.div
+              key="palette"
+              ref={ref}
+              className="palette"
+              initial={{ opacity: 0, scale: 0.97, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 480, damping: 34 } }}
+              exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
+            >
+              <PaletteBody onClose={close} />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </dialog>,
     document.body,
   );
 }
@@ -97,6 +130,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
   const data = useData((s) => s.data);
   const nav = useNavigate();
   const openTx = useUI((s) => s.openTx);
@@ -144,7 +178,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
         () => prefs.set({ mode: simple ? 'accountant' : 'simple' }),
       ],
       ['a-theme', prefs.theme === 'dark' ? 'Beralih ke tema terang' : 'Beralih ke tema gelap', prefs.theme === 'dark' ? Sun : Moon, 'var(--text-2)', () => prefs.set({ theme: prefs.theme === 'dark' ? 'light' : 'dark' })],
-      ['a-priv', prefs.hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', EyeOff, 'var(--text-2)', () => prefs.set({ hideAmounts: !prefs.hideAmounts })],
+      ['a-priv', prefs.hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', prefs.hideAmounts ? Eye : EyeOff, 'var(--text-2)', () => prefs.set({ hideAmounts: !prefs.hideAmounts })],
       ['a-side', prefs.sidebarCollapsed ? 'Tampilkan sidebar' : 'Ciutkan sidebar', PanelLeft, 'var(--text-2)', () => prefs.set({ sidebarCollapsed: !prefs.sidebarCollapsed })],
       ['a-keys', 'Lihat pintasan keyboard', Keyboard, 'var(--text-2)', () => setShortcuts(true)],
     ];
@@ -194,7 +228,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           group: 'Transaksi',
           title,
           sub: `${formatDate(t.date)} · ${t.ref}${cat && cat !== title ? ' · ' + cat : ''}`,
-          right: <span className={isIn ? 'pos' : ''}>{formatMoney(t.amount)}</span>,
+          right: <span className={isIn ? 'pos money-val' : 'money-val'}>{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
           score: s,
@@ -223,7 +257,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           group: 'Terakhir dicatat',
           title: t.description || catAcc?.name || TX_META[t.type].label,
           sub: `${formatDate(t.date)} · ${t.ref}`,
-          right: formatMoney(t.amount),
+          right: <span className="money-val">{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
           score: 0,
@@ -248,16 +282,20 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     listRef.current?.querySelector('.palette-item.active')?.scrollIntoView({ block: 'nearest' });
   }, [active]);
 
+  const activeIdx = items.length ? Math.min(active, items.length - 1) : -1;
+  const activeItem = activeIdx >= 0 ? items[activeIdx] : undefined;
+
   const onKey = (e: React.KeyboardEvent) => {
+    if (isImeComposing(e.nativeEvent)) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActive((a) => Math.min(items.length - 1, a + 1));
+      setActive((a) => (items.length ? Math.min(items.length - 1, a + 1) : 0));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActive((a) => Math.max(0, a - 1));
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Enter' && activeItem) {
       e.preventDefault();
-      items[active]?.run();
+      activeItem.run();
     }
   };
 
@@ -265,30 +303,45 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="palette-input">
-        <Search />
+        <Search aria-hidden />
         <input
           ref={input}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={onKey}
+          role="combobox"
+          aria-expanded={true}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={activeItem ? `${listId}-${activeItem.id}` : undefined}
+          aria-label="Cari transaksi, akun, nominal, atau perintah"
           placeholder="Cari transaksi, akun, nominal, atau perintah…"
           spellCheck={false}
           autoComplete="off"
         />
         <span className="kbd">esc</span>
       </div>
-      <div className="palette-list" ref={listRef}>
+      <div className="palette-list" ref={listRef} id={listId} role="listbox" aria-label="Hasil pencarian">
         {items.length === 0 && <div className="list-empty">Tidak ada hasil untuk “{q}”</div>}
         {items.map((it, i) => {
           const head = it.group !== last ? it.group : null;
           last = it.group;
+          const isSel = i === activeIdx;
           return (
-            <div key={it.id}>
-              {head && <div className="list-group">{head}</div>}
+            <div key={it.id} role="presentation">
+              {head && (
+                <div className="list-group" role="presentation">
+                  {head}
+                </div>
+              )}
               <button
                 type="button"
-                className={`palette-item${i === active ? ' active' : ''}`}
-                onMouseMove={() => active !== i && setActive(i)}
+                id={`${listId}-${it.id}`}
+                role="option"
+                aria-selected={isSel}
+                tabIndex={-1}
+                className={`palette-item${isSel ? ' active' : ''}`}
+                onMouseMove={() => activeIdx !== i && setActive(i)}
                 onClick={it.run}
               >
                 {it.icon}
@@ -297,7 +350,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
                   {it.sub && <span className="pi-sub truncate">{it.sub}</span>}
                 </span>
                 {it.right && <span className="pi-right">{it.right}</span>}
-                {i === active && <CornerDownLeft size={15} style={{ opacity: 0.8, flex: 'none' }} />}
+                {isSel && <CornerDownLeft size={15} style={{ opacity: 0.8, flex: 'none' }} aria-hidden />}
               </button>
             </div>
           );

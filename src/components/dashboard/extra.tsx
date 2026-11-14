@@ -60,7 +60,7 @@ export function UpcomingWidget({ settings }: WidgetProps) {
       <CardHead title="Jatuh tempo" sub={`${horizon} hari ke depan, termasuk yang terlewat`} to="/hutang-piutang" link="Semua" />
       <div className="card-body list-body">
         {list.length === 0 ? (
-          <EmptyState compact icon={CalendarClock} title="Tidak ada tagihan" text={`Tidak ada hutang${withRec ? ' atau piutang' : ''} yang jatuh tempo dalam ${horizon} hari.`} />
+          <EmptyState compact heading="h3" icon={CalendarClock} title="Tidak ada tagihan" text={`Tidak ada hutang${withRec ? ' atau piutang' : ''} yang jatuh tempo dalam ${horizon} hari.`} />
         ) : (
           <>
             {list.slice(0, 6).map((d) => (
@@ -103,7 +103,7 @@ export function TopCatsWidget({ settings }: WidgetProps) {
       <CardHead title="Kategori teratas" sub={`${formatMonth(month)} · dibanding ${isCurrent ? 'periode sama' : 'bulan'} sebelumnya`} to="/laporan?r=laba-rugi" link="Rinci" />
       <div className="card-body">
         {top.length === 0 ? (
-          <EmptyState compact icon={Star} title="Belum ada pengeluaran" text="Kategori dengan beban terbesar akan tampil di sini." />
+          <EmptyState compact heading="h3" icon={Star} title="Belum ada pengeluaran" text="Kategori dengan beban terbesar akan tampil di sini." />
         ) : (
           <div className="topcats">
             {top.map((c) => {
@@ -252,6 +252,7 @@ export function FavoritesWidget() {
         {templates.length === 0 ? (
           <EmptyState
             compact
+            heading="h3"
             icon={Star}
             title="Belum ada favorit"
             text="Saat mencatat transaksi rutin (kopi, ojek, isi saldo), pilih “Simpan ke favorit” agar bisa dicatat dengan sekali klik."
@@ -308,7 +309,7 @@ export function GoalsWidget() {
       />
       <div className="card-body">
         {list.length === 0 ? (
-          <EmptyState compact icon={Flag} title="Belum ada target" text="Tetapkan tujuan seperti dana darurat atau liburan, lalu tautkan ke dompet tabungannya." />
+          <EmptyState compact heading="h3" icon={Flag} title="Belum ada target" text="Tetapkan tujuan seperti dana darurat atau liburan, lalu tautkan ke dompet tabungannya." />
         ) : (
           <div className="goal-list">
             {list.map((p) => (
@@ -388,7 +389,7 @@ export function InsightsWidget({ settings }: WidgetProps) {
       <CardHead title="Wawasan" sub={formatMonth(month)} />
       <div className="card-body">
         {list.length === 0 ? (
-          <EmptyState compact icon={Lightbulb} title="Belum ada sorotan" text="Wawasan muncul setelah ada cukup transaksi untuk dibandingkan." />
+          <EmptyState compact heading="h3" icon={Lightbulb} title="Belum ada sorotan" text="Wawasan muncul setelah ada cukup transaksi untuk dibandingkan." />
         ) : (
           <ul className="insights">
             {list.map((i) => {

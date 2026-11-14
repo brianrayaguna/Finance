@@ -12,12 +12,15 @@ export interface TxView {
   kind: string;
 }
 
+const usesWallet = (t: Transaction) => t.counter !== 'category' && t.counter !== 'opening' && !!t.accountId;
+
 export function txView(t: Transaction, acc: Map<string, Account>, parent?: Transaction): TxView {
   const a = (id?: string) => (id ? acc.get(id) : undefined);
   const cat = a(t.categoryId);
   const wal = a(t.accountId);
   const kind = TX_META[t.type].label;
   const amt = t.amount + (t.fee || 0) + (t.interest || 0);
+  const walletDebt = usesWallet(t);
   switch (t.type) {
     case 'income':
       return { title: t.description || cat?.name || kind, subtitle: [cat?.name, wal?.name].filter(Boolean).join(' · '), icon: cat?.icon ?? 'trending-up', color: cat?.color ?? '#4C8A58', amount: t.amount, sign: 1, kind };
@@ -36,11 +39,11 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
     case 'payable_new':
       return {
         title: t.description || `Hutang kepada ${t.contact}`,
-        subtitle: `Hutang · ${t.contact ?? ''}${t.counter === 'wallet' && wal ? ' · ' + wal.name : t.counter === 'category' && cat ? ' · ' + cat.name : t.counter === 'opening' ? ' · saldo awal' : ''}`,
+        subtitle: `Hutang · ${t.contact ?? ''}${walletDebt && wal ? ' · ' + wal.name : t.counter === 'category' && cat ? ' · ' + cat.name : t.counter === 'opening' ? ' · saldo awal' : ''}`,
         icon: 'handshake',
         color: 'var(--tone-payable)',
         amount: t.amount,
-        sign: t.counter === 'wallet' ? 1 : 0,
+        sign: walletDebt ? 1 : 0,
         kind,
       };
     case 'payable_pay':
@@ -48,11 +51,11 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
     case 'receivable_new':
       return {
         title: t.description || `Piutang ${t.contact}`,
-        subtitle: `Piutang · ${t.contact ?? ''}${t.counter === 'wallet' && wal ? ' · ' + wal.name : t.counter === 'category' && cat ? ' · ' + cat.name : t.counter === 'opening' ? ' · saldo awal' : ''}`,
+        subtitle: `Piutang · ${t.contact ?? ''}${walletDebt && wal ? ' · ' + wal.name : t.counter === 'category' && cat ? ' · ' + cat.name : t.counter === 'opening' ? ' · saldo awal' : ''}`,
         icon: 'hand-coins',
         color: 'var(--tone-receivable)',
         amount: t.amount,
-        sign: t.counter === 'wallet' ? -1 : 0,
+        sign: walletDebt ? -1 : 0,
         kind,
       };
     case 'receivable_collect':
@@ -98,11 +101,11 @@ export function cashDelta(t: Transaction): number {
     case 'transfer':
       return -(t.fee || 0);
     case 'payable_new':
-      return t.counter === 'wallet' ? t.amount : 0;
+      return usesWallet(t) ? t.amount : 0;
     case 'payable_pay':
       return -(t.amount + (t.interest || 0));
     case 'receivable_new':
-      return t.counter === 'wallet' ? -t.amount : 0;
+      return usesWallet(t) ? -t.amount : 0;
     case 'receivable_collect':
       return t.amount + (t.interest || 0);
     default:

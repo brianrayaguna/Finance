@@ -183,7 +183,15 @@ export function WidgetFrame({
               })),
             ]}
             trigger={(p) => (
-              <button type="button" className="w-tool w-size" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-label={`Ukuran ${meta.title}: ${SIZE_LABEL[size]}`}>
+              <button
+                type="button"
+                className="w-tool w-size"
+                ref={p.ref}
+                onClick={p.onClick}
+                aria-expanded={p['aria-expanded']}
+                aria-haspopup={p['aria-haspopup']}
+                aria-label={`Ukuran ${meta.title}: ${SIZE_LABEL[size]}`}
+              >
                 {SIZE_LABEL[size]}
                 <ChevronDown aria-hidden />
               </button>

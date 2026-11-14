@@ -1,10 +1,10 @@
 import {
-  LayoutDashboard,
+  LayoutGrid,
   ArrowLeftRight,
   CalendarDays,
   Wallet,
   HandCoins,
-  Gauge,
+  Target,
   Building2,
   NotebookPen,
   BookOpenText,
@@ -35,7 +35,7 @@ export const NAV: NavSection[] = [
     id: 'ikhtisar',
     section: 'Ikhtisar',
     items: [
-      { to: '/', label: 'Ringkasan', icon: LayoutDashboard, hotkey: '1', desc: 'Posisi & arus keuangan' },
+      { to: '/', label: 'Ringkasan', icon: LayoutGrid, hotkey: '1', desc: 'Posisi & arus keuangan' },
       { to: '/transaksi', label: 'Transaksi', icon: ArrowLeftRight, hotkey: '2', desc: 'Daftar mutasi harian' },
     ],
   },
@@ -44,7 +44,7 @@ export const NAV: NavSection[] = [
     section: 'Keuangan',
     items: [
       { to: '/dompet', label: 'Dompet & Rekening', icon: Wallet, hotkey: '4', desc: 'Saldo kas, bank, e-wallet' },
-      { to: '/anggaran', label: 'Anggaran', icon: Gauge, hotkey: '5', desc: 'Batas beban bulanan' },
+      { to: '/anggaran', label: 'Anggaran', icon: Target, hotkey: '5', desc: 'Batas beban bulanan' },
       { to: '/hutang-piutang', label: 'Hutang & Piutang', icon: HandCoins, hotkey: '6', desc: 'Jadwal & jatuh tempo' },
       { to: '/aset', label: 'Aset Tetap', icon: Building2, desc: 'Register & penyusutan' },
     ],

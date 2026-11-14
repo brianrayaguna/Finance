@@ -12,6 +12,8 @@ import { confirm } from '../../store/ui';
 import { notify } from '../../store/history';
 import { useBooks, useToday } from '../../hooks/useApp';
 import { formatDate, formatMoney, formatMonth } from '../../lib/format';
+import { useSubmitRef } from '../../lib/focus';
+import { isImeComposing } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { AmountInput } from '../ui/AmountInput';
 import { DatePicker } from '../ui/DatePicker';
@@ -53,8 +55,8 @@ export function GoalRow({ p, onClick }: { p: GoalProgress; onClick?: () => void 
   const g = p.goal;
   const st = GOAL_STATUS[p.status];
   const color = p.status === 'done' ? 'var(--pos)' : p.status === 'overdue' ? 'var(--neg)' : g.color;
-  return (
-    <button type="button" className="goal-row" onClick={onClick} aria-label={`${g.name}: ${Math.round(p.pct * 100)}% — ${st.label}. Ubah target`}>
+  const body = (
+    <>
       <IconTile icon={g.icon} color={g.color} size="sm" />
       <span className="goal-main">
         <span className="goal-top">
@@ -73,6 +75,12 @@ export function GoalRow({ p, onClick }: { p: GoalProgress; onClick?: () => void 
           <span className="muted truncate">{goalNote(p)}</span>
         </span>
       </span>
+    </>
+  );
+  if (!onClick) return <div className="goal-row">{body}</div>;
+  return (
+    <button type="button" className="goal-row" onClick={onClick} aria-label={`${g.name}: ${Math.round(p.pct * 100)}% — ${st.label}. Ubah target`}>
+      {body}
     </button>
   );
 }
@@ -107,16 +115,20 @@ export function GoalModal({ open, onClose, editing }: { open: boolean; onClose: 
     setTried(true);
     if (nameErr || targetErr || dateErr) return;
     const input = { name: name.trim(), target: target!, targetDate: targetDate || undefined, accountIds, icon, color };
-    if (editing) notify(`Target ${input.name} diperbarui`, updateGoal(editing.id, input));
-    else notify(`Target ${input.name} dibuat`, addGoal(input));
+    const hid = editing ? updateGoal(editing.id, input) : addGoal(input);
+    if (!hid) return;
+    notify(editing ? `Target ${input.name} diperbarui` : `Target ${input.name} dibuat`, hid);
     onClose();
   };
+  const submitRef = useSubmitRef(submit);
 
   const remove = async () => {
     if (!editing) return;
     const ok = await confirm({ title: `Hapus target ${editing.name}?`, message: 'Saldo dompet yang ditautkan tidak berubah — hanya targetnya yang dihapus.', confirmLabel: 'Hapus', tone: 'danger' });
     if (!ok) return;
-    notify(`Target ${editing.name} dihapus`, deleteGoal(editing.id), { tone: 'danger' });
+    const hid = deleteGoal(editing.id);
+    if (!hid) return;
+    notify(`Target ${editing.name} dihapus`, hid, { tone: 'danger' });
     onClose();
   };
 
@@ -143,9 +155,10 @@ export function GoalModal({ open, onClose, editing }: { open: boolean; onClose: 
         className="acc-form"
         data-form
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || (e.target as HTMLElement).tagName === 'INPUT')) {
+          if (isImeComposing(e)) return;
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || ((e.target as HTMLElement).tagName === 'INPUT' && !(e.target as HTMLElement).closest('.icon-picker')))) {
             e.preventDefault();
-            submit();
+            submitRef.runFrom(e.target);
           }
         }}
       >

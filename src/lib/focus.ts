@@ -1,5 +1,5 @@
 /* Navigasi fokus antar-field dengan tombol Enter. Elemen field ditandai dengan atribut data-field. */
-import type { KeyboardEvent } from 'react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 
 function fields(scope: ParentNode): HTMLElement[] {
   return Array.from(scope.querySelectorAll<HTMLElement>('[data-field]')).filter((el) => {
@@ -42,6 +42,29 @@ export function rowAction(run: (() => void) | undefined) {
         e.preventDefault();
         run();
       }
+    },
+  };
+}
+
+/** Referensi submit terbaru; menunda satu tick macrotask bila dipicu dari AmountInput agar settle() selesai dulu. */
+export function useSubmitRef<T extends unknown[]>(fn: (...args: T) => void) {
+  const ref = useRef(fn);
+  ref.current = fn;
+  const timer = useRef<number>(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  return {
+    run: (...args: T) => ref.current(...args),
+    runFrom: (target: EventTarget | null, ...args: T) => {
+      const inAmount = target instanceof Element && !!target.closest('.amount-input, .amount-inline');
+      if (!inAmount) {
+        ref.current(...args);
+        return;
+      }
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => {
+        timer.current = 0;
+        ref.current(...args);
+      }, 0);
     },
   };
 }

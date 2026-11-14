@@ -36,28 +36,35 @@ export const TxRow = memo(function TxRow({
     <div
       className={`tx-row${selected ? ' selected' : ''}${focused ? ' focused' : ''}`}
       data-id={tx.id}
-      tabIndex={onOpen ? 0 : undefined}
-      aria-label={`${v.title}, ${prefix}${formatMoney(v.amount)}, ${formatDate(tx.date, 'long')}`}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' && e.target === e.currentTarget && onOpen) {
-          e.preventDefault();
-          e.stopPropagation();
-          onOpen(tx);
-        }
-      }}
-      onFocus={(e) => e.target === e.currentTarget && onFocusRow?.(tx.id)}
-      onClick={() => onOpen?.(tx)}
       onContextMenu={(e) => onContext?.(e, tx)}
       onMouseDown={() => onFocusRow?.(tx.id)}
     >
       {selectable && (
-        <span className="tx-check" onClick={(e) => e.stopPropagation()}>
+        <span className="tx-check row-front">
           <Checkbox checked={!!selected} onChange={(_, e) => onToggle?.(tx.id, e)} label="Pilih transaksi" />
         </span>
       )}
       <IconTile icon={v.icon} color={v.color} />
       <div className="tx-main">
-        <div className="tx-title truncate">{v.title}</div>
+        <div className={onOpen ? 'tx-title' : 'tx-title truncate'}>
+          {onOpen ? (
+            <button
+              type="button"
+              className="stretch-trigger truncate"
+              data-tx-open={tx.id}
+              aria-label={`${v.title}, ${prefix}${formatMoney(v.amount)}, ${formatDate(tx.date, 'long')}`}
+              onClick={() => onOpen(tx)}
+              onFocus={() => onFocusRow?.(tx.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.stopPropagation();
+              }}
+            >
+              {v.title}
+            </button>
+          ) : (
+            v.title
+          )}
+        </div>
         <div className="tx-sub truncate">
           {v.subtitle}
           {tx.note && <span className="tx-note"> · {tx.note}</span>}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Trash2, Scale, CircleCheck, CircleAlert, Wand2, X, Lock } from '../../lib/glyphs';
 import type { JournalLineInput, Transaction } from '../../accounting/types';
@@ -7,8 +7,8 @@ import { addTransaction, deleteTransactions, updateTransaction, useData } from '
 import { confirm } from '../../store/ui';
 import { notify } from '../../store/history';
 import { addDays, formatDate, formatMoney, round2, todayISO, uid, isZero, nowTime } from '../../lib/format';
-import { focusNext } from '../../lib/focus';
-import { MOD } from '../../lib/layers';
+import { focusNext, useSubmitRef } from '../../lib/focus';
+import { isImeComposing, MOD } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
@@ -43,6 +43,25 @@ export function JournalModal({
   const [tried, setTried] = useState(false);
   const accountOptions = useAccountOptions(undefined, editing?.lines?.map((l) => l.accountId));
   const bodyRef = useRef<HTMLDivElement>(null);
+  const wasOpen = useRef(open);
+  const prevEdit = useRef(editing);
+  const prevDef = useRef(defaults);
+
+  useLayoutEffect(() => {
+    const opening = open && !wasOpen.current;
+    wasOpen.current = open;
+    if (!open) return;
+    if (!opening && editing === prevEdit.current && defaults === prevDef.current) return;
+    prevEdit.current = editing;
+    prevDef.current = defaults;
+    const s = editing ?? defaults;
+    setDate(s?.date ?? todayISO());
+    setDescription(s?.description ?? '');
+    setAdjusting(!!s?.adjusting);
+    setLines(s?.lines?.length ? s.lines.map((l) => ({ ...l, key: uid('l') })) : [blank(), blank()]);
+    setTried(false);
+  }, [open, editing, defaults]);
+
   const lockDate = useData((s) => s.data.profile.lockDate);
   const lockedEdit = !!editing && isLocked(editing.date, lockDate);
   const dateLocked = !lockedEdit && isLocked(date, lockDate);
@@ -139,13 +158,23 @@ export function JournalModal({
     onClose();
   };
 
-  const onKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      submit();
+  const actionRef = useSubmitRef((kind: 'submit' | 'creditEnd') => {
+    if (kind === 'creditEnd') {
+      if (balanced) submit();
+      else addLine();
       return;
     }
-    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+    submit();
+  });
+
+  const onKey = (e: React.KeyboardEvent) => {
+    if (isImeComposing(e)) return;
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      actionRef.runFrom(e.target, 'submit');
+      return;
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
       const t = e.target as HTMLElement;
       if (t.tagName !== 'INPUT') return;
       e.preventDefault();
@@ -153,11 +182,10 @@ export function JournalModal({
       const rows = bodyRef.current?.querySelectorAll('.jl-row');
       const isLastRow = !!rows?.length && t.closest('.jl-row') === rows[rows.length - 1];
       if (isLastRow && t.closest('.jl-credit')) {
-        if (balanced) submit();
-        else addLine();
+        actionRef.runFrom(t, 'creditEnd');
         return;
       }
-      if (!focusNext(t)) submit();
+      if (!focusNext(t)) actionRef.runFrom(t, 'submit');
     }
   };
 
@@ -184,7 +212,7 @@ export function JournalModal({
             </span>
             <span className="spacer" />
             <Button onClick={onClose}>Batal</Button>
-            <Button variant="primary" onClick={submit} disabled={tried && !!error}>
+            <Button variant="primary" onClick={() => actionRef.run('submit')} disabled={tried && !!error}>
               {editing ? 'Simpan perubahan' : 'Posting jurnal'}
             </Button>
           </>
@@ -202,7 +230,7 @@ export function JournalModal({
       <div data-form onKeyDown={onKey} ref={bodyRef} inert={lockedEdit || undefined}>
         <div className="jm-top">
           <Field label="Tanggal" error={tried && dateLocked ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci` : undefined}>
-            <DatePicker value={date} onChange={setDate} advance min={lockDate && !lockedEdit ? addDays(lockDate, 1) : undefined} />
+            <DatePicker value={date} onChange={setDate} advance min={lockDate && !lockedEdit ? addDays(lockDate, 1) : undefined} invalid={tried && dateLocked} />
           </Field>
           <Field label="Keterangan" className="grow">
             <TextInput value={description} onChange={setDescription} placeholder="mis. Penyesuaian beban dibayar di muka" data-field />
@@ -257,7 +285,6 @@ export function JournalModal({
                   type="button"
                   className="jl-del"
                   aria-label="Hapus baris"
-                  tabIndex={-1}
                   disabled={lines.length <= 2}
                   onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}
                 >
