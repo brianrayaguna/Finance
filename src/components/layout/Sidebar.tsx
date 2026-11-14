@@ -202,7 +202,6 @@ function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boole
   const b = useBooks();
   const today = useToday();
   const compact = usePrefs((s) => s.compactNumbers);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const { search, pathname } = useLocation();
   const list = useMemo(() => walletBalances(b, today).filter((w) => !w.account.archived), [b, today]);
   if (!list.length || collapsed) return null;
@@ -231,7 +230,7 @@ function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boole
               className={`sb-acct${activeId === w.account.id ? ' active' : ''}`}
               onClick={onNavigate}
               aria-current={activeId === w.account.id ? 'page' : undefined}
-              title={hideAmounts ? w.account.name : `${w.account.name} · ${formatMoney(v)}`}
+              title={`${w.account.name} · ${formatMoney(v)}`}
             >
               <span className="sb-acct-dot" style={{ background: w.account.color }} aria-hidden />
               <span className="sb-acct-name">{w.account.name}</span>

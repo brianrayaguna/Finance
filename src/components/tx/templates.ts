@@ -30,6 +30,5 @@ export function runTemplate(t: TxTemplate) {
     return;
   }
   const { tx, historyId } = addTransaction({ ...base, date: todayISO(), time: nowTime(), amount: t.amount! }, `Favorit: ${t.name}`);
-  if (!historyId) return;
   notify(`${t.name} ${formatMoney(t.amount!)} dicatat`, historyId, { detail: tx.ref });
 }

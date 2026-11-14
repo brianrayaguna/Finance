@@ -30,7 +30,6 @@ export function useThemeSync() {
       const dark = theme === 'dark' || (theme === 'system' && mq.matches);
       const root = document.documentElement;
       root.dataset.theme = dark ? 'dark' : 'light';
-      root.style.colorScheme = dark ? 'dark' : 'light';
       const meta = document.querySelectorAll('meta[name="theme-color"]');
       meta.forEach((m) => m.setAttribute('content', dark ? '#0B0C0A' : '#F5F5F7'));
     };

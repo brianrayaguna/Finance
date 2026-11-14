@@ -39,7 +39,6 @@ export default function CalendarPage() {
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
   const weekStart = usePrefs((s) => s.weekStart);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const [params, setParams] = useSearchParams();
   // ?tanggal=YYYY-MM-DD membuka kalender pada hari tersebut (mis. dari peta panas di dasbor)
   const initial = /^\d{4}-\d{2}-\d{2}$/.test(params.get('tanggal') ?? '') ? params.get('tanggal')! : today;
@@ -158,31 +157,20 @@ export default function CalendarPage() {
               size="sm"
               value={view}
               onChange={setView}
-              ariaLabel="Tampilan kalender"
               options={[
                 { value: 'month', label: 'Bulan', icon: CalendarDays },
                 { value: 'year', label: 'Tahun', icon: Grid3x3 },
               ]}
             />
             <div className="month-switch">
-              <button
-                type="button"
-                className="ms-btn"
-                onClick={() => (view === 'year' ? setMonth(addMonths(month, -12)) : shiftMonth(-1))}
-                aria-label={view === 'year' ? 'Tahun sebelumnya' : 'Bulan sebelumnya'}
-              >
-                <ChevronLeft aria-hidden />
+              <button type="button" className="ms-btn" onClick={() => (view === 'year' ? setMonth(addMonths(month, -12)) : shiftMonth(-1))} aria-label="Sebelumnya">
+                <ChevronLeft />
               </button>
-              <button type="button" className="ms-label" onClick={() => moveSel(today)} aria-label="Kembali ke hari ini">
+              <button type="button" className="ms-label" onClick={() => moveSel(today)}>
                 Hari ini
               </button>
-              <button
-                type="button"
-                className="ms-btn"
-                onClick={() => (view === 'year' ? setMonth(addMonths(month, 12)) : shiftMonth(1))}
-                aria-label={view === 'year' ? 'Tahun berikutnya' : 'Bulan berikutnya'}
-              >
-                <ChevronRight aria-hidden />
+              <button type="button" className="ms-btn" onClick={() => (view === 'year' ? setMonth(addMonths(month, 12)) : shiftMonth(1))} aria-label="Berikutnya">
+                <ChevronRight />
               </button>
             </div>
           </>
@@ -233,13 +221,6 @@ export default function CalendarPage() {
                   const heat = a && monthStats.maxExp ? Math.sqrt(a.exp / monthStats.maxExp) : 0;
                   const due = dues.get(d);
                   const wk = isWeekend(d);
-                  const labelParts = [formatDate(d, 'full')];
-                  if (a?.count) labelParts.push(`${a.count} transaksi`);
-                  if (!hideAmounts) {
-                    if (a && a.inc > 0) labelParts.push(`masuk ${formatMoney(a.inc)}`);
-                    if (a && a.exp > 0) labelParts.push(`keluar ${formatMoney(a.exp)}`);
-                  }
-                  if (due?.length) labelParts.push(`${due.length} jatuh tempo`);
                   return (
                     <button
                       key={d}
@@ -248,13 +229,11 @@ export default function CalendarPage() {
                       onClick={() => moveSel(d)}
                       onDoubleClick={() => openTx({ date: d })}
                       style={{ '--heat': heat } as React.CSSProperties}
-                      aria-pressed={d === sel}
-                      aria-current={d === today ? 'date' : undefined}
-                      aria-label={labelParts.join(', ')}
+                      aria-label={formatDate(d, 'full')}
                     >
                       <span className="cc-num">{Number(d.slice(8))}</span>
                       {due && (
-                        <span className="cc-dues" aria-hidden="true">
+                        <span className="cc-dues">
                           {due.slice(0, 3).map((x) => (
                             <i key={x.tx.id} className={x.kind} />
                           ))}
@@ -339,7 +318,7 @@ export default function CalendarPage() {
                       ))}
                     </div>
                   ) : (
-                    <EmptyState heading="h2" compact icon={Inbox} title="Hari yang tenang" text="Belum ada transaksi pada tanggal ini." />
+                    <EmptyState compact icon={Inbox} title="Hari yang tenang" text="Belum ada transaksi pada tanggal ini." />
                   )}
                 </div>
                 <Button block icon={Plus} onClick={() => openTx({ date: sel })} style={{ marginTop: 12 }}>
@@ -373,7 +352,6 @@ function YearView({
   onPick: (d: string) => void;
 }) {
   const weekStart = usePrefs((s) => s.weekStart);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const stats = useMemo(() => {
     let max = 0;
     let inc = 0;
@@ -427,7 +405,7 @@ function YearView({
               <div className="ym-grid">
                 {cells.map((d) => {
                   const out = d.slice(5, 7) !== first.slice(5, 7);
-                  if (out) return <span key={d} className="ym-cell empty" aria-hidden="true" />;
+                  if (out) return <span key={d} className="ym-cell empty" />;
                   const a = byDay.get(d);
                   const lv = level(a?.exp ?? 0);
                   return (
@@ -436,9 +414,8 @@ function YearView({
                       type="button"
                       className={`ym-cell lv${lv}${d === today ? ' today' : ''}${dues.has(d) ? ' due' : ''}`}
                       onClick={() => onPick(d)}
-                      title={hideAmounts ? formatDate(d, 'full') : `${formatDate(d, 'full')} · pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
-                      aria-current={d === today ? 'date' : undefined}
-                      aria-label={hideAmounts ? formatDate(d, 'full') : `${formatDate(d, 'full')}, pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
+                      title={`${formatDate(d, 'full')} · pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
+                      aria-label={formatDate(d, 'full')}
                     />
                   );
                 })}

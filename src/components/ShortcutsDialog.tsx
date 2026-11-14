@@ -82,7 +82,7 @@ export function ShortcutsDialog() {
       <div className="sc-grid">
         {GROUPS.map((g) => (
           <div key={g.title} className="sc-group">
-            <h3>{g.title}</h3>
+            <h4>{g.title}</h4>
             {g.rows.map(([label, k]) => (
               <div key={label} className="sc-row">
                 <span>{label}</span>

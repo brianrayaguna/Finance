@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Plus, Handshake, HandCoins, Search, Ellipsis, Pencil, Trash2, Eye, CircleCheck, Receipt, X, CalendarClock } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
-import { usePrefs, useUI, confirm } from '../store/ui';
+import { useUI, confirm } from '../store/ui';
 import { deleteTransactions, childCount } from '../store/data';
 import { notify } from '../store/history';
 import { debtInfos, AGING_BUCKETS, type DebtInfo } from '../accounting/reports';
@@ -31,11 +31,7 @@ function Avatar({ name }: { name: string }) {
 }
 
 function StatusBadge({ d }: { d: DebtInfo }) {
-  if (d.status === 'paid') {
-    if (d.paid <= 0.005 && d.writtenOff > 0.005) return <Badge tone="default">Dihapusbukukan</Badge>;
-    if (d.writtenOff > 0.005) return <Badge tone="pos" icon={CircleCheck}>Selesai · sebagian dihapus</Badge>;
-    return <Badge tone="pos" icon={CircleCheck}>Lunas</Badge>;
-  }
+  if (d.status === 'paid') return <Badge tone="pos" icon={CircleCheck}>Lunas</Badge>;
   if (d.status === 'overdue') return <Badge tone="neg" dot>Lewat {-(d.daysToDue ?? 0)} hari</Badge>;
   if (d.status === 'due_soon') return <Badge tone="warn" dot>{d.daysToDue === 0 ? 'Jatuh tempo hari ini' : `${d.daysToDue} hari lagi`}</Badge>;
   if (d.tx.dueDate) return <Badge dot>JT {formatDate(d.tx.dueDate)}</Badge>;
@@ -47,7 +43,6 @@ export default function Debts() {
   const today = useToday();
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const [kind, setKind] = useState<'payable' | 'receivable'>('payable');
   const [status, setStatus] = useState<'active' | 'paid' | 'all'>('active');
   const [q, setQ] = useState('');
@@ -120,7 +115,6 @@ export default function Debts() {
         <Segmented
           value={kind}
           onChange={(v) => setKind(v)}
-          ariaLabel="Jenis catatan"
           options={[
             { value: 'payable', label: `Hutang (${all.filter((d) => d.kind === 'payable' && d.status !== 'paid').length})`, icon: Handshake },
             { value: 'receivable', label: `Piutang (${all.filter((d) => d.kind === 'receivable' && d.status !== 'paid').length})`, icon: HandCoins },
@@ -135,7 +129,7 @@ export default function Debts() {
           <div className="aging-bar">
             {aging.map((v, i) =>
               v > 0 ? (
-                <Tooltip key={i} label={hideAmounts ? AGING_BUCKETS[i] : `${AGING_BUCKETS[i]} · ${formatMoney(v)}`}>
+                <Tooltip key={i} label={`${AGING_BUCKETS[i]} · ${formatMoney(v)}`}>
                   <span style={{ flex: v, background: agingColors[i] }} />
                 </Tooltip>
               ) : null,
@@ -175,7 +169,6 @@ export default function Debts() {
               size="sm"
               value={status}
               onChange={setStatus}
-              ariaLabel="Status hutang piutang"
               options={[
                 { value: 'active', label: 'Berjalan' },
                 { value: 'paid', label: 'Lunas' },
@@ -189,7 +182,6 @@ export default function Debts() {
         </div>
         {list.length === 0 ? (
           <EmptyState
-            heading="h2"
             icon={kind === 'payable' ? Handshake : HandCoins}
             title={status === 'paid' ? 'Belum ada yang lunas' : kind === 'payable' ? 'Tidak ada hutang berjalan' : 'Tidak ada piutang berjalan'}
             text={kind === 'payable' ? 'Catat pinjaman yang Anda terima atau pembelian secara kredit.' : 'Catat uang yang Anda pinjamkan atau penjualan secara kredit.'}
@@ -212,26 +204,17 @@ export default function Debts() {
                   exit={{ opacity: 0 }}
                   className={`debt-row st-${d.status}`}
                   onClick={() => setDetail(d.tx.id)}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`${d.tx.contact || 'Tanpa nama'}, sisa ${formatMoney(d.remaining)}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target === e.currentTarget) setDetail(d.tx.id);
+                  }}
                 >
                   <Avatar name={d.tx.contact || '?'} />
                   <div className="dr-main">
                     <div className="row" style={{ gap: 8 }}>
-                      <button
-                        type="button"
-                        className="row-link truncate"
-                        style={{ fontWeight: 700 }}
-                        aria-label={
-                          hideAmounts
-                            ? `Detail ${d.tx.contact || 'Tanpa nama'}`
-                            : `${d.tx.contact || 'Tanpa nama'}, sisa ${formatMoney(d.remaining)}`
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDetail(d.tx.id);
-                        }}
-                      >
-                        {d.tx.contact || 'Tanpa nama'}
-                      </button>
+                      <strong className="truncate">{d.tx.contact}</strong>
                       <StatusBadge d={d} />
                     </div>
                     <div className="muted truncate" style={{ fontSize: 13 }}>
@@ -267,7 +250,7 @@ export default function Debts() {
                         { label: 'Hapus', icon: Trash2, danger: true, onSelect: () => remove(d) },
                       ]}
                       trigger={(p) => (
-                        <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-haspopup={p['aria-haspopup']} aria-label={`Menu ${d.tx.contact ?? ''}`.trim()}>
+                        <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label={`Menu ${d.tx.contact ?? ''}`.trim()}>
                           <Ellipsis />
                         </button>
                       )}
@@ -286,7 +269,7 @@ export default function Debts() {
             <div className="dsh-head">
               <Avatar name={current.tx.contact || '?'} />
               <div className="grow" style={{ minWidth: 0 }}>
-                <h2 className="modal-title truncate">{current.tx.contact}</h2>
+                <div className="modal-title truncate">{current.tx.contact}</div>
                 <div className="muted" style={{ fontSize: 13 }}>
                   {current.kind === 'payable' ? 'Hutang' : 'Piutang'} · {current.tx.ref}
                 </div>

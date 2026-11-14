@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Download,
@@ -27,8 +26,7 @@ import {
 } from '../lib/glyphs';
 import { checkIntegrity } from '../accounting/integrity';
 import type { AppData } from '../accounting/types';
-import { getData, isValidData, normalizeData, replaceData, resetAll, updateProfile, useData } from '../store/data';
-import { isImeComposing } from '../lib/layers';
+import { useData, updateProfile, replaceData, isValidData, resetAll, getData, normalizeData } from '../store/data';
 import { buildSampleData } from '../store/sample';
 import {
   usePrefs,
@@ -57,7 +55,6 @@ import { Segmented } from '../components/ui/Segmented';
 import { LogoMark } from '../components/brand/Logo';
 import { useIsDark } from '../hooks/useApp';
 import { modKey } from '../lib/layers';
-import { scrollBehavior } from '../lib/focus';
 
 const SECTIONS: { id: string; label: string; icon: Glyph }[] = [
   { id: 'profil', label: 'Profil & buku', icon: User },
@@ -180,7 +177,7 @@ function SectionHead({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="set-head">
       <div>
-        <h2>{title}</h2>
+        <h3>{title}</h3>
         <p>{desc}</p>
       </div>
     </div>
@@ -190,11 +187,7 @@ function SectionHead({ title, desc }: { title: string; desc: string }) {
 function IntegrityPanel({ data }: { data: AppData }) {
   const issues = useMemo(() => checkIntegrity(data), [data]);
   const editTx = useUI((s) => s.editTx);
-  const { hash } = useLocation();
-  const [open, setOpen] = useState(hash === '#integritas');
-  useEffect(() => {
-    if (hash === '#integritas') setOpen(true);
-  }, [hash]);
+  const [open, setOpen] = useState(false);
   const errors = issues.filter((i) => i.level === 'error').length;
   const warns = issues.length - errors;
   const tone = errors ? 'bad' : warns ? 'warn' : 'ok';
@@ -280,7 +273,7 @@ export default function Settings() {
 
   const jump = (id: string) => {
     setActive(id);
-    document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+    document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const saveProfile = () => {
@@ -357,8 +350,6 @@ export default function Settings() {
     }
   };
 
-  const accentIdx = Math.max(0, ACCENTS.findIndex((a) => a.key === prefs.accent));
-
   return (
     <div>
       <PageHeader title="Pengaturan" subtitle="Profil buku, tampilan, menu, dan pengelolaan data" />
@@ -379,10 +370,10 @@ export default function Settings() {
             <SectionHead title="Profil & buku" desc="Nama tampil di bilah sisi; nama buku tampil di kop setiap laporan." />
             <div className="set-body grid-3" data-form>
               <Field label="Nama Anda">
-                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Nama buku / entitas" hint="Tampil di kop setiap laporan">
-                <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Awal tahun buku">
                 <Select
@@ -468,29 +459,17 @@ export default function Settings() {
               </Row>
               <Row title="Warna utama" desc="Dipakai pada tombol utama, menu yang sedang aktif, dan sakelar">
                 <div className="swatches" role="radiogroup" aria-label="Warna utama">
-                  {ACCENTS.map((a, idx) => (
+                  {ACCENTS.map((a) => (
                     <button
                       key={a.key}
                       type="button"
                       className="swatch"
                       role="radio"
                       aria-checked={prefs.accent === a.key}
-                      tabIndex={idx === accentIdx ? 0 : -1}
                       title={a.name}
                       aria-label={a.name}
                       style={{ '--c': isDark ? a.dark : a.color } as React.CSSProperties}
                       onClick={() => prefs.set({ accent: a.key })}
-                      onKeyDown={(e) => {
-                        let next: number | null = null;
-                        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % ACCENTS.length;
-                        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + ACCENTS.length) % ACCENTS.length;
-                        else if (e.key === 'Home') next = 0;
-                        else if (e.key === 'End') next = ACCENTS.length - 1;
-                        if (next === null) return;
-                        e.preventDefault();
-                        prefs.set({ accent: ACCENTS[next].key });
-                        e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
-                      }}
                     />
                   ))}
                 </div>
@@ -500,7 +479,6 @@ export default function Settings() {
                   size="sm"
                   value={prefs.density}
                   onChange={(v) => prefs.set({ density: v })}
-                  ariaLabel="Kepadatan"
                   options={[
                     { value: 'comfortable', label: 'Lega' },
                     { value: 'compact', label: 'Ringkas' },

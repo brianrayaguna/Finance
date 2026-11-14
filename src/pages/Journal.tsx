@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Download, NotebookPen, CircleCheck, TriangleAlert, Lock } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
@@ -20,25 +20,12 @@ export default function Journal() {
   const today = useToday();
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const cari = params.get('cari');
-  const prevCari = useRef(cari);
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
   const [tab, setTab] = useState<'general' | 'closing'>('general');
-  const [q, setQ] = useState(cari ?? '');
+  const [q, setQ] = useState(params.get('cari') ?? '');
   const [src, setSrc] = useState<Src>('all');
-  const [period, setPeriod] = useState<PeriodValue>(() => resolvePreset(cari ? 'all' : 'this_month', b.fyStartMonth, today));
-
-  useEffect(() => {
-    if (cari === prevCari.current) return;
-    prevCari.current = cari;
-    setQ(cari ?? '');
-    if (cari) {
-      setTab('general');
-      setSrc('all');
-      setPeriod(resolvePreset('all', b.fyStartMonth, today));
-    }
-  }, [cari, b.fyStartMonth, today]);
+  const [period, setPeriod] = useState<PeriodValue>(() => resolvePreset(params.get('cari') ? 'all' : 'this_month', b.fyStartMonth, today));
   const [closingPeriod, setClosingPeriod] = useState<PeriodValue>(() => resolvePreset('fiscal_year', b.fyStartMonth, today));
   const [limit, setLimit] = useState(PAGE);
   const [exporting, setExporting] = useState(false);
@@ -120,7 +107,6 @@ export default function Journal() {
         <Segmented
           value={tab}
           onChange={setTab}
-          ariaLabel="Jenis jurnal"
           options={[
             { value: 'general', label: 'Jurnal umum', icon: NotebookPen },
             { value: 'closing', label: 'Jurnal penutup', icon: Lock },
@@ -140,7 +126,6 @@ export default function Journal() {
                   size="sm"
                   value={src}
                   onChange={setSrc}
-                  ariaLabel="Sumber jurnal"
                   options={[
                     { value: 'all', label: 'Semua' },
                     { value: 'tx', label: 'Transaksi' },
@@ -152,7 +137,7 @@ export default function Journal() {
               </div>
             </div>
             {entries.length === 0 ? (
-              <EmptyState heading="h2" icon={NotebookPen} title="Tidak ada jurnal" text="Belum ada jurnal pada periode dan filter ini." />
+              <EmptyState icon={NotebookPen} title="Tidak ada jurnal" text="Belum ada jurnal pada periode dan filter ini." />
             ) : (
               <TableWrap label="Jurnal umum">
                 <table className="table journal-table">
@@ -168,25 +153,8 @@ export default function Journal() {
                   </thead>
                   {entries.slice(0, limit).map((e) => {
                     const ordered = [...e.lines].sort((x, y) => (x.debit ? 0 : 1) - (y.debit ? 0 : 1));
-                    const clickable = !!(e.txId || e.assetId);
                     return (
-                      <tbody
-                        key={e.id}
-                        className={`je-block${clickable ? '' : ' static'}`}
-                        tabIndex={clickable ? 0 : undefined}
-                        aria-label={clickable ? `Buka jurnal ${e.ref}` : undefined}
-                        onClick={clickable ? () => openEntry(e) : undefined}
-                        onKeyDown={
-                          clickable
-                            ? (ev) => {
-                                if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) {
-                                  ev.preventDefault();
-                                  openEntry(e);
-                                }
-                              }
-                            : undefined
-                        }
-                      >
+                      <tbody key={e.id} className="je-block" onClick={() => openEntry(e)}>
                         {ordered.map((l, i) => {
                           const a = b.acc.get(l.accountId);
                           return (
@@ -256,7 +224,7 @@ export default function Journal() {
           </div>
           <div className="card journal-card">
             {closing.length === 0 ? (
-              <EmptyState heading="h2" icon={Lock} title="Tidak ada akun nominal" text="Tidak ada pendapatan atau beban pada periode ini." />
+              <EmptyState icon={Lock} title="Tidak ada akun nominal" text="Tidak ada pendapatan atau beban pada periode ini." />
             ) : (
               <TableWrap label="Jurnal penutup">
                 <table className="table journal-table">

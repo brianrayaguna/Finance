@@ -155,11 +155,6 @@
 .sum-strip > div:nth-child(4) {
   animation-delay: 135ms;
 }
-@supports (animation-delay: calc(sibling-index() * 1ms)) {
-  .sum-strip > div {
-    animation-delay: calc((sibling-index() - 1) * 45ms);
-  }
-}
 @keyframes rise-in {
   from {
     opacity: 0;
@@ -752,9 +747,11 @@
 .tx-row {
   position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  gap: 12px;
   min-height: var(--row-h);
-  padding: 0;
+  padding: 8px 16px;
+  cursor: pointer;
   transition: background var(--dur-1);
 }
 .tx-row + .tx-row::before {
@@ -781,27 +778,6 @@
 }
 .tx-check {
   display: flex;
-  align-items: center;
-  flex: none;
-  padding: 8px 12px 8px 16px;
-}
-.tx-trigger {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-.tx-check + .tx-trigger {
-  padding-left: 0;
-}
-.tx-trigger.static {
-  cursor: default;
 }
 .tx-main {
   flex: 1;
@@ -841,14 +817,10 @@
   font-variant-numeric: tabular-nums;
 }
 .compact-list .tx-row {
-  padding: 0;
+  padding: 8px 8px;
   margin: 0 -8px;
   border-radius: var(--radius);
   min-height: 54px;
-}
-.compact-list .tx-trigger {
-  padding: 8px;
-  border-radius: inherit;
 }
 .compact-list .tx-row::before {
   left: 56px !important;
@@ -896,23 +868,6 @@
   font-size: var(--fs-sm);
   color: var(--text-3);
   margin-left: 4px;
-}
-@media (max-width: 760px) {
-  .bulk-bar {
-    bottom: calc(74px + env(safe-area-inset-bottom));
-    max-width: calc(100vw - 20px);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-}
-@media (max-width: 480px) {
-  .bulk-bar {
-    gap: 4px;
-    padding: 6px 8px 6px 12px;
-  }
-  .bb-total {
-    display: none;
-  }
 }
 
 /* ═══════════ Calendar ═══════════ */
@@ -1086,7 +1041,6 @@
   top: calc(var(--topbar-h) + 16px);
   padding: 18px;
   max-height: calc(100vh - var(--topbar-h) - 40px);
-  max-height: calc(100dvh - var(--topbar-h) - 40px);
   overflow-y: auto;
 }
 .cs-head {
@@ -1264,20 +1218,6 @@ i.ym-cell {
   margin: 0 2px 10px;
   width: calc(100% - 4px);
 }
-.wg-head-wrap {
-  margin: 0 2px 10px;
-  font-size: 15px;
-  font-weight: 680;
-  letter-spacing: -0.015em;
-}
-.wg-head-wrap .wg-head {
-  margin: 0;
-  width: 100%;
-  font-size: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-}
-.wg-head h2,
 .wg-head h3 {
   font-size: 15px;
   font-weight: 680;
@@ -1794,12 +1734,8 @@ button.tl-item:hover {
 .je-block.static {
   cursor: default;
 }
-.je-block:not(.static):hover {
+.je-block:hover {
   background: var(--fill);
-}
-.je-block:focus-visible {
-  outline: 2px solid var(--focus-border, var(--accent-ink));
-  outline-offset: -2px;
 }
 .table .je-block tr:hover {
   background: transparent;
@@ -1822,7 +1758,6 @@ button.tl-item:hover {
   position: sticky;
   top: calc(var(--topbar-h) + 16px);
   max-height: calc(100vh - var(--topbar-h) - 40px);
-  max-height: calc(100dvh - var(--topbar-h) - 40px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1976,20 +1911,10 @@ button.tl-item:hover {
 .table tr.archived td {
   opacity: 0.55;
 }
-.link-cell:hover,
-.link-cell-btn:hover,
-.link-cell-btn:focus-visible {
+.link-cell:hover {
   color: var(--accent-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-.link-cell-btn {
-  display: inline-block;
-  font: inherit;
-  font-variant-numeric: inherit;
-  color: inherit;
-  text-align: right;
-  border-radius: var(--radius-xs);
 }
 
 /* ═══════════ Accounts ═══════════ */
@@ -2081,14 +2006,6 @@ button.tl-item:hover {
 @media (max-width: 760px) {
   .acc-form {
     grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 560px) {
-  .acc-fields {
-    grid-template-columns: 1fr;
-  }
-  .acc-fields .span-2 {
-    grid-column: span 1;
   }
 }
 
@@ -2393,7 +2310,6 @@ button.tl-item:hover {
 .ratio-group {
   margin-top: 22px;
 }
-.ratio-group h3,
 .ratio-group h4 {
   font-size: var(--fs-xs);
   font-weight: 750;
@@ -2508,72 +2424,15 @@ button.tl-item:hover {
   }
 }
 @media print {
-  .reports-page > .page-head {
-    display: none !important;
-  }
-  .reports-layout,
-  .ledger-layout,
-  .cal-layout,
-  .settings-layout {
+  .reports-layout {
     display: block;
   }
-  .table-wrap {
-    overflow: visible !important;
-  }
-  thead {
-    display: table-header-group;
-  }
-  .stmt.cols-10 .st-label,
-  .table th,
-  .tx-day-head {
-    position: static !important;
-    box-shadow: none !important;
-  }
-  .card,
-  .wallet-card,
-  .budget-card,
-  .debt-row,
-  .tx-row,
-  .kpi,
-  .set-card,
-  .stmt tr,
-  .table tr,
-  .ratio-card,
-  .ratio-group,
-  .paper-foot {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .paper-head,
-  .k-section,
-  .k-group {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-  .paper,
-  .paper.wide {
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
+  .paper {
+    box-shadow: none;
+    padding: 0;
   }
   .paper::before {
     display: none;
-  }
-  .stmt.cols-10 {
-    font-size: 10px;
-  }
-  .stmt.cols-10 th,
-  .stmt.cols-10 td {
-    padding: 4px 5px;
-    height: auto;
-  }
-  .stmt.cols-10 .st-label {
-    min-width: 120px;
-    white-space: normal;
-  }
-  .stmt.cols-10 td.r {
-    min-width: 62px;
-    font-size: 9.5px;
   }
   .stmt tr.clickable:hover td {
     background: none;
@@ -2649,7 +2508,6 @@ button.tl-item:hover {
   gap: 14px;
   padding: 20px 22px 4px;
 }
-.set-head h2,
 .set-head h3 {
   font-size: 19px;
   font-weight: 620;
@@ -2851,53 +2709,17 @@ button.tl-item:hover {
    Penyempurnaan (audit desain & aksesibilitas)
    ───────────────────────────────────────────────────────────── */
 
-/* Tautan semantik di dalam baris / kartu tanpa nested interactive */
-.row-link {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-}
-.row-link.truncate,
-.row-link > .truncate {
-  display: block;
-}
-.row-link:hover {
-  color: var(--accent-ink);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.row-link:focus-visible {
-  outline: 2px solid var(--focus-border, var(--accent-ink));
-  outline-offset: 2px;
-  color: var(--accent-ink);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 /* Fokus keyboard yang terlihat untuk baris/kartu yang dapat diklik */
-.tx-row:has(.tx-trigger:focus-visible),
-.debt-row:has(.row-link:focus-visible),
-.wallet-card:has(.row-link:focus-visible),
-.budget-card:has(.row-link:focus-visible) {
+.tx-row:focus-visible,
+.debt-row:focus-visible,
+.wallet-card:focus-visible,
+.budget-card:focus-visible {
   outline: 2px solid var(--focus-border, var(--accent-ink));
   outline-offset: -2px;
 }
-.wallet-card:has(.row-link:focus-visible),
-.budget-card:has(.row-link:focus-visible) {
+.wallet-card:focus-visible,
+.budget-card:focus-visible {
   outline-offset: 2px;
-}
-@supports selector(:has(*)) {
-  .tx-row .tx-trigger:focus-visible,
-  .debt-row .row-link:focus-visible,
-  .wallet-card .row-link:focus-visible,
-  .budget-card .row-link:focus-visible {
-    outline: none;
-  }
 }
 
 /* Formulir transaksi: jenis dikunci karena sudah ada pembayaran */
@@ -3047,8 +2869,7 @@ button.tl-item:hover {
     flex-wrap: wrap;
     row-gap: 4px;
   }
-  .debt-row .dr-main .row > strong,
-  .debt-row .dr-main .row > .row-link {
+  .debt-row .dr-main .row > strong {
     max-width: 100%;
   }
   .debt-row .dr-actions {
@@ -3144,12 +2965,6 @@ button.tl-item:hover {
 }
 .navset-btn.star.on {
   color: var(--warn);
-}
-@media (pointer: coarse), (max-width: 960px) {
-  .navset-btn {
-    width: 44px;
-    height: 44px;
-  }
 }
 .navset-foot {
   display: flex;

@@ -7,7 +7,6 @@ import { useData } from '../store/data';
 import { confirm, toast, usePrefs } from '../store/ui';
 import { monthlySeries, periodFlow, positionAt } from '../accounting/reports';
 import { addMonths, endOfMonth, formatDate, startOfMonth } from '../lib/format';
-import { scrollBehavior } from '../lib/focus';
 import { defaultLayout, moveWidget, packSpans, presetLayout, sizeOf, PRESETS, type DashLayout, type PresetId, type WidgetId } from '../app/dashboardLayout';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, EmptyState } from '../components/ui/primitives';
@@ -176,7 +175,7 @@ export default function Dashboard() {
   };
   const onAdded = (id: WidgetId) => {
     setAnnounce(`${WIDGETS[id].title} ditambahkan di akhir dasbor`);
-    window.setTimeout(() => document.querySelector(`[data-widget="${id}"]`)?.scrollIntoView({ block: 'center', behavior: scrollBehavior() }), 120);
+    window.setTimeout(() => document.querySelector(`[data-widget="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 120);
   };
 
   const entity = profile.entityName?.trim() || 'Keuangan pribadi';
@@ -216,7 +215,6 @@ export default function Dashboard() {
         {firstRun ? null : layout.order.length === 0 ? (
           <div className="card">
             <EmptyState
-              heading="h2"
               icon={LayoutDashboard}
               title="Dasbor kosong"
               text="Semua widget disembunyikan. Tambahkan widget yang Anda perlukan atau kembalikan tata letak bawaan."

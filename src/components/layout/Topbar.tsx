@@ -117,14 +117,13 @@ function ReminderBell() {
           className={`tb-btn tb-bell${open ? ' on' : ''}`}
           onClick={() => setOpen((v) => !v)}
           aria-label={items.length ? `Pengingat, ${items.length} perlu perhatian` : 'Pengingat'}
-          aria-haspopup="dialog"
           aria-expanded={open}
         >
           <Bell />
           {items.length > 0 && <span className={`tb-count${urgent ? ' neg' : ''}`}>{items.length > 9 ? '9+' : items.length}</span>}
         </button>
       </Tooltip>
-      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={348} autoFocus ariaLabel="Pengingat">
+      <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={348} autoFocus>
         <div className="rem">
           <div className="rem-head">
             <strong>Pengingat</strong>
@@ -191,15 +190,7 @@ function RecordButton() {
         minWidth={236}
         items={items}
         trigger={(p) => (
-          <button
-            type="button"
-            className="btn btn-primary tb-cta-more"
-            ref={p.ref}
-            onClick={p.onClick}
-            aria-haspopup={p['aria-haspopup']}
-            aria-expanded={p['aria-expanded']}
-            aria-label="Pilih jenis transaksi atau favorit"
-          >
+          <button type="button" className="btn btn-primary tb-cta-more" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-label="Pilih jenis transaksi atau favorit">
             <ChevronDown aria-hidden />
           </button>
         )}

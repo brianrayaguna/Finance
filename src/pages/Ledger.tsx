@@ -6,7 +6,6 @@ import { useUI, toast } from '../store/ui';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';
 import { displayBalances, ledger } from '../accounting/reports';
 import { formatDate, formatMoney, normalize } from '../lib/format';
-import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, IconTile, Money, TextInput, Dots, TableWrap } from '../components/ui/primitives';
 import { PeriodPicker, resolvePreset, type PeriodValue } from '../components/ui/PeriodPicker';
@@ -92,7 +91,7 @@ export default function Ledger() {
         }
       />
       <div className="ledger-layout">
-        <aside className="card ledger-accounts" aria-label="Daftar akun">
+        <aside className="card ledger-accounts">
           <div style={{ padding: 10 }}>
             <TextInput value={q} onChange={setQ} icon={Search} placeholder="Cari akun…" clearable sunken />
           </div>
@@ -120,13 +119,13 @@ export default function Ledger() {
 
         <section className="card ledger-main">
           {!view || !a ? (
-            <EmptyState heading="h2" icon={BookOpenText} title="Pilih akun" text="Pilih akun di sebelah kiri untuk melihat mutasinya." />
+            <EmptyState icon={BookOpenText} title="Pilih akun" text="Pilih akun di sebelah kiri untuk melihat mutasinya." />
           ) : (
             <>
               <div className="lm-head">
                 <IconTile icon={a.icon} color={a.color} size="lg" solid />
                 <div className="grow" style={{ minWidth: 0 }}>
-                  <h2 className="lm-title">{a.name}</h2>
+                  <div className="lm-title">{a.name}</div>
                   <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                     <span className="code">{a.code}</span>
                     <Badge>{TYPE_LABEL[a.type]}</Badge>
@@ -172,27 +171,31 @@ export default function Ledger() {
                       </td>
                       <td className="r num money-val">{formatMoney(view.opening, { symbol: false })}</td>
                     </tr>
-                    {view.rows.map((r, i) => {
-                      const t = r.txId ? txById.get(r.txId) : undefined;
-                      return (
-                        <tr key={i} className={t ? 'clickable' : undefined} {...rowAction(t ? () => editTx(t) : undefined)}>
-                          <td>{formatDate(r.date)}</td>
-                          <td className="lg-desc">
-                            <span className="truncate">
-                              {r.description}
-                              {r.memo && <span className="muted"> · {r.memo}</span>}
-                            </span>
-                            <span className="lg-sub truncate">
-                              <span className="code">{r.ref}</span>
-                              {r.counter && <> · {r.counter}</>}
-                            </span>
-                          </td>
-                          <td className="r num money-val">{r.debit ? formatMoney(r.debit, { symbol: false }) : ''}</td>
-                          <td className="r num money-val">{r.credit ? formatMoney(r.credit, { symbol: false }) : ''}</td>
-                          <td className={`r num money-val strong-num ${r.balance < 0 ? 'neg' : ''}`}>{formatMoney(r.balance, { symbol: false })}</td>
-                        </tr>
-                      );
-                    })}
+                    {view.rows.map((r, i) => (
+                      <tr
+                        key={i}
+                        className={r.txId ? 'clickable' : undefined}
+                        onClick={() => {
+                          const t = r.txId ? txById.get(r.txId) : undefined;
+                          if (t) editTx(t);
+                        }}
+                      >
+                        <td>{formatDate(r.date)}</td>
+                        <td className="lg-desc">
+                          <span className="truncate">
+                            {r.description}
+                            {r.memo && <span className="muted"> · {r.memo}</span>}
+                          </span>
+                          <span className="lg-sub truncate">
+                            <span className="code">{r.ref}</span>
+                            {r.counter && <> · {r.counter}</>}
+                          </span>
+                        </td>
+                        <td className="r num money-val">{r.debit ? formatMoney(r.debit, { symbol: false }) : ''}</td>
+                        <td className="r num money-val">{r.credit ? formatMoney(r.credit, { symbol: false }) : ''}</td>
+                        <td className={`r num money-val strong-num ${r.balance < 0 ? 'neg' : ''}`}>{formatMoney(r.balance, { symbol: false })}</td>
+                      </tr>
+                    ))}
                     {view.rows.length === 0 && (
                       <tr>
                         <td colSpan={5} className="muted" style={{ textAlign: 'center', height: 64 }}>

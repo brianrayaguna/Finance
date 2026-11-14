@@ -285,14 +285,12 @@ export function incomeStatement(b: Books, periods: Period[], entityName: string)
   return {
     id: 'income-statement',
     title: 'Laporan Laba Rugi',
-    subtitle: n > 1 ? `${entityName} · ${periods.map((p) => p.label).join(' dibanding ')}` : `${entityName} · Untuk periode ${periods[0].label}`,
+    subtitle: `${entityName} · Untuk periode ${periods[0].label}`,
     columns: valueColumns(periods.map((p) => (n > 1 ? { label: p.label, sub: `${formatDate(p.from)} – ${formatDate(p.to)}` } : { label: `${formatDate(p.from)} – ${formatDate(p.to)}` })), n > 1),
     rows,
     checks,
     notes: [
-      n > 1
-        ? `Margin laba bersih: ${periods.map((p, i) => `${p.label} ${(margin[i] * 100).toFixed(1).replace('.', ',')}%`).join(' · ')}`
-        : `Margin laba bersih: ${(margin[0] * 100).toFixed(1).replace('.', ',')}%`,
+      `Margin laba bersih: ${(margin[0] * 100).toFixed(1).replace('.', ',')}%`,
       'Dasar pencatatan: pemasukan dan pengeluaran harian diakui saat uang diterima/dibayar; penyusutan, piutang, dan hutang kredit diakui secara akrual; bunga pinjaman diakui saat dibayar.',
     ],
   };
@@ -378,7 +376,7 @@ export function balanceSheet(b: Books, dates: { to: string; label: string }[], e
   return {
     id: 'balance-sheet',
     title: 'Laporan Posisi Keuangan (Neraca)',
-    subtitle: n > 1 ? `${entityName} · Per ${dates.map((d) => formatDate(d.to, 'long')).join(' & ')}` : `${entityName} · Per ${formatDate(dates[0].to, 'long')}`,
+    subtitle: `${entityName} · Per ${formatDate(dates[0].to, 'long')}`,
     columns: valueColumns(dates.map((d) => ({ label: n > 1 ? d.label : `Per ${formatDate(d.to)}` })), n > 1),
     rows,
     checks,
@@ -605,18 +603,15 @@ export function cashFlowStatement(b: Books, periods: Period[], entityName: strin
   ]);
 
   const notes: string[] = [];
-  if (cores.some((c) => c.nonCash.length)) {
+  if (cores[0].nonCash.length) {
     notes.push('Aktivitas investasi dan pendanaan yang tidak memengaruhi kas:');
-    for (let i = 0; i < cores.length; i++) {
-      const prefix = n > 1 ? `[${periods[i].label}] ` : '';
-      for (const x of cores[i].nonCash) notes.push(`${prefix}${formatDate(x.date)} · ${x.ref} · ${x.description} · ${formatMoney(x.amount)}`);
-    }
+    for (const x of cores[0].nonCash) notes.push(`${formatDate(x.date)} · ${x.ref} · ${x.description} · ${formatMoney(x.amount)}`);
   }
 
   return {
     id: 'cash-flow',
     title: 'Laporan Arus Kas',
-    subtitle: n > 1 ? `${entityName} · ${periods.map((p) => p.label).join(' dibanding ')}` : `${entityName} · Untuk periode ${periods[0].label}`,
+    subtitle: `${entityName} · Untuk periode ${periods[0].label}`,
     columns: valueColumns(periods.map((p) => (n > 1 ? { label: p.label, sub: `${formatDate(p.from)} – ${formatDate(p.to)}` } : { label: `${formatDate(p.from)} – ${formatDate(p.to)}` })), n > 1),
     rows,
     checks,
@@ -788,7 +783,6 @@ export function worksheet(b: Books, p: Period, entityName: string): Report {
     const vals = [d, c, 0, 0, d, c, 0, 0, d, c];
     vals.forEach((v, i) => (tot[i] += v));
     rows.push(row('a-re', 'Saldo Laba', 'account', vals, 0, { code: '3-2000' }));
-    rows.sort((x, y) => (x.code ?? '').localeCompare(y.code ?? '', 'en', { numeric: true }));
   }
   const accKeys = rows.map((r) => r.key);
   rows.push(row('t-sum', 'JUMLAH', 'total', tot, 0, { formula: { plus: accKeys } }));
@@ -1084,30 +1078,9 @@ export interface BudgetLine {
   used: number;
 }
 
-function prorateMonths(from: string, to: string): number {
-  if (!from || !to || from > to) return 1;
-  const months = monthsBetween(from, to);
-  if (!months.length) return 1;
-  let total = 0;
-  for (const m of months) {
-    const ms = `${m}-01`;
-    const me = endOfMonth(ms);
-    if (from <= ms && to >= me) {
-      total += 1;
-      continue;
-    }
-    const dim = daysBetween(ms, me) + 1;
-    const s = from > ms ? from : ms;
-    const e = to < me ? to : me;
-    const overlap = Math.max(0, daysBetween(s, e) + 1);
-    total += overlap / dim;
-  }
-  return total || 1;
-}
-
-export function budgetVsActual(b: Books, from: string, to: string, actualTo = to): BudgetLine[] {
-  const months = prorateMonths(from, to);
-  const act = activity(b, from, actualTo);
+export function budgetVsActual(b: Books, from: string, to: string): BudgetLine[] {
+  const months = monthsBetween(from, to).length || 1;
+  const act = activity(b, from, to);
   const lines: BudgetLine[] = [];
   const budgeted = new Set<string>();
   for (const bg of b.data.budgets) {
@@ -1141,29 +1114,16 @@ export function budgetReport(b: Books, p: Period, entityName: string): Report {
   rows.push(...bRows);
   const tb = bRows.reduce((s, r) => s + (r.values[0] ?? 0), 0);
   const ta = bRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
-  rows.push(
-    row('st-b', 'Jumlah Beranggaran', 'subtotal', [tb, ta, tb - ta, tb ? round2((ta / tb) * 100) : 0], 0, {
-      formula: { plus: bRows.map((r) => r.key) },
-    }),
-  );
-  let tu = 0;
+  rows.push(row('st-b', 'Jumlah Beranggaran', 'subtotal', [tb, ta, tb - ta, tb ? round2((ta / tb) * 100) : 0], 0));
   if (extra.length) {
     rows.push(row('b1', '', 'blank', [null, null, null, null]));
     rows.push(row('sec-u', 'TANPA ANGGARAN', 'section', [null, null, null, null]));
     const uRows = extra.map((x) => row('u-' + x.a.id, x.a.name, 'account', [0, x.v, -x.v, null], 1, { code: x.a.code }));
     rows.push(...uRows);
-    tu = uRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
-    rows.push(
-      row('st-u', 'Jumlah Tanpa Anggaran', 'subtotal', [0, tu, -tu, null], 0, {
-        formula: { plus: uRows.map((r) => r.key) },
-      }),
-    );
+    const tu = uRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
+    rows.push(row('st-u', 'Jumlah Tanpa Anggaran', 'subtotal', [0, tu, -tu, null], 0));
+    rows.push(row('t-all', 'JUMLAH BEBAN', 'grandtotal', [tb, ta + tu, tb - ta - tu, tb ? round2(((ta + tu) / tb) * 100) : null], 0));
   }
-  rows.push(
-    row('t-all', 'JUMLAH BEBAN', 'grandtotal', [tb, ta + tu, tb - ta - tu, tb ? round2(((ta + tu) / tb) * 100) : null], 0, {
-      formula: { plus: extra.length ? ['st-b', 'st-u'] : ['st-b'] },
-    }),
-  );
   return {
     id: 'budget',
     title: 'Laporan Anggaran vs Realisasi',
@@ -1222,27 +1182,12 @@ export function ratios(b: Books, p: Period): Ratio[] {
   // Rasio berbasis aset/ekuitas memakai laba yang disetahunkan agar acuan tahunan tetap bermakna
   // untuk periode pendek (mis. satu bulan).
   const annual = 365 / days;
-  const avgMonthlyExp = cashOpExpense / (days / (365 / 12));
+  const avgMonthlyExp = cashOpExpense / Math.max(1, days / (365 / 12));
 
-  // debt service = pokok + bunga yang dibayar dalam periode (payable_pay, cicilan ke rekening pinjaman, atau pembayaran hutang/bunga lewat jurnal manual)
+  // debt service = pokok + bunga yang dibayar dalam periode
   let debtService = 0;
-  const debtSubtypes = new Set<AccountSubtype>(['payable', 'loan', 'long_term_liability']);
   for (const t of b.data.transactions) {
-    if (t.date < p.from || t.date > p.to) continue;
-    if (t.type === 'payable_pay') {
-      debtService += t.amount + (t.interest || 0);
-    } else if (t.type === 'transfer' && b.cashIds.has(t.accountId ?? '') && b.acc.get(t.toAccountId ?? '')?.subtype === 'loan') {
-      debtService += t.amount;
-    } else if (t.type === 'journal' && t.lines?.length) {
-      let cashOut = 0;
-      let debtPaid = 0;
-      for (const l of t.lines) {
-        if (b.cashIds.has(l.accountId)) cashOut += l.credit || 0;
-        const acc = b.acc.get(l.accountId);
-        if (acc && (debtSubtypes.has(acc.subtype) || acc.id === SYS.interestExpense)) debtPaid += l.debit || 0;
-      }
-      if (cashOut > 0 && debtPaid > 0) debtService += Math.min(cashOut, debtPaid);
-    }
+    if (t.type === 'payable_pay' && t.date >= p.from && t.date <= p.to) debtService += t.amount + (t.interest || 0);
   }
 
   const div = (a: number, c: number) => (Math.abs(c) < 0.005 ? null : a / c);

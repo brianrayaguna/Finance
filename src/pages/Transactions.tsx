@@ -21,7 +21,7 @@ import { deleteTransactions, duplicateTransaction, childCount } from '../store/d
 import { notify } from '../store/history';
 import type { Transaction, TxType } from '../accounting/types';
 import { formatDate, formatMoney, normalize, endOfMonth, DAYS, parseISO, round2, isZero } from '../lib/format';
-import { isImeComposing, isInteractiveTarget, isTypingTarget, layerCount, MOD } from '../lib/layers';
+import { isTypingTarget, layerCount, MOD } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, Checkbox, EmptyState, TextInput, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -141,8 +141,7 @@ export default function Transactions() {
           const cat = b.acc.get(t.categoryId ?? '')?.name ?? '';
           const acc = b.acc.get(t.accountId ?? '')?.name ?? '';
           const to = b.acc.get(t.toAccountId ?? '')?.name ?? '';
-          const lineNames = t.lines?.map((l) => `${b.acc.get(l.accountId)?.name ?? ''} ${l.memo ?? ''}`).join(' ') ?? '';
-          const hay = normalize(`${t.description} ${cat} ${acc} ${to} ${lineNames} ${t.ref} ${t.contact ?? ''} ${t.note ?? ''}`);
+          const hay = normalize(`${t.description} ${cat} ${acc} ${to} ${t.ref} ${t.contact ?? ''} ${t.note ?? ''}`);
           const amtHit = digits.length >= 3 && String(Math.round(t.amount)).includes(digits);
           if (!hay.includes(n) && !amtHit) return false;
         }
@@ -222,23 +221,9 @@ export default function Transactions() {
       tone: 'danger',
     });
     if (!ok) return;
-    const delSet = new Set(ids);
-    for (const t of b.data.transactions) if (t.parentId && delSet.has(t.parentId)) delSet.add(t.id);
     const hid = deleteTransactions(ids);
     if (!hid) return; // sebagian berada di periode terkunci — pilihan dipertahankan
-    setSelected((prev) => {
-      const next = new Set(prev);
-      for (const id of delSet) next.delete(id);
-      return next;
-    });
-    anchorIdx.current = null;
-    if (focusId && delSet.has(focusId)) {
-      const idx = visible.findIndex((t) => t.id === focusId);
-      const next =
-        visible.slice(idx + 1).find((t) => !delSet.has(t.id)) ??
-        [...visible.slice(0, Math.max(0, idx))].reverse().find((t) => !delSet.has(t.id));
-      setFocusId(next?.id ?? null);
-    }
+    setSelected(new Set());
     notify(ids.length > 1 ? `${ids.length} transaksi dihapus` : 'Transaksi dihapus', hid, { tone: 'danger' });
   };
 
@@ -259,7 +244,7 @@ export default function Transactions() {
   // Keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (layerCount() > 0 || isImeComposing(e)) return;
+      if (layerCount() > 0) return;
       if (isTypingTarget(e.target)) {
         if (e.key === 'Escape' && e.target === searchRef.current) {
           searchRef.current?.blur();
@@ -271,24 +256,16 @@ export default function Transactions() {
         return;
       }
       const mod = e.metaKey || e.ctrlKey;
-      const inListRow = (e.target as Element | null)?.closest?.('.tx-trigger');
       if (e.key === '/' || (mod && e.key.toLowerCase() === 'f')) {
         e.preventDefault();
         searchRef.current?.focus();
         return;
       }
       if (mod && e.key.toLowerCase() === 'a') {
-        const target = e.target as Node | null;
-        if (
-          !isInteractiveTarget(e.target) &&
-          (e.target === document.body || (target && listRef.current?.contains(target)))
-        ) {
-          e.preventDefault();
-          setSelected(new Set(visible.map((t) => t.id)));
-        }
+        e.preventDefault();
+        setSelected(new Set(visible.map((t) => t.id)));
         return;
       }
-      if (isInteractiveTarget(e.target) && !inListRow) return;
       if (e.key === 'Escape' && selected.size) {
         setSelected(new Set());
         return;
@@ -306,7 +283,6 @@ export default function Transactions() {
       }
       const cur = visible[idx];
       if (!cur) return;
-      if (inListRow && (e.key === 'Enter' || e.key === ' ')) return;
       if (e.key === 'Enter') {
         e.preventDefault();
         editTx(cur);
@@ -332,10 +308,7 @@ export default function Transactions() {
     el?.scrollIntoView({ block: 'nearest' });
     // Saat navigasi keyboard, fokus DOM ikut pindah agar Enter membuka baris yang sama dengan sorotan.
     const act = document.activeElement as HTMLElement | null;
-    const trigger = el?.querySelector<HTMLElement>('.tx-trigger');
-    if (trigger && act && act !== trigger && act.classList.contains('tx-trigger')) {
-      trigger.focus({ preventScroll: true });
-    }
+    if (el && act && act !== el && act.classList.contains('tx-row')) el.focus({ preventScroll: true });
   }, [focusId]);
 
   const doExport = async (ids?: Set<string>) => {
@@ -418,7 +391,6 @@ export default function Transactions() {
               size="sm"
               value={kind}
               onChange={setKind}
-              ariaLabel="Jenis transaksi"
               options={[
                 { value: 'all', label: 'Semua' },
                 { value: 'in', label: 'Masuk' },
@@ -430,10 +402,10 @@ export default function Transactions() {
             />
             <div className="lt-filters">
               <div style={{ width: 176 }}>
-                <Select compact value={account} onChange={setAccount} options={accOptions} placeholder="Semua akun" ariaLabel="Filter akun" width={260} />
+                <Select compact value={account} onChange={setAccount} options={accOptions} placeholder="Semua akun" width={260} />
               </div>
               <div style={{ width: 188 }}>
-                <Select compact value={category} onChange={setCategory} options={catOptions} placeholder="Semua kategori" ariaLabel="Filter kategori" searchable width={280} />
+                <Select compact value={category} onChange={setCategory} options={catOptions} placeholder="Semua kategori" searchable width={280} />
               </div>
               {hasFilter && (
                 <Button size="sm" variant="ghost" icon={FilterX} onClick={clearFilters}>
@@ -445,7 +417,6 @@ export default function Transactions() {
         </div>
         {filtered.length === 0 ? (
           <EmptyState
-            heading="h2"
             icon={hasFilter ? FilterX : Inbox}
             title={hasFilter ? 'Tidak ada transaksi yang cocok' : 'Belum ada transaksi'}
             text={hasFilter ? 'Coba ubah kata kunci atau rentang waktu.' : 'Transaksi yang Anda catat akan muncul di sini, dikelompokkan per hari.'}
@@ -517,9 +488,7 @@ export default function Transactions() {
       <AnimatePresence>
         {selected.size > 0 && (
           <motion.div
-            className="bulk-bar no-print"
-            role="region"
-            aria-label="Tindakan massal"
+            className="bulk-bar"
             initial={{ opacity: 0, y: 24, x: '-50%' }}
             animate={{ opacity: 1, y: 0, x: '-50%', transition: { type: 'spring', stiffness: 420, damping: 32 } }}
             exit={{ opacity: 0, y: 16, x: '-50%' }}

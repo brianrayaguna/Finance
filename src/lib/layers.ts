@@ -48,26 +48,6 @@ export function isTypingTarget(t: EventTarget | null): boolean {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
 }
 
-const INTERACTIVE_SEL =
-  'button, a[href], summary, [role="button"], [role="radio"], [role="tab"], [role="checkbox"], [role="switch"], [role="menuitem"], [role="option"]';
-
-/** Benar jika target berada di input ketik atau kontrol interaktif tersendiri (hindari membajak tombol/tab). */
-export function isInteractiveTarget(t: EventTarget | null): boolean {
-  if (isTypingTarget(t)) return true;
-  const el = t as HTMLElement | null;
-  return !!el?.closest?.(INTERACTIVE_SEL);
-}
-
-/** Benar selama sesi komposisi IME aktif (CJK/aksen), agar Enter/pintasan tidak memicu aksi prematur. */
-export function isImeComposing(e: {
-  nativeEvent?: { isComposing?: boolean; keyCode?: number };
-  isComposing?: boolean;
-  keyCode?: number;
-}): boolean {
-  const ne = e.nativeEvent ?? e;
-  return !!ne.isComposing || ne.keyCode === 229;
-}
-
 export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 export const MOD = isMac ? '⌘' : 'Ctrl';
 export const ALT = isMac ? '⌥' : 'Alt';

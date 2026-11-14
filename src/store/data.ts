@@ -122,12 +122,10 @@ export function normalizeData(input: AppData): AppData {
     method: a.method === 'declining_balance' ? 'declining_balance' : 'straight_line',
     depreciable: a.depreciable === false ? false : undefined,
     funding: a.funding === 'opening' ? 'opening' : 'wallet',
-    ref: typeof a.ref === 'string' && a.ref ? a.ref : '',
+    ref: a.ref || nextRef(list<FixedAsset>(d.assets), 'AST', a.acquisitionDate),
     createdAt: num(a.createdAt, Date.now()),
     disposal: a.disposal && isDate(a.disposal.date) ? { ...a.disposal, proceeds: round2(Math.abs(num(a.disposal.proceeds))) } : undefined,
   }));
-  // nomor aset yang hilang dibuat ulang berurutan agar tidak bertabrakan dalam bulan yang sama
-  for (const a of assets) if (!a.ref) a.ref = nextRef(assets, 'AST', a.acquisitionDate);
 
   const accountIds = new Set(accounts.map((a) => a.id));
   const goals: Goal[] = uniqBy(
@@ -225,77 +223,19 @@ interface DataState {
 
 const HISTORY = 80;
 
-let storageWarned = false;
-
 const safeStorage = createJSONStorage(() => {
-  const mem = new Map<string, string>();
-  const memStorage: Storage = {
-    length: 0,
-    clear: () => mem.clear(),
-    key: (i: number) => [...mem.keys()][i] ?? null,
-    getItem: (k: string) => mem.get(k) ?? null,
-    setItem: (k: string, v: string) => void mem.set(k, v),
-    removeItem: (k: string) => void mem.delete(k),
-  };
   try {
     const k = '__keuanganku_test__';
     localStorage.setItem(k, '1');
     localStorage.removeItem(k);
-    return {
-      get length() {
-        try {
-          return localStorage.length;
-        } catch {
-          return mem.size;
-        }
-      },
-      clear: () => {
-        try {
-          localStorage.clear();
-        } catch {
-          mem.clear();
-        }
-      },
-      key: (i: number) => {
-        try {
-          return localStorage.key(i);
-        } catch {
-          return memStorage.key(i);
-        }
-      },
-      getItem: (k: string) => {
-        try {
-          return localStorage.getItem(k) ?? mem.get(k) ?? null;
-        } catch {
-          return mem.get(k) ?? null;
-        }
-      },
-      setItem: (k: string, v: string) => {
-        try {
-          localStorage.setItem(k, v);
-          mem.delete(k);
-        } catch {
-          mem.set(k, v);
-          if (!storageWarned) {
-            storageWarned = true;
-            toast('Penyimpanan lokal penuh', {
-              tone: 'danger',
-              detail: 'Ekspor cadangan JSON di Pengaturan agar perubahan tidak hilang saat tab ditutup.',
-            });
-          }
-        }
-      },
-      removeItem: (k: string) => {
-        mem.delete(k);
-        try {
-          localStorage.removeItem(k);
-        } catch {
-          /* abaikan */
-        }
-      },
-    } as Storage;
+    return localStorage;
   } catch {
-    return memStorage;
+    const mem = new Map<string, string>();
+    return {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+    } as Storage;
   }
 });
 
@@ -436,11 +376,10 @@ export function updateTransaction(id: string, patch: Partial<Transaction>, label
       if (t.id !== id) return t;
       const merged = { ...t, ...patch, updatedAt: Date.now() } as Transaction;
       // Nomor bukti tetap walau tanggal pindah bulan (dokumen yang sudah terbit tidak dinomori ulang);
-      // nomor baru hanya bila jenis dokumennya berubah (awalan berbeda) — nomor kustom tidak ditimpa saat mengedit kolom lain.
-      const prevPre = refPrefix(t);
-      const nextPre = refPrefix(merged);
-      if (patch.ref === undefined && prevPre !== nextPre) {
-        const next = issueRef({ ...s, profile }, nextPre, merged.date, s.transactions.filter((x) => x.id !== id));
+      // nomor baru hanya bila jenis dokumennya berubah (awalan berbeda).
+      const pre = refPrefix(merged);
+      if (!t.ref.startsWith(`${pre}/`)) {
+        const next = issueRef({ ...s, profile }, pre, merged.date, s.transactions.filter((x) => x.id !== id));
         merged.ref = next.ref;
         profile = withSeq(profile, next.head, next.n);
       }
@@ -491,12 +430,7 @@ export function addAccount(input: Omit<Account, 'id' | 'code' | 'createdAt'> & {
 export function updateAccount(id: string, patch: Partial<Account>, label = 'Ubah akun') {
   return commit(label, (s) => ({
     ...s,
-    accounts: s.accounts.map((a) => {
-      if (a.id !== id) return a;
-      const subtype = patch.subtype && SUBTYPE_META[patch.subtype] ? patch.subtype : a.subtype;
-      const type = patch.subtype && SUBTYPE_META[patch.subtype] ? SUBTYPE_META[patch.subtype].type : (patch.type ?? a.type);
-      return { ...a, ...patch, subtype, type };
-    }),
+    accounts: s.accounts.map((a) => (a.id === id ? { ...a, ...patch } : a)),
   }));
 }
 
@@ -514,8 +448,6 @@ export function accountUsage(id: string): number {
 }
 
 export function deleteAccount(id: string) {
-  const acc = getData().accounts.find((a) => a.id === id);
-  if (!acc || acc.system || SYSTEM_IDS.has(id) || accountUsage(id) > 0) return '';
   return commit('Hapus akun', (s) => ({
     ...s,
     accounts: s.accounts.filter((a) => a.id !== id),
@@ -534,24 +466,15 @@ export function deleteAccount(id: string) {
 export function updateWallet(id: string, patch: Partial<Account>, opening: { amount: number; date: string }, label = 'Ubah dompet') {
   return commit(label, (s) => {
     let profile = s.profile;
-    const accounts = s.accounts.map((a) => {
-      if (a.id !== id) return a;
-      const subtype = patch.subtype && SUBTYPE_META[patch.subtype] ? patch.subtype : a.subtype;
-      const type = patch.subtype && SUBTYPE_META[patch.subtype] ? SUBTYPE_META[patch.subtype].type : (patch.type ?? a.type);
-      return { ...a, ...patch, subtype, type };
-    });
+    const accounts = s.accounts.map((a) => (a.id === id ? { ...a, ...patch } : a));
     const amount = round2(opening.amount || 0);
-    const openings = s.transactions.filter((t) => t.type === 'opening' && t.accountId === id);
-    const existing = openings[0];
+    const existing = s.transactions.find((t) => t.type === 'opening' && t.accountId === id);
     let transactions = s.transactions;
     if (existing) {
-      if (!amount) {
-        transactions = transactions.filter((t) => !(t.type === 'opening' && t.accountId === id));
-      } else if (existing.amount !== amount || existing.date !== opening.date || openings.length > 1) {
-        // nomor bukti saldo awal utama tidak berubah walau tanggalnya dipindah; duplikat saldo awal dibersihkan
-        transactions = transactions
-          .filter((t) => !(t.type === 'opening' && t.accountId === id && t.id !== existing.id))
-          .map((t) => (t.id === existing.id ? { ...t, amount, date: opening.date, updatedAt: Date.now() } : t));
+      if (!amount) transactions = transactions.filter((t) => t.id !== existing.id);
+      else if (existing.amount !== amount || existing.date !== opening.date) {
+        // nomor bukti saldo awal tidak berubah walau tanggalnya dipindah
+        transactions = transactions.map((t) => (t.id === existing.id ? { ...t, amount, date: opening.date, updatedAt: Date.now() } : t));
       }
     } else if (amount) {
       const now = Date.now();
@@ -586,7 +509,7 @@ export function createWallet(
 ) {
   const { opening, openingDate, ...rest } = input;
   const d = getData();
-  const type = SUBTYPE_META[rest.subtype].type;
+  const type = rest.subtype === 'credit_card' ? 'liability' : 'asset';
   const acc: Account = { ...rest, type, id: uid('acc'), code: nextCode(d.accounts, rest.subtype), createdAt: Date.now() };
   const now = Date.now();
   const txs: Transaction[] = [];
@@ -637,10 +560,8 @@ export function addAsset(input: Omit<FixedAsset, 'id' | 'ref' | 'createdAt'>) {
   const issued = issueRef(d, 'AST', input.acquisitionDate, d.assets);
   const asset: FixedAsset = {
     ...input,
-    name: input.name.trim() || input.name,
-    cost: round2(Math.abs(input.cost)),
-    residualValue: round2(Math.max(0, input.residualValue)),
-    usefulLifeMonths: Math.max(1, Math.round(input.usefulLifeMonths)),
+    cost: round2(input.cost),
+    residualValue: round2(input.residualValue),
     id: uid('ast'),
     ref: issued.ref,
     createdAt: Date.now(),
@@ -650,22 +571,7 @@ export function addAsset(input: Omit<FixedAsset, 'id' | 'ref' | 'createdAt'>) {
 }
 
 export function updateAsset(id: string, patch: Partial<FixedAsset>, label = 'Ubah aset tetap') {
-  return commit(label, (s) => ({
-    ...s,
-    assets: s.assets.map((a) => {
-      if (a.id !== id) return a;
-      const next: FixedAsset = { ...a, ...patch };
-      if (patch.name !== undefined) next.name = patch.name.trim() || a.name;
-      if (patch.cost !== undefined && Number.isFinite(patch.cost)) next.cost = round2(Math.abs(patch.cost));
-      if (patch.residualValue !== undefined && Number.isFinite(patch.residualValue)) next.residualValue = round2(Math.max(0, patch.residualValue));
-      if (patch.usefulLifeMonths !== undefined && Number.isFinite(patch.usefulLifeMonths)) next.usefulLifeMonths = Math.max(1, Math.round(patch.usefulLifeMonths));
-      if ('disposal' in patch && patch.disposal) {
-        const proceeds = Number.isFinite(patch.disposal.proceeds) ? round2(Math.max(0, patch.disposal.proceeds)) : 0;
-        next.disposal = { ...patch.disposal, proceeds };
-      }
-      return next;
-    }),
-  }));
+  return commit(label, (s) => ({ ...s, assets: s.assets.map((a) => (a.id === id ? { ...a, ...patch } : a)) }));
 }
 
 export function deleteAsset(id: string) {
@@ -675,23 +581,14 @@ export function deleteAsset(id: string) {
 /* Target tabungan */
 
 export function addGoal(input: Omit<Goal, 'id' | 'createdAt'>) {
-  const name = input.name.trim() || 'Target tabungan';
-  const target = Number.isFinite(input.target) && input.target > 0 ? round2(input.target) : 0;
-  if (!(target > 0)) return '';
-  const goal: Goal = { ...input, name, target, id: uid('goal'), createdAt: Date.now() };
+  const goal: Goal = { ...input, target: round2(input.target), id: uid('goal'), createdAt: Date.now() };
   return commit('Tambah target tabungan', (s) => ({ ...s, goals: [...s.goals, goal] }));
 }
 
 export function updateGoal(id: string, patch: Partial<Goal>) {
   return commit('Ubah target tabungan', (s) => ({
     ...s,
-    goals: s.goals.map((g) => {
-      if (g.id !== id) return g;
-      const name = patch.name !== undefined ? patch.name.trim() || g.name : g.name;
-      const rawTarget = patch.target !== undefined ? patch.target : g.target;
-      const target = Number.isFinite(rawTarget) && rawTarget > 0 ? round2(rawTarget) : g.target;
-      return { ...g, ...patch, name, target };
-    }),
+    goals: s.goals.map((g) => (g.id === id ? { ...g, ...patch, target: round2(patch.target ?? g.target) } : g)),
   }));
 }
 

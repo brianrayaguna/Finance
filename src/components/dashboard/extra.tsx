@@ -90,7 +90,6 @@ export function UpcomingWidget({ settings }: WidgetProps) {
 
 export function TopCatsWidget({ settings }: WidgetProps) {
   const { b, from, asOf, prevFrom, prevTo, isCurrent, month, compact } = useDash();
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const nav = useNavigate();
   const count = Number(settings.count) || 5;
   const cur = useMemo(() => categoryBreakdown(b, from, asOf, 'expense'), [b, from, asOf]);
@@ -126,15 +125,7 @@ export function TopCatsWidget({ settings }: WidgetProps) {
                   </span>
                   <span
                     className={`tc-delta ${isZero(p) || flat ? 'new' : up ? 'bad' : 'good'}`}
-                    title={
-                      isZero(p)
-                        ? 'Tidak ada pada periode pembanding'
-                        : flat
-                          ? 'Sama dengan periode pembanding'
-                          : hideAmounts
-                            ? `${up ? 'Naik' : 'Turun'} dibanding periode pembanding`
-                            : `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))}`
-                    }
+                    title={isZero(p) ? 'Tidak ada pada periode pembanding' : flat ? 'Sama dengan periode pembanding' : `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))}`}
                   >
                     {isZero(p) ? (
                       'Baru'
@@ -165,7 +156,6 @@ export function TopCatsWidget({ settings }: WidgetProps) {
 export function HeatmapWidget() {
   const { b, month, from, today, compact } = useDash();
   const weekStart = usePrefs((s) => s.weekStart);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const nav = useNavigate();
   const to = endOfMonth(from);
   const byDay = useMemo(() => dailyExpense(b, from, to), [b, from, to]);
@@ -211,8 +201,8 @@ export function HeatmapWidget() {
                   type="button"
                   className={`hm-cell lv${lvl(v)}${d === today ? ' today' : ''}${future ? ' future' : ''}`}
                   onClick={() => nav(`/transaksi?tampil=kalender&tanggal=${d}`)}
-                  title={hideAmounts ? formatDate(d, 'full') : `${formatDate(d, 'full')} · ${v ? formatMoney(v) : 'tidak ada pengeluaran'}`}
-                  aria-label={hideAmounts ? formatDate(d, 'full') : `${formatDate(d, 'full')}, pengeluaran ${formatMoney(v)}`}
+                  title={`${formatDate(d, 'full')} · ${v ? formatMoney(v) : 'tidak ada pengeluaran'}`}
+                  aria-label={`${formatDate(d, 'full')}, pengeluaran ${formatMoney(v)}`}
                 >
                   {Number(d.slice(8))}
                 </button>

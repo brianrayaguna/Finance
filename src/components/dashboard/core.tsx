@@ -23,7 +23,7 @@ import {
   type Glyph,
 } from '../../lib/glyphs';
 import { useData } from '../../store/data';
-import { usePrefs, useUI } from '../../store/ui';
+import { useUI } from '../../store/ui';
 import { budgetVsActual, categoryBreakdown, debtInfos, ratios, walletBalances, type MonthPoint } from '../../accounting/reports';
 import { KPI_LABEL, type KpiMetric } from '../../app/dashboardLayout';
 import { addMonths, daysBetween, formatDate, formatMoney, formatMonth, formatPercent, formatRatio, isZero, relativeDay, round2, startOfMonth } from '../../lib/format';
@@ -210,13 +210,13 @@ export function KpiWidget({ layout }: WidgetProps) {
   const d = useDash();
   const phone = d.width < 560;
   const budget = useMemo(() => {
-    const lines = budgetVsActual(d.b, d.from, d.to, d.asOf);
+    const lines = budgetVsActual(d.b, d.from, d.asOf);
     return {
       budget: lines.reduce((s, l) => s + l.budget, 0),
       actual: lines.reduce((s, l) => s + l.actual, 0),
       over: lines.filter((l) => l.used > 1).length,
     };
-  }, [d.b, d.from, d.to, d.asOf]);
+  }, [d.b, d.from, d.asOf]);
   return (
     <div className="kpi-grid">
       {layout.kpi.map((k) => {
@@ -303,7 +303,6 @@ const OTHER_ID = '__lainnya';
 
 export function CompositionWidget({ settings }: WidgetProps) {
   const { b, from, asOf, month } = useDash();
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   const nav = useNavigate();
   const kind = settings.kind === 'revenue' ? 'revenue' : 'expense';
   const [hoverCat, setHoverCat] = useState<string | null>(null);
@@ -352,7 +351,7 @@ export function CompositionWidget({ settings }: WidgetProps) {
                   type="button"
                   key={c.id}
                   className={`cat-leg${hoverCat && hoverCat !== c.id ? ' dim' : ''}`}
-                  title={hideAmounts ? `${c.name} · ${formatPercent(c.share, 0)}` : `${c.name} · ${formatMoney(c.value)}`}
+                  title={`${c.name} · ${formatMoney(c.value)}`}
                   onMouseEnter={() => setHoverCat(c.id)}
                   onMouseLeave={() => setHoverCat(null)}
                   onFocus={() => setHoverCat(c.id)}
@@ -461,7 +460,7 @@ export function BudgetsWidget({ settings }: WidgetProps) {
   const { b, from, to, asOf, month, today, compact } = useDash();
   const nav = useNavigate();
   const count = Number(settings.count) || 5;
-  const all = useMemo(() => budgetVsActual(b, from, to, asOf), [b, from, to, asOf]);
+  const all = useMemo(() => budgetVsActual(b, from, asOf), [b, from, asOf]);
   const budgets = useMemo(() => {
     const list = settings.sort === 'code' ? [...all].sort((x, y) => x.account.code.localeCompare(y.account.code, 'en', { numeric: true })) : all;
     return list.slice(0, count);

@@ -14,10 +14,7 @@ import {
 } from '../../store/data';
 import { confirm } from '../../store/ui';
 import { notify } from '../../store/history';
-import { isLocked } from '../../accounting/lock';
-import { addDays, formatDate, todayISO } from '../../lib/format';
-import { useSubmitRef } from '../../lib/focus';
-import { isImeComposing } from '../../lib/layers';
+import { todayISO } from '../../lib/format';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { AmountInput } from '../ui/AmountInput';
@@ -44,7 +41,6 @@ export function AccountModal({
   defaultSubtype?: AccountSubtype;
 }) {
   const accounts = useData((s) => s.data.accounts);
-  const lockDate = useData((s) => s.data.profile.lockDate);
   const existingOpening = useData((s) => (editing ? s.data.transactions.find((t) => t.type === 'opening' && t.accountId === editing.id) : undefined));
   const initialSub: AccountSubtype = editing?.subtype ?? defaultSubtype ?? (kind === 'wallet' ? 'bank' : kind === 'category' ? 'operating_expense' : 'other_current_asset');
   const preset = WALLET_PRESETS.find((p) => p.subtype === initialSub);
@@ -72,16 +68,6 @@ export function AccountModal({
   const duplicateCode = !!code.trim() && accounts.some((a) => a.id !== editing?.id && a.code === code.trim());
   const nameErr = !name.trim() ? 'Nama wajib diisi' : duplicateName ? 'Nama sudah dipakai akun lain' : null;
   const codeErr = duplicateCode ? 'Kode sudah dipakai' : null;
-  const lockedOpening = kind === 'wallet' && !!existingOpening && isLocked(existingOpening.date, lockDate);
-  const nextOpeningAmt = opening ?? 0;
-  const prevOpeningAmt = existingOpening?.amount ?? 0;
-  const openingChanged = existingOpening ? nextOpeningAmt !== prevOpeningAmt || openingDate !== existingOpening.date : nextOpeningAmt !== 0;
-  const openingErr =
-    kind === 'wallet' && lockedOpening && openingChanged
-      ? `Saldo awal (${formatDate(existingOpening!.date)}) berada di periode terkunci`
-      : kind === 'wallet' && nextOpeningAmt !== 0 && isLocked(openingDate, lockDate)
-        ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci`
-        : null;
   const suggestedCode = editing ? editing.code : nextCode(accounts, subtype);
   const title =
     kind === 'wallet' ? (editing ? 'Ubah Dompet' : 'Dompet / Rekening Baru') : kind === 'category' ? (editing ? 'Ubah Kategori' : 'Kategori Baru') : editing ? 'Ubah Akun' : 'Akun Baru';
@@ -99,7 +85,7 @@ export function AccountModal({
 
   const submit = () => {
     setTried(true);
-    if (nameErr || codeErr || openingErr) return;
+    if (nameErr || codeErr) return;
     const type: AccountType = SUBTYPE_META[subtype].type;
     if (editing) {
       const patch = { name: name.trim(), subtype, type, icon, color, description: description.trim() || undefined, code: code.trim() || editing.code };
@@ -116,17 +102,14 @@ export function AccountModal({
       notify(`${name.trim()} ditambahkan`, historyId);
     } else {
       const { historyId } = addAccount({ name: name.trim(), subtype, type, icon, color, description: description.trim() || undefined, code: code.trim() || undefined });
-      if (!historyId) return;
       notify(`${kind === 'category' ? 'Kategori' : 'Akun'} ${name.trim()} ditambahkan`, historyId);
     }
     onClose();
   };
-  const submitRef = useSubmitRef(submit);
 
   const toggleArchive = () => {
     if (!editing) return;
     const hid = updateAccount(editing.id, { archived: !editing.archived }, editing.archived ? 'Aktifkan akun' : 'Arsipkan akun');
-    if (!hid) return;
     notify(editing.archived ? `${editing.name} diaktifkan kembali` : `${editing.name} diarsipkan`, hid);
     onClose();
   };
@@ -185,13 +168,12 @@ export function AccountModal({
         className="acc-form"
         data-form
         onKeyDown={(e) => {
-          if (isImeComposing(e)) return;
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
             e.preventDefault();
-            submitRef.runFrom(e.target);
-          } else if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT' && !(e.target as HTMLElement).closest('.icon-picker')) {
+            submit();
+          } else if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
             e.preventDefault();
-            submitRef.runFrom(e.target);
+            submit();
           }
         }}
       >
@@ -209,17 +191,11 @@ export function AccountModal({
           )}
           {kind === 'wallet' && (
             <>
-              <Field label={isLiabilityWallet ? 'Tagihan awal (terutang)' : 'Saldo awal'} optional hint="Dijurnal terhadap Ekuitas Saldo Awal" error={tried && openingErr}>
-                <AmountInput variant="inline" value={opening} onChange={setOpening} placeholder="0" allowNegative invalid={tried && !!openingErr} />
+              <Field label={isLiabilityWallet ? 'Tagihan awal (terutang)' : 'Saldo awal'} optional hint="Dijurnal terhadap Ekuitas Saldo Awal">
+                <AmountInput variant="inline" value={opening} onChange={setOpening} placeholder="0" allowNegative />
               </Field>
               <Field label="Per tanggal">
-                <DatePicker
-                  value={openingDate}
-                  onChange={setOpeningDate}
-                  compact
-                  min={lockDate && !lockedOpening ? addDays(lockDate, 1) : undefined}
-                  invalid={tried && !!openingErr}
-                />
+                <DatePicker value={openingDate} onChange={setOpeningDate} compact />
               </Field>
             </>
           )}

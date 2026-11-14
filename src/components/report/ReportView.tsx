@@ -40,7 +40,7 @@ export function ReportView({
     <div className={`paper${compact ? ' compact' : ''}${report.columns.length > 3 ? ' wide' : ''}`}>
       <div className="paper-head">
         <div className="ph-entity">{entity}</div>
-        <h2 className="ph-title">{report.title}</h2>
+        <div className="ph-title">{report.title}</div>
         <div className="ph-period">{period}</div>
         <div className="ph-unit">(Dinyatakan dalam Rupiah, kecuali dinyatakan lain)</div>
       </div>
@@ -111,7 +111,7 @@ export function ReportView({
           </tbody>
         </table>
       </TableWrap>
-      {!!(report.checks?.length || report.notes?.length) && (
+      {(report.checks?.length || report.notes?.length) && (
         <div className="paper-foot">
           {report.checks?.map((c, i) => (
             <div key={i} className={`check-line ${c.ok ? 'ok' : 'bad'}`}>

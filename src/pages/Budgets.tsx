@@ -6,8 +6,6 @@ import { upsertBudget, deleteBudget, useData } from '../store/data';
 import { notify } from '../store/history';
 import { activity, budgetVsActual, type BudgetLine } from '../accounting/reports';
 import { addMonths, endOfMonth, formatMoney, formatMonth, formatPercent, startOfMonth, round2, daysBetween } from '../lib/format';
-import { useSubmitRef } from '../lib/focus';
-import { isImeComposing } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Progress } from '../components/ui/primitives';
 import { MonthSwitcher } from '../components/ui/MonthSwitcher';
@@ -79,7 +77,6 @@ export default function Budgets() {
       {lines.length === 0 ? (
         <div className="card">
           <EmptyState
-            heading="h2"
             icon={Target}
             title="Belum ada anggaran"
             text="Tetapkan batas pengeluaran bulanan per kategori untuk memantau disiplin belanja Anda."
@@ -133,22 +130,16 @@ export default function Budgets() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }}
                   onClick={() => setEdit({ categoryId: l.account.id, amount: l.budget })}
+                  tabIndex={0}
+                  aria-label={`Ubah anggaran ${l.account.name}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target === e.currentTarget) setEdit({ categoryId: l.account.id, amount: l.budget });
+                  }}
                 >
                   <div className="row">
                     <IconTile icon={l.account.icon} color={l.account.color} />
                     <div className="grow" style={{ minWidth: 0 }}>
-                      <button
-                        type="button"
-                        className="row-link truncate"
-                        style={{ fontWeight: 620 }}
-                        aria-label={`Ubah anggaran ${l.account.name}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEdit({ categoryId: l.account.id, amount: l.budget });
-                        }}
-                      >
-                        {l.account.name}
-                      </button>
+                      <div className="truncate" style={{ fontWeight: 620 }}>{l.account.name}</div>
                       <Badge tone={s.tone} icon={s.icon}>
                         {s.label}
                       </Badge>
@@ -158,19 +149,10 @@ export default function Budgets() {
                         items={[
                           { label: 'Ubah batas', icon: Pencil, onSelect: () => setEdit({ categoryId: l.account.id, amount: l.budget }) },
                           { separator: true },
-                          {
-                            label: 'Hapus anggaran',
-                            icon: Trash2,
-                            danger: true,
-                            onSelect: () => {
-                              if (!l.budgetId) return;
-                              const hid = deleteBudget(l.budgetId);
-                              if (hid) notify(`Anggaran ${l.account.name} dihapus`, hid, { tone: 'danger' });
-                            },
-                          },
+                          { label: 'Hapus anggaran', icon: Trash2, danger: true, onSelect: () => l.budgetId && notify(`Anggaran ${l.account.name} dihapus`, deleteBudget(l.budgetId), { tone: 'danger' }) },
                         ]}
                         trigger={(p) => (
-                          <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-haspopup={p['aria-haspopup']} aria-label={`Menu anggaran ${l.account.name}`}>
+                          <button type="button" className="tb-btn" ref={p.ref} onClick={p.onClick} aria-label={`Menu anggaran ${l.account.name}`}>
                             <Ellipsis />
                           </button>
                         )}
@@ -200,7 +182,7 @@ export default function Budgets() {
 
       <section id="target" className="goals-section">
         <div className="section-head">
-          <h2>Target tabungan</h2>
+          <h3>Target tabungan</h3>
           <span className="muted">{goalList.length ? `${goalList.filter((p) => p.status === 'done').length} dari ${goalList.length} tercapai` : 'Kemajuan dari saldo dompet yang ditautkan'}</span>
           <span className="spacer" />
           <Button size="sm" icon={Plus} onClick={goalModal.openNew}>
@@ -235,7 +217,7 @@ export default function Budgets() {
       {unbudgeted.length > 0 && (
         <section>
           <div className="section-head">
-            <h2>Beban tanpa anggaran</h2>
+            <h3>Beban tanpa anggaran</h3>
             <span className="muted num money-val">{formatMoney(unbudgeted.reduce((s, x) => s + x.v, 0))}</span>
           </div>
           <div className="card list-body" style={{ padding: 6 }}>
@@ -261,7 +243,7 @@ export default function Budgets() {
 
 function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: string; amount?: number }; onClose: () => void; month: string }) {
   const b = useBooks();
-  const cats = useCategoryOptions('expense', initial.categoryId ? [initial.categoryId] : undefined);
+  const cats = useCategoryOptions('expense');
   const [cat, setCat] = useState(initial.categoryId ?? '');
   const [amount, setAmount] = useState<number | null>(initial.amount ?? null);
   const [tried, setTried] = useState(false);
@@ -279,12 +261,9 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
     setTried(true);
     if (!cat || !amount) return;
     const name = b.acc.get(cat)?.name ?? '';
-    const hid = upsertBudget(cat, amount);
-    if (!hid) return;
-    notify(`Anggaran ${name} ${formatMoney(amount)}/bulan disimpan`, hid);
+    notify(`Anggaran ${name} ${formatMoney(amount)}/bulan disimpan`, upsertBudget(cat, amount));
     onClose();
   };
-  const submitRef = useSubmitRef(submit);
 
   return (
     <Modal
@@ -297,7 +276,7 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={() => submitRef.run()}>
+          <Button variant="primary" onClick={submit}>
             Simpan
           </Button>
         </>
@@ -307,9 +286,9 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
         className="stack"
         data-form
         onKeyDown={(e) => {
-          if (!isImeComposing(e) && e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') {
             e.preventDefault();
-            submitRef.runFrom(e.target);
+            submit();
           }
         }}
       >

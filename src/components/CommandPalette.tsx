@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,7 +26,7 @@ import {
 import { ALL_NAV } from '../app/nav';
 import { useData } from '../store/data';
 import { usePrefs, useUI } from '../store/ui';
-import { isImeComposing, useLayer } from '../lib/layers';
+import { useLayer } from '../lib/layers';
 import { formatDate, formatMoney, normalize } from '../lib/format';
 import { TX_META } from '../accounting/engine';
 import { TYPE_LABEL } from '../accounting/coa';
@@ -63,58 +63,27 @@ const glyphTile = (I: Glyph, color = 'var(--accent-ink)') => <IconTile icon={I} 
 export function CommandPalette() {
   const open = useUI((s) => s.palette);
   const setOpen = useUI((s) => s.setPalette);
-  const prevFocus = useRef<HTMLElement | null>(null);
-  const ranRef = useRef(false);
-  const backdropDown = useRef(false);
   useLayer(open, () => setOpen(false));
-
-  useEffect(() => {
-    if (open) {
-      prevFocus.current = document.activeElement as HTMLElement | null;
-      ranRef.current = false;
-    } else if (!ranRef.current && prevFocus.current?.isConnected) {
-      const el = prevFocus.current;
-      prevFocus.current = null;
-      requestAnimationFrame(() => el.focus({ preventScroll: true }));
-    } else {
-      prevFocus.current = null;
-    }
-  }, [open]);
-
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="palette-root" role="presentation">
+        <div className="palette-root">
           <motion.div
             className="modal-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.16 }}
-            onPointerDown={(e) => {
-              backdropDown.current = e.target === e.currentTarget;
-            }}
-            onClick={(e) => {
-              if (backdropDown.current && e.target === e.currentTarget) setOpen(false);
-              backdropDown.current = false;
-            }}
+            onMouseDown={() => setOpen(false)}
             style={{ background: 'color-mix(in srgb, var(--overlay) 70%, transparent)' }}
           />
           <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Palet perintah"
             className="palette"
             initial={{ opacity: 0, scale: 0.97, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 480, damping: 34 } }}
             exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
           >
-            <PaletteBody
-              onRun={() => {
-                ranRef.current = true;
-                setOpen(false);
-              }}
-            />
+            <PaletteBody onClose={() => setOpen(false)} />
           </motion.div>
         </div>
       )}
@@ -123,13 +92,11 @@ export function CommandPalette() {
   );
 }
 
-function PaletteBody({ onRun }: { onRun: () => void }) {
+function PaletteBody({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const listId = useId();
-  const optId = (id: string) => `${listId}-${id}`;
   const data = useData((s) => s.data);
   const nav = useNavigate();
   const openTx = useUI((s) => s.openTx);
@@ -154,7 +121,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
       return 0;
     };
     const go = (f: () => void) => () => {
-      onRun();
+      onClose();
       f();
     };
 
@@ -227,7 +194,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
           group: 'Transaksi',
           title,
           sub: `${formatDate(t.date)} · ${t.ref}${cat && cat !== title ? ' · ' + cat : ''}`,
-          right: <span className={[isIn && 'pos', 'money-val'].filter(Boolean).join(' ')}>{formatMoney(t.amount)}</span>,
+          right: <span className={isIn ? 'pos' : ''}>{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
           score: s,
@@ -256,7 +223,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
           group: 'Terakhir dicatat',
           title: t.description || catAcc?.name || TX_META[t.type].label,
           sub: `${formatDate(t.date)} · ${t.ref}`,
-          right: <span className="money-val">{formatMoney(t.amount)}</span>,
+          right: formatMoney(t.amount),
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
           score: 0,
@@ -274,17 +241,14 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
         counts.set(it.group, c);
         return c <= (it.group === 'Transaksi' ? 12 : 6);
       });
-  }, [q, data, nav, openTx, editTx, prefs, setShortcuts, onRun]);
+  }, [q, data, nav, openTx, editTx, prefs, setShortcuts, onClose]);
 
   useEffect(() => setActive(0), [q]);
   useEffect(() => {
     listRef.current?.querySelector('.palette-item.active')?.scrollIntoView({ block: 'nearest' });
   }, [active]);
 
-  const activeItem = items[active];
-
   const onKey = (e: React.KeyboardEvent) => {
-    if (isImeComposing(e)) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActive((a) => Math.min(items.length - 1, a + 1));
@@ -293,9 +257,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
       setActive((a) => Math.max(0, a - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      activeItem?.run();
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
+      items[active]?.run();
     }
   };
 
@@ -303,14 +265,9 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
   return (
     <>
       <div className="palette-input">
-        <Search aria-hidden />
+        <Search />
         <input
           ref={input}
-          role="combobox"
-          aria-expanded={true}
-          aria-controls={listId}
-          aria-activedescendant={activeItem ? optId(activeItem.id) : undefined}
-          aria-label="Cari transaksi, akun, nominal, atau perintah"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={onKey}
@@ -320,20 +277,16 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
         />
         <span className="kbd">esc</span>
       </div>
-      <div id={listId} role="listbox" className="palette-list" ref={listRef}>
+      <div className="palette-list" ref={listRef}>
         {items.length === 0 && <div className="list-empty">Tidak ada hasil untuk “{q}”</div>}
         {items.map((it, i) => {
           const head = it.group !== last ? it.group : null;
           last = it.group;
           return (
-            <div key={it.id} role="presentation">
+            <div key={it.id}>
               {head && <div className="list-group">{head}</div>}
               <button
-                id={optId(it.id)}
                 type="button"
-                role="option"
-                aria-selected={i === active}
-                tabIndex={-1}
                 className={`palette-item${i === active ? ' active' : ''}`}
                 onMouseMove={() => active !== i && setActive(i)}
                 onClick={it.run}
@@ -344,7 +297,7 @@ function PaletteBody({ onRun }: { onRun: () => void }) {
                   {it.sub && <span className="pi-sub truncate">{it.sub}</span>}
                 </span>
                 {it.right && <span className="pi-right">{it.right}</span>}
-                {i === active && <CornerDownLeft size={15} style={{ opacity: 0.8, flex: 'none' }} aria-hidden />}
+                {i === active && <CornerDownLeft size={15} style={{ opacity: 0.8, flex: 'none' }} />}
               </button>
             </div>
           );
