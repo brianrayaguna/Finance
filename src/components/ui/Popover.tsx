@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffe
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronRight, type Glyph } from '../../lib/glyphs';
+import { focusNoScroll } from '../../lib/focus';
 import { useLayer } from '../../lib/layers';
 
 const ParentPopoverCtx = createContext<string | null>(null);
@@ -214,15 +215,26 @@ export function Popover({
     let t = 0;
     if (autoFocus) {
       t = requestAnimationFrame(() =>
-        ref.current?.querySelector<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')?.focus(),
+        focusNoScroll(
+          ref.current?.querySelector<HTMLElement>('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'),
+        ),
       );
     }
     return () => {
       if (t) cancelAnimationFrame(t);
+      // Lepas dari top-layer segera agar exit Framer tidak meninggalkan ghost yang mencuri tap.
+      const el = ref.current;
+      if (el && typeof el.hidePopover === 'function' && el.matches(':popover-open')) {
+        try {
+          el.hidePopover();
+        } catch {
+          /* abaikan */
+        }
+      }
       if (!returnFocus) return;
       const a = document.activeElement;
-      if ('current' in anchor && anchor.current?.isConnected && (!a || a === document.body || ref.current?.contains(a))) {
-        anchor.current.focus();
+      if ('current' in anchor && anchor.current?.isConnected && (!a || a === document.body || el?.contains(a))) {
+        focusNoScroll(anchor.current);
       }
     };
   }, [open, autoFocus, returnFocus, anchor]);
@@ -319,7 +331,7 @@ export function Popover({
           }}
           initial={{ opacity: 0, scale: 0.96, y: -4 }}
           animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 520, damping: 34, mass: 0.7 } }}
-          exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
+          exit={{ opacity: 0, scale: 0.98, pointerEvents: 'none', transition: { duration: 0.12 } }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <ParentPopoverCtx.Provider value={popId}>{children}</ParentPopoverCtx.Provider>
@@ -375,7 +387,7 @@ export function MenuList({
   const subAnchor = useRef<HTMLElement | null>(null);
   const hoverTimer = useRef(0);
   useEffect(() => {
-    ref.current?.focus();
+    focusNoScroll(ref.current);
     return () => window.clearTimeout(hoverTimer.current);
   }, []);
 
@@ -387,7 +399,7 @@ export function MenuList({
   };
   const closeSub = useCallback(() => {
     setSub(null);
-    requestAnimationFrame(() => ref.current?.focus());
+    requestAnimationFrame(() => focusNoScroll(ref.current));
   }, []);
   const choose = (it: MenuItem, i: number) => {
     if (it.disabled) return;

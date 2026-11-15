@@ -30,7 +30,7 @@ import { addTemplate, addTransaction, deleteTransactions, getData, updateTransac
 import { confirm, usePrefs, useUI } from '../../store/ui';
 import { notify } from '../../store/history';
 import { addDays, formatDate, formatMoney, isoFromTs, nowTime, round2, todayISO, daysBetween } from '../../lib/format';
-import { focusNext, useSubmitRef } from '../../lib/focus';
+import { focusField, focusNext, useSubmitRef } from '../../lib/focus';
 import { isImeComposing, MOD } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { Segmented } from '../ui/Segmented';
@@ -458,7 +458,7 @@ function TransactionModal({
     setTried(true);
     if (hasErrors) {
       const first = formRef.current?.querySelector<HTMLElement>('.invalid input, .invalid textarea, button.invalid, [aria-invalid="true"]');
-      first?.focus();
+      focusField(first);
       return;
     }
     const tx = buildTx();
@@ -479,7 +479,7 @@ function TransactionModal({
       autoDebtAmt.current = null;
       accountTouched.current = false;
       setTried(false);
-      requestAnimationFrame(() => amountRef.current?.focus());
+      requestAnimationFrame(() => focusField(amountRef.current));
     } else onClose();
   };
   const submitRef = useSubmitRef(submit);
@@ -541,7 +541,7 @@ function TransactionModal({
       };
     });
     setTried(false);
-    requestAnimationFrame(() => amountRef.current?.focus());
+    requestAnimationFrame(() => focusField(amountRef.current));
   };
 
   const switchSub = (s: Sub) => {

@@ -3,8 +3,18 @@ import { Check, ChevronDown, Search } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { IconTile, useFieldCtx } from './primitives';
 import { normalize } from '../../lib/format';
-import { focusNext } from '../../lib/focus';
+import { focusField, focusNext, focusNoScroll, scrollChildIntoContainer } from '../../lib/focus';
 import { isImeComposing } from '../../lib/layers';
+
+/** Sentuhan / layar sempit: jangan autofokus search (keyboard + zoom + vv loncat). */
+function preferTouchUi() {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(pointer: coarse)').matches ||
+    window.matchMedia('(max-width: 560px)').matches ||
+    (navigator.maxTouchPoints ?? 0) > 0
+  );
+}
 
 export interface SelectOption<T extends string = string> {
   value: T;
@@ -80,7 +90,7 @@ export function Select<T extends string>({
     (refocus = true) => {
       setOpen(false);
       setQ('');
-      if (refocus) requestAnimationFrame(() => trigger.current?.focus());
+      if (refocus) requestAnimationFrame(() => focusNoScroll(trigger.current));
     },
     [],
   );
@@ -97,15 +107,18 @@ export function Select<T extends string>({
   useEffect(() => {
     if (!open) return;
     requestAnimationFrame(() => {
-      if (isSearch) search.current?.focus();
-      else list.current?.focus();
-      list.current?.querySelector('.option.active')?.scrollIntoView({ block: 'nearest' });
+      // Di sentuhan: jangan fokus search (keyboard + vv loncat). Ketik huruf dari trigger tetap fokus search.
+      if (isSearch && (!preferTouchUi() || q)) focusNoScroll(search.current);
+      else focusNoScroll(list.current);
+      scrollChildIntoContainer(list.current, list.current?.querySelector<HTMLElement>('.option.active'));
     });
+    // q sengaja tidak di deps — hanya keputusan fokus saat buka
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isSearch]);
 
   useEffect(() => {
     if (!open) return;
-    list.current?.querySelector('.option.active')?.scrollIntoView({ block: 'nearest' });
+    scrollChildIntoContainer(list.current, list.current?.querySelector<HTMLElement>('.option.active'));
   }, [active, open]);
 
   useEffect(() => {
@@ -119,7 +132,7 @@ export function Select<T extends string>({
     setQ('');
     requestAnimationFrame(() => {
       if (advance && trigger.current) focusNext(trigger.current);
-      else trigger.current?.focus();
+      else focusField(trigger.current);
     });
   };
 
@@ -231,7 +244,7 @@ export function Select<T extends string>({
         )}
         <ChevronDown className="chev" />
       </button>
-      <Popover open={open} onClose={() => close()} anchor={trigger} width={width} minWidth={compact ? 220 : undefined} role="none">
+      <Popover open={open} onClose={() => close()} anchor={trigger} width={width} minWidth={compact ? 220 : undefined} role="none" returnFocus={false}>
         {isSearch && (
           <div className="popover-search">
             <Search aria-hidden />

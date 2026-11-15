@@ -12,7 +12,7 @@ import {
   startOfMonth,
   todayISO,
 } from '../../lib/format';
-import { focusNext } from '../../lib/focus';
+import { focusField, focusNext, focusNoScroll } from '../../lib/focus';
 import { dayIndex, monthMatrix, weekDays } from '../../lib/week';
 import { usePrefs } from '../../store/ui';
 import { useFieldCtx } from './primitives';
@@ -49,7 +49,7 @@ export function MiniCalendar({
     if (!autoFocus) return;
     // Di sentuh/kasar, fokus ke grid sering menggeser scroll modal dan terasa seperti kalender “macet”.
     if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) return;
-    grid.current?.focus();
+    focusNoScroll(grid.current);
   }, [autoFocus]);
 
   const moveTo = (d: string) => {
@@ -175,7 +175,7 @@ export function DatePicker({
   const allowed = (d: string) => !d || ((!min || d >= min) && (!max || d <= max));
   const close = () => {
     setOpen(false);
-    requestAnimationFrame(() => ref.current?.focus());
+    requestAnimationFrame(() => focusNoScroll(ref.current));
   };
   const change = (d: string) => {
     if (allowed(d)) onChange(d);
@@ -186,7 +186,7 @@ export function DatePicker({
     setOpen(false);
     requestAnimationFrame(() => {
       if (advance && ref.current) focusNext(ref.current);
-      else ref.current?.focus();
+      else focusField(ref.current);
     });
   };
   const rel = value ? relativeDay(value, today) : '';
@@ -236,7 +236,7 @@ export function DatePicker({
         )}
         <ChevronDown className="chev" />
       </button>
-      <Popover open={open} onClose={close} anchor={ref} minWidth={292} ariaLabel="Pilih tanggal">
+      <Popover open={open} onClose={close} anchor={ref} minWidth={292} ariaLabel="Pilih tanggal" returnFocus={false}>
         <div className="popover-body">
           <MiniCalendar value={value || undefined} onSelect={pick} autoFocus min={min} max={max} />
           <div className="mc-foot">

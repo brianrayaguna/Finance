@@ -9,13 +9,51 @@ function fields(scope: ParentNode): HTMLElement[] {
   });
 }
 
+/** Fokus tanpa menggulir nenek (modal-body / page) — wajib di overlay & form mobile. */
+export function focusNoScroll(el: HTMLElement | null | undefined) {
+  if (!el) return;
+  try {
+    el.focus({ preventScroll: true });
+  } catch {
+    el.focus();
+  }
+}
+
+/**
+ * Gulir hanya `.modal-body` agar `el` masuk ke visualViewport (di atas keyboard).
+ * Dipanggil setelah focusNoScroll pada field di dalam modal.
+ */
+export function ensureInModalViewport(el: HTMLElement | null | undefined, pad = 12) {
+  if (!el || typeof window === 'undefined') return;
+  const body = el.closest('.modal-body') as HTMLElement | null;
+  if (!body) return;
+  const vv = window.visualViewport;
+  const viewTop = (vv?.offsetTop ?? 0) + pad;
+  const viewBottom = (vv?.offsetTop ?? 0) + (vv?.height ?? window.innerHeight) - pad;
+  const r = el.getBoundingClientRect();
+  if (r.top >= viewTop && r.bottom <= viewBottom) return;
+  if (r.bottom > viewBottom) body.scrollTop += r.bottom - viewBottom;
+  else if (r.top < viewTop) body.scrollTop -= viewTop - r.top;
+}
+
+/** Fokus aman + pastikan field terlihat di atas keyboard di dalam modal. */
+export function focusField(el: HTMLElement | null | undefined) {
+  if (!el) return;
+  focusNoScroll(el);
+  // Tunggu keyboard / vv settle sebentar di mobile.
+  requestAnimationFrame(() => {
+    ensureInModalViewport(el);
+    requestAnimationFrame(() => ensureInModalViewport(el));
+  });
+}
+
 export function focusNext(from: HTMLElement, dir: 1 | -1 = 1): boolean {
   const scope = from.closest('[data-form]') ?? from.closest('form') ?? document;
   const list = fields(scope);
   const idx = list.findIndex((el) => el === from || el.contains(from));
   const next = list[idx + dir];
   if (next) {
-    next.focus();
+    focusField(next);
     if (next instanceof HTMLInputElement && next.type !== 'checkbox') {
       requestAnimationFrame(() => next.select?.());
     }
@@ -27,7 +65,20 @@ export function focusNext(from: HTMLElement, dir: 1 | -1 = 1): boolean {
 export function focusFirst(scope: ParentNode | null | undefined) {
   if (!scope) return;
   const list = fields(scope);
-  list[0]?.focus();
+  focusField(list[0]);
+}
+
+/** Gulir opsi ke dalam listbox saja — tidak merembes ke modal-body. */
+export function scrollChildIntoContainer(container: HTMLElement | null | undefined, child: HTMLElement | null | undefined) {
+  if (!container || !child || !container.contains(child)) return;
+  const cTop = container.scrollTop;
+  const cBottom = cTop + container.clientHeight;
+  const cr = container.getBoundingClientRect();
+  const er = child.getBoundingClientRect();
+  const relTop = er.top - cr.top + container.scrollTop;
+  const relBottom = relTop + er.height;
+  if (relTop < cTop) container.scrollTop = relTop;
+  else if (relBottom > cBottom) container.scrollTop = relBottom - container.clientHeight;
 }
 
 /** Baris tabel yang dapat diklik: bisa difokus dan dijalankan dengan Enter atau Spasi. */

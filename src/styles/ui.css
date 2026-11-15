@@ -284,6 +284,15 @@
   font-size: var(--fs-md);
   padding: 0;
 }
+/* iOS zoom jika font < 16px saat fokus — paksa 16px di sentuhan/layar sempit (bukan amount besar) */
+@media (pointer: coarse), (max-width: 560px) {
+  .input > input,
+  .input > textarea,
+  .popover-search input,
+  .amount-inline input {
+    font-size: 16px;
+  }
+}
 .input > input::placeholder,
 .input > textarea::placeholder {
   color: var(--text-4);
@@ -500,6 +509,11 @@ dialog[open] > .popover {
   flex: 1;
   font-size: var(--fs-md);
   min-width: 0;
+}
+@media (pointer: coarse), (max-width: 560px) {
+  .popover-search input {
+    font-size: 16px;
+  }
 }
 .listbox {
   flex: 1 1 auto;

@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Glyph } from '../../lib/glyphs';
 import { Popover } from './Popover';
+import { ensureInModalViewport } from '../../lib/focus';
 import { normalize } from '../../lib/format';
 import { isImeComposing } from '../../lib/layers';
 import { useFieldCtx } from './primitives';
@@ -85,8 +86,13 @@ export function AutoComplete({
         placeholder={placeholder}
         autoComplete="off"
         spellCheck={false}
+        enterKeyHint="done"
         autoFocus={autoFocus}
-        onFocus={() => setFocused(true)}
+        onFocus={(e) => {
+          setFocused(true);
+          const el = e.currentTarget;
+          requestAnimationFrame(() => ensureInModalViewport(el));
+        }}
         onBlur={() => {
           setFocused(false);
           setActive(-1);

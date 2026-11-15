@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } f
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from '../../lib/glyphs';
+import { focusField, focusNoScroll } from '../../lib/focus';
 import { layerCount, useLayer } from '../../lib/layers';
 
 export function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement | null>, initial?: string) {
@@ -16,7 +17,7 @@ export function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement 
         el.querySelector<HTMLElement>('[data-autofocus]') ||
         el.querySelector<HTMLElement>('[data-field]') ||
         el.querySelector<HTMLElement>('button:not(.close-btn), input, textarea');
-      target?.focus();
+      focusField(target);
     });
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab' || !root.current) return;
@@ -30,10 +31,10 @@ export function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement 
       const last = f[f.length - 1];
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
-        last.focus();
+        focusNoScroll(last);
       } else if (!e.shiftKey && document.activeElement === last) {
         e.preventDefault();
-        first.focus();
+        focusNoScroll(first);
       }
     };
     document.addEventListener('keydown', onKey);
@@ -42,7 +43,7 @@ export function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement 
       document.removeEventListener('keydown', onKey);
       if (prev && document.contains(prev)) {
         requestAnimationFrame(() => {
-          if (layerCount() === 0 && document.contains(prev)) prev.focus({ preventScroll: true });
+          if (layerCount() === 0 && document.contains(prev)) focusNoScroll(prev);
         });
       }
     };

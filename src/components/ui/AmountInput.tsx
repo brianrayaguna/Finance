@@ -10,6 +10,7 @@ import {
 } from '../../lib/amount';
 import { formatMoney } from '../../lib/format';
 import { isImeComposing } from '../../lib/layers';
+import { ensureInModalViewport, focusNoScroll } from '../../lib/focus';
 import { useFieldCtx } from './primitives';
 
 function hasInvalidExpr(s: string, allowNegative?: boolean): boolean {
@@ -142,6 +143,7 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
       aria-describedby={field?.describedBy}
       data-field
       inputMode="decimal"
+      enterKeyHint="next"
       autoComplete="off"
       spellCheck={false}
       aria-label={ariaLabel ?? (field?.hasLabel ? undefined : 'Nominal')}
@@ -152,7 +154,11 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
       onFocus={(e) => {
         focused.current = true;
         const el = e.currentTarget;
-        requestAnimationFrame(() => el.select());
+        focusNoScroll(el);
+        requestAnimationFrame(() => {
+          el.select();
+          ensureInModalViewport(el);
+        });
       }}
       onChange={(e) => apply(e.target.value, e.target.selectionStart ?? e.target.value.length)}
       onBlur={() => {

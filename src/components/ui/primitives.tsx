@@ -1,6 +1,7 @@
 import { createContext, forwardRef, useContext, useEffect, useId, useRef, useState, type ButtonHTMLAttributes, type CSSProperties, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { Check, Minus, X, CircleAlert } from '../../lib/glyphs';
 import type { Glyph } from '../../lib/glyphs';
+import { ensureInModalViewport, focusNoScroll } from '../../lib/focus';
 import { formatMoney, type MoneyOpts } from '../../lib/format';
 import { getIcon } from '../../lib/icons';
 
@@ -278,7 +279,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
     <div className={['input', invalid && 'invalid', sunken && 'input-sunken', wrapClassName].filter(Boolean).join(' ')} onMouseDown={(e) => {
       if (e.target === e.currentTarget) {
         e.preventDefault();
-        inner.current?.focus();
+        focusNoScroll(inner.current);
       }
     }}>
       {I && <I />}
@@ -297,6 +298,10 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
         aria-describedby={f?.describedBy}
         {...rest}
         id={rest.id ?? f?.id}
+        onFocus={(e) => {
+          rest.onFocus?.(e);
+          requestAnimationFrame(() => ensureInModalViewport(e.currentTarget));
+        }}
       />
       {clearable && value && (
         <button
@@ -307,7 +312,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
             onChange('');
-            inner.current?.focus();
+            focusNoScroll(inner.current);
           }}
         >
           <X />
@@ -344,8 +349,13 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-describedby={f?.describedBy}
+        enterKeyHint="done"
         {...rest}
         id={rest.id ?? f?.id}
+        onFocus={(e) => {
+          rest.onFocus?.(e);
+          requestAnimationFrame(() => ensureInModalViewport(e.currentTarget));
+        }}
       />
     </div>
   );
