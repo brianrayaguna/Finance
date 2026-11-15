@@ -126,14 +126,6 @@
   flex: 1;
   text-align: left;
 }
-.sb-kbd {
-  font: 600 11px/1 var(--font-sans);
-  color: var(--text-3);
-  padding: 3px 6px;
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  letter-spacing: 0.02em;
-}
 .sb-new {
   position: relative;
   display: flex;
@@ -588,7 +580,6 @@
     transform: scale(0.94);
   }
   .app.collapsed .sb-text,
-  .app.collapsed .sb-kbd,
   .app.collapsed .sb-badge,
   .app.collapsed .profile-chip .p-meta,
   .app.collapsed .profile-chip .p-chev,
@@ -1142,12 +1133,6 @@
 }
 @media (min-width: 961px) {
   .nav-scrim {
-    display: none;
-  }
-}
-/* Perangkat sentuh: petunjuk pintasan keyboard tidak relevan */
-@media (hover: none), (max-width: 760px) {
-  .sb-kbd {
     display: none;
   }
 }

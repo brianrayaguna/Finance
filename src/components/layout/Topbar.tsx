@@ -9,7 +9,6 @@ import { useData } from '../../store/data';
 import { undo, redo } from '../../store/history';
 import { useScrolled } from '../../hooks/useApp';
 import { useReminders } from '../../hooks/useReminders';
-import { MOD } from '../../lib/layers';
 import { Tooltip } from '../ui/Tooltip';
 import { Menu, Popover } from '../ui/Popover';
 import { IconTile } from '../ui/primitives';
@@ -56,12 +55,12 @@ export function Topbar() {
               exit={{ opacity: 0, scale: 0.92 }}
               transition={{ duration: 0.16 }}
             >
-              <Tooltip label={canUndo ? `Urungkan: ${nextLabel}` : 'Urungkan'} kbd={[MOD, 'Z']}>
+              <Tooltip label={canUndo ? `Urungkan: ${nextLabel}` : 'Urungkan'}>
                 <button type="button" className="tb-btn" onClick={undo} disabled={!canUndo} aria-label="Urungkan">
                   <Undo2 aria-hidden />
                 </button>
               </Tooltip>
-              <Tooltip label={canRedo ? `Ulangi: ${redoLabel}` : 'Ulangi'} kbd={[MOD, '⇧', 'Z']}>
+              <Tooltip label={canRedo ? `Ulangi: ${redoLabel}` : 'Ulangi'}>
                 <button type="button" className="tb-btn" onClick={redo} disabled={!canRedo} aria-label="Ulangi">
                   <Redo2 aria-hidden />
                 </button>
@@ -69,7 +68,7 @@ export function Topbar() {
             </motion.div>
           )}
         </AnimatePresence>
-        <Tooltip label="Cari" kbd={[MOD, 'K']}>
+        <Tooltip label="Cari">
           <button type="button" className="tb-btn tb-search-icon" onClick={() => setPalette(true)} aria-label="Cari transaksi, akun, atau menu">
             <Search aria-hidden />
           </button>
@@ -87,7 +86,7 @@ function PrivacyToggle() {
   const hideAmounts = usePrefs((s) => s.hideAmounts);
   const setPrefs = usePrefs((s) => s.set);
   return (
-    <Tooltip label={hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal'} kbd={['H']}>
+    <Tooltip label={hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal'}>
       <button
         type="button"
         className={`tb-btn tb-privacy${hideAmounts ? ' on' : ''}`}
@@ -209,7 +208,7 @@ function RecordButton() {
   const items = recordMenuItems(openTx, mode, templates);
   return (
     <div className="split-btn tb-record">
-      <Tooltip label="Catat transaksi baru" kbd={['N']}>
+      <Tooltip label="Catat transaksi baru">
         <button type="button" className="btn btn-primary tb-cta" onClick={() => openTx()}>
           <Plus aria-hidden />
           <span className="tb-cta-label">Catat transaksi</span>

@@ -34,7 +34,6 @@ import { useReminders } from '../../hooks/useReminders';
 import { useBooks, useNarrow, useToday } from '../../hooks/useApp';
 import { walletBalances } from '../../accounting/reports';
 import { formatMoney, initials } from '../../lib/format';
-import { ALT, MOD, isMac } from '../../lib/layers';
 import { Tooltip } from '../ui/Tooltip';
 import { Menu, type MenuItem } from '../ui/Popover';
 import { LogoMark } from '../brand/Logo';
@@ -70,7 +69,6 @@ function NavRow({
         }
         side="right"
         disabled={!collapsed}
-        kbd={it.hotkey ? [ALT, it.hotkey] : undefined}
       >
         <NavLink
           to={it.to}
@@ -383,7 +381,7 @@ export function Sidebar() {
       <div className="sb-head">
         {/* Merek di kiri & tombol ciut/tutup di kanan; saat desktop diciutkan, tombol buka digabung di logo */}
         {collapsed ? (
-          <Tooltip label="Buka sidebar" kbd={[MOD, 'B']} side="right">
+          <Tooltip label="Buka sidebar" side="right">
             <button
               type="button"
               className="brand-toggle"
@@ -401,7 +399,7 @@ export function Sidebar() {
               <LogoMark size={26} className="brand-mark" />
               <span className="brand-name">Keuanganku</span>
             </Link>
-            <Tooltip label={narrow ? 'Tutup menu' : 'Ciutkan sidebar'} kbd={narrow ? undefined : [MOD, 'B']} side="bottom">
+            <Tooltip label={narrow ? 'Tutup menu' : 'Ciutkan sidebar'} side="bottom">
               <button
                 type="button"
                 className="sb-icon sb-toggle"
@@ -417,17 +415,14 @@ export function Sidebar() {
       </div>
 
       <div className="sb-actions">
-        <Tooltip label="Cari transaksi, akun, atau menu" kbd={[MOD, 'K']} side="right" disabled={!collapsed}>
+        <Tooltip label="Cari transaksi, akun, atau menu" side="right" disabled={!collapsed}>
           <button type="button" className="sb-search" onClick={() => setPalette(true)} aria-label="Cari transaksi, akun, atau menu">
             <Search aria-hidden />
             <span className="sb-text">Cari</span>
-            <span className="sb-kbd" aria-hidden>
-              {isMac ? '⌘K' : 'Ctrl K'}
-            </span>
           </button>
         </Tooltip>
         <div className="sb-new">
-          <Tooltip label="Catat transaksi" kbd={['N']} side="right" disabled={!collapsed}>
+          <Tooltip label="Catat transaksi" side="right" disabled={!collapsed}>
             <button type="button" className="sb-item sb-primary" onClick={() => openTx()} aria-label={collapsed ? 'Catat transaksi' : undefined}>
               <span className="sb-plus" aria-hidden>
                 <Plus />
