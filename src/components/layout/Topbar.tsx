@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight, Eye, EyeOff } from '../../lib/glyphs';
 import { ALL_NAV, navLabel, navSection } from '../../app/nav';
 import { REPORTS } from '../../app/reports';
-import { usePrefs, useUI } from '../../store/ui';
+import { markReminderRead, usePrefs, useUI } from '../../store/ui';
 import { useData } from '../../store/data';
 import { undo, redo } from '../../store/history';
 import { useScrolled } from '../../hooks/useApp';
@@ -172,6 +172,7 @@ function ReminderBell() {
                   className="rem-item"
                   data-tone={r.tone}
                   onClick={() => {
+                    markReminderRead(r.id);
                     setOpen(false);
                     nav(r.to);
                   }}

@@ -44,12 +44,15 @@ export interface PrefsState {
   compactNumbers: boolean;
   /** Kartu "Mulai di sini" sudah ditutup */
   onboardingDismissed: boolean;
+  /** ID pengingat yang sudah diklik — disembunyikan dari strip Ringkasan */
+  readReminders: string[];
 }
 
 interface Prefs extends PrefsState {
   set: (p: Partial<PrefsState>) => void;
   setLayout: (fn: (l: DashLayout) => DashLayout) => void;
   setNav: (fn: (n: NavPrefs) => NavPrefs) => void;
+  markReminderRead: (id: string) => void;
 }
 
 /** Kunci preferensi yang ikut disimpan di berkas cadangan */
@@ -79,6 +82,7 @@ export function sanitizePrefs(raw: Record<string, unknown>): Partial<PrefsState>
   if (REPORT_PRESETS.includes(raw.reportPreset as PresetKey)) p.reportPreset = raw.reportPreset as PresetKey;
   if (typeof raw.compactNumbers === 'boolean') p.compactNumbers = raw.compactNumbers;
   if (typeof raw.onboardingDismissed === 'boolean') p.onboardingDismissed = raw.onboardingDismissed;
+  if (Array.isArray(raw.readReminders)) p.readReminders = raw.readReminders.filter((id): id is string => typeof id === 'string');
   return p;
 }
 
@@ -103,9 +107,12 @@ export const usePrefs = create<Prefs>()(
       reportPreset: 'ytd',
       compactNumbers: true,
       onboardingDismissed: false,
+      readReminders: [],
       set: (p) => set(p),
       setLayout: (fn) => set((s) => ({ dashboard: fn(s.dashboard) })),
       setNav: (fn) => set((s) => ({ nav: fn(s.nav) })),
+      markReminderRead: (id) =>
+        set((s) => (s.readReminders.includes(id) ? s : { readReminders: [...s.readReminders, id] })),
     }),
     {
       // Nama kunci 'neraca.*' dipertahankan agar preferensi tersimpan tetap terbaca.
@@ -126,15 +133,28 @@ export const usePrefs = create<Prefs>()(
       },
       // Data tersimpan selalu dibersihkan sebelum digabung dengan nilai bawaan.
       merge: (persisted, current) => ({ ...current, ...sanitizePrefs((persisted ?? {}) as Record<string, unknown>) }),
-      partialize: ({ set: _s, setLayout: _l, setNav: _n, ...rest }) => {
+      partialize: ({ set: _s, setLayout: _l, setNav: _n, markReminderRead: _m, ...rest }) => {
         void _s;
         void _l;
         void _n;
+        void _m;
         return rest as Prefs;
       },
     },
   ),
 );
+
+/** Tandai pengingat sudah dibaca (sembunyi dari strip Ringkasan). */
+export function markReminderRead(id: string) {
+  usePrefs.getState().markReminderRead(id);
+}
+
+/** Buang ID pengingat yang sudah tidak aktif agar tidak menumpuk di penyimpanan. */
+export function pruneReadReminders(activeIds: ReadonlySet<string>) {
+  const cur = usePrefs.getState().readReminders;
+  const next = cur.filter((id) => activeIds.has(id));
+  if (next.length !== cur.length) usePrefs.getState().set({ readReminders: next });
+}
 
 /* ───────── Ephemeral UI state ───────── */
 

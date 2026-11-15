@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { budgetVsActual, debtInfos, getBooks } from '../accounting/reports';
 import { checkIntegrity } from '../accounting/integrity';
 import type { AppData } from '../accounting/types';
 import { useData } from '../store/data';
+import { pruneReadReminders, usePrefs } from '../store/ui';
 import { daysBetween, endOfMonth, formatMoney, startOfMonth } from '../lib/format';
 import { useToday } from './useApp';
 
@@ -19,13 +20,15 @@ export interface Reminder {
 
 export interface Reminders {
   items: Reminder[];
+  /** Item yang belum diklik — untuk strip Ringkasan */
+  unreadItems: Reminder[];
   /** Hutang/piutang yang lewat atau ≤ 7 hari jatuh tempo */
   dueCount: number;
   /** Anggaran bulan ini yang terlampaui */
   budgetOver: number;
 }
 
-let last: { data: AppData; today: string; value: Reminders } | null = null;
+let last: { data: AppData; today: string; value: Omit<Reminders, 'unreadItems'> } | null = null;
 
 /**
  * Pengingat yang membutuhkan tindakan: hutang/piutang lewat atau ≤ 7 hari jatuh tempo,
@@ -35,15 +38,29 @@ let last: { data: AppData; today: string; value: Reminders } | null = null;
 export function useReminders(): Reminders {
   const data = useData((s) => s.data);
   const today = useToday();
-  return useMemo(() => {
+  const readReminders = usePrefs((s) => s.readReminders);
+
+  const base = useMemo(() => {
     if (last && last.data === data && last.today === today) return last.value;
     const value = computeReminders(data, today);
     last = { data, today, value };
     return value;
   }, [data, today]);
+
+  const unreadItems = useMemo(() => {
+    if (readReminders.length === 0) return base.items;
+    const read = new Set(readReminders);
+    return base.items.filter((r) => !read.has(r.id));
+  }, [base.items, readReminders]);
+
+  useEffect(() => {
+    pruneReadReminders(new Set(base.items.map((r) => r.id)));
+  }, [base.items]);
+
+  return { ...base, unreadItems };
 }
 
-export function computeReminders(data: AppData, today: string): Reminders {
+export function computeReminders(data: AppData, today: string): Omit<Reminders, 'unreadItems'> {
   const items: Reminder[] = [];
   const debts = debtInfos(data, today).filter((d) => d.remaining > 0.005 && (d.status === 'overdue' || d.status === 'due_soon'));
   for (const d of debts) {
