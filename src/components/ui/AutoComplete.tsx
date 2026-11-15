@@ -124,10 +124,10 @@ export function AutoComplete({
               role="option"
               aria-selected={i === active}
               className={`option${i === active ? ' active' : ''}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                pick(s);
+              onPointerDown={(e) => {
+                if (e.pointerType === 'mouse') e.preventDefault();
               }}
+              onClick={() => pick(s)}
               onMouseMove={() => setActive(i)}
             >
               {s.icon}

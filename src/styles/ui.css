@@ -458,6 +458,12 @@
   box-shadow: var(--shadow-pop);
   overflow: hidden;
   transform-origin: top center;
+  touch-action: manipulation;
+}
+/* Di dalam dialog[open] (grid + place-items), jangan ikut ter-center. */
+dialog[open] > .popover {
+  justify-self: start;
+  align-self: start;
 }
 .popover[popover] {
   inset: auto;
@@ -492,6 +498,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 5px;
 }
 .list-group {
@@ -514,6 +521,7 @@
   color: var(--text);
   cursor: pointer;
   scroll-margin: 6px;
+  touch-action: manipulation;
   transition: background-color var(--dur-1);
 }
 .option .opt-sub {
@@ -553,6 +561,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 .menu-item {
   display: flex;
@@ -705,6 +714,7 @@
   align-items: center;
   gap: 12px;
   padding: 20px 20px 12px 24px;
+  flex: none;
 }
 .modal-title {
   font-size: 22px;
@@ -718,9 +728,12 @@
   margin-top: 3px;
 }
 .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 6px 24px 22px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .modal-foot {
   display: flex;
@@ -729,6 +742,7 @@
   padding: 14px 20px 14px 24px;
   border-top: 1px solid var(--line);
   background: var(--surface-2);
+  flex: none;
 }
 .modal-foot .hint {
   font-size: var(--fs-xs);
@@ -830,10 +844,14 @@
   width: min(480px, calc(100vw - 20px));
   display: flex;
   flex-direction: column;
+  min-height: 0;
   border-radius: var(--radius-xl);
   background: var(--popover);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+.sheet > * {
+  min-height: 0;
 }
 
 /* ───────── Kontrol segmen ───────── */

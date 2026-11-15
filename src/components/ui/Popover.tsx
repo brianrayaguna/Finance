@@ -24,6 +24,12 @@ function anchorRect(a: Anchor): DOMRect {
   return new DOMRect(a.x, a.y, 0, 0);
 }
 
+/** Dialog terbuka paling atas — supaya Select di dalam modal tetap bisa disentuh di mobile. */
+function openDialogHost(): HTMLElement {
+  const open = document.querySelectorAll<HTMLElement>('dialog[open]');
+  return open[open.length - 1] ?? document.body;
+}
+
 interface PopoverProps {
   open: boolean;
   onClose: () => void;
@@ -65,7 +71,13 @@ export function Popover({
   const popId = useId();
   const parentId = useContext(ParentPopoverCtx);
   const [pos, setPos] = useState<{ top: number; left: number; origin: string; w?: number; maxH: number } | null>(null);
+  const [host, setHost] = useState<HTMLElement>(() => (typeof document !== 'undefined' ? document.body : (null as unknown as HTMLElement)));
   useLayer(open, onClose);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    setHost(openDialogHost());
+  }, [open]);
 
   const place = useCallback(() => {
     const el = ref.current;
@@ -206,11 +218,13 @@ export function Popover({
       if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return;
       place();
     };
-    const onDown = (e: MouseEvent) => {
+    const onDown = (e: Event) => {
       if (!closeOnOutside) return;
       const t = e.target as Node;
       if (ref.current?.contains(t)) return;
       if ('current' in anchor && anchor.current?.contains(t)) return;
+      // Top-layer/portal di mobile: andalkan atribut jika contains() gagal.
+      if (t instanceof Element && t.closest(`[data-popover-id="${CSS.escape(popId)}"]`)) return;
       // Hanya abaikan klik pada popover turunan yang dibuka dari dalam popover ini (bukan popover terpisah).
       if (isDescendantPopover(t, popId)) return;
       onClose();
@@ -220,7 +234,8 @@ export function Popover({
     window.addEventListener('scroll', onScroll, true);
     vv?.addEventListener('resize', place);
     vv?.addEventListener('scroll', place);
-    document.addEventListener('mousedown', onDown, true);
+    // pointerdown: di mobile mousedown sering tidak cukup untuk tutup/interaksi di luar.
+    document.addEventListener('pointerdown', onDown, true);
     const ro = ref.current ? new ResizeObserver(() => place()) : null;
     if (ro && ref.current) ro.observe(ref.current);
     return () => {
@@ -228,10 +243,12 @@ export function Popover({
       window.removeEventListener('scroll', onScroll, true);
       vv?.removeEventListener('resize', place);
       vv?.removeEventListener('scroll', place);
-      document.removeEventListener('mousedown', onDown, true);
+      document.removeEventListener('pointerdown', onDown, true);
       ro?.disconnect();
     };
   }, [open, place, anchor, onClose, closeOnOutside, popId]);
+
+  if (!host) return null;
 
   return createPortal(
     <AnimatePresence>
@@ -252,18 +269,21 @@ export function Popover({
             maxHeight: pos?.maxH,
             transformOrigin: pos?.origin,
             visibility: pos ? 'visible' : 'hidden',
+            // dialog[open] memakai display:grid + place-items; jangan ikut ter-center.
+            justifySelf: 'start',
+            alignSelf: 'start',
             ...style,
           }}
           initial={{ opacity: 0, scale: 0.96, y: -4 }}
           animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 520, damping: 34, mass: 0.7 } }}
           exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           <ParentPopoverCtx.Provider value={popId}>{children}</ParentPopoverCtx.Provider>
         </motion.div>
       )}
     </AnimatePresence>,
-    document.body,
+    host,
   );
 }
 
