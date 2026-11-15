@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   SlidersHorizontal,
+  LayoutDashboard,
   ListTree,
   Star,
   Eye,
@@ -242,6 +243,7 @@ function IntegrityPanel({ data }: { data: AppData }) {
 }
 
 export default function Settings() {
+  const navigate = useNavigate();
   const profile = useData((s) => s.data.profile);
   const data = useData((s) => s.data);
   const prefs = usePrefs();
@@ -503,6 +505,11 @@ export default function Settings() {
               </Row>
               <Row title="Angka ringkas" desc="Tampilkan Rp 1,25 jt alih-alih Rp 1.250.000 pada kartu dan daftar yang sempit">
                 <Switch checked={prefs.compactNumbers} onChange={(v) => prefs.set({ compactNumbers: v })} label="Angka ringkas" />
+              </Row>
+              <Row title="Sesuaikan dasbor" desc="Susun, ubah ukuran, atau sembunyikan widget di halaman Ringkasan">
+                <Button icon={LayoutDashboard} onClick={() => navigate('/?sesuaikan=1')}>
+                  Sesuaikan
+                </Button>
               </Row>
             </div>
           </section>

@@ -1,29 +1,7 @@
 import { Link } from 'react-router-dom';
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronRight, HandCoins } from '../../lib/glyphs';
+import { ChevronRight } from '../../lib/glyphs';
 import { useReminders } from '../../hooks/useReminders';
-import { useUI } from '../../store/ui';
-import { Button, IconTile } from '../ui/primitives';
-
-const ACTIONS = [
-  { label: 'Pengeluaran', icon: ArrowUpRight, type: 'expense' as const, primary: true },
-  { label: 'Pemasukan', icon: ArrowDownLeft, type: 'income' as const },
-  { label: 'Transfer', icon: ArrowLeftRight, type: 'transfer' as const },
-  { label: 'Hutang baru', icon: HandCoins, type: 'payable_new' as const },
-];
-
-/** Jalur cepat ke pencatatan: empat jenis transaksi yang paling sering dipakai. */
-export function QuickActions() {
-  const openTx = useUI((s) => s.openTx);
-  return (
-    <div className="quick-actions no-print" role="group" aria-label="Catat cepat">
-      {ACTIONS.map((a) => (
-        <Button key={a.type} variant={a.primary ? 'primary' : 'secondary'} icon={a.icon} onClick={() => openTx({ type: a.type })}>
-          {a.label}
-        </Button>
-      ))}
-    </div>
-  );
-}
+import { IconTile } from '../ui/primitives';
 
 const SHOWN = 3;
 

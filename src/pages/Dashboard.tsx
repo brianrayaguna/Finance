@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
-import { LayoutDashboard, Plus, RotateCcw, SlidersHorizontal } from '../lib/glyphs';
+import { LayoutDashboard, Plus, RotateCcw } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useData } from '../store/data';
 import { confirm, toast, usePrefs } from '../store/ui';
@@ -15,7 +15,7 @@ import { DashCtx, type DashData } from '../components/dashboard/common';
 import { WIDGETS, widgetSettings } from '../components/dashboard/registry';
 import { EditBar, GallerySheet, WidgetFrame, useWidgetDrag } from '../components/dashboard/Customize';
 import { Onboarding } from '../components/dashboard/Onboarding';
-import { AttentionStrip, QuickActions } from '../components/dashboard/Focus';
+import { AttentionStrip } from '../components/dashboard/Focus';
 import { useGoalModal } from '../components/goals/GoalModal';
 
 const stagger = {
@@ -188,26 +188,12 @@ export default function Dashboard() {
       <PageHeader
         title="Ringkasan"
         subtitle={`Posisi per ${formatDate(asOf, 'long')} · ${entity}`}
-        actions={
-          <>
-            <MonthSwitcher value={month} onChange={setMonth} />
-            {!editing && (
-              <Button icon={SlidersHorizontal} onClick={startEdit}>
-                Sesuaikan
-              </Button>
-            )}
-          </>
-        }
+        actions={<MonthSwitcher value={month} onChange={setMonth} />}
       />
 
       <AnimatePresence>{editing && <EditBar dirty={dirty} onGallery={() => setGallery(true)} onCancel={cancel} onDone={done} />}</AnimatePresence>
 
-      {!editing && !firstRun && (
-        <>
-          <QuickActions />
-          <AttentionStrip />
-        </>
-      )}
+      {!editing && !firstRun && <AttentionStrip />}
 
       {!editing && <Onboarding onGoal={goalModal.openNew} first={firstRun} />}
 

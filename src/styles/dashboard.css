@@ -34,28 +34,7 @@
   flex: 1;
 }
 
-/* ───────── Aksi cepat & perhatian ───────── */
-.quick-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-@media (max-width: 640px) {
-  .quick-actions {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin-inline: calc(var(--page-x) * -1);
-    padding-inline: var(--page-x);
-    scrollbar-width: none;
-  }
-  .quick-actions::-webkit-scrollbar {
-    display: none;
-  }
-  .quick-actions .btn {
-    flex: none;
-  }
-}
+/* ───────── Perhatian ───────── */
 .attention {
   margin-bottom: 16px;
 }
