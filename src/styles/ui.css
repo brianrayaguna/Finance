@@ -456,7 +456,11 @@
   border-radius: var(--radius-md);
   background: var(--popover);
   box-shadow: var(--shadow-pop);
-  overflow: hidden;
+  /* auto: DatePicker/Menu non-listbox harus bisa digulir saat maxHeight membatasi */
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   transform-origin: top center;
   touch-action: manipulation;
 }

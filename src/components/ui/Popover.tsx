@@ -71,12 +71,27 @@ export function Popover({
   const popId = useId();
   const parentId = useContext(ParentPopoverCtx);
   const [pos, setPos] = useState<{ top: number; left: number; origin: string; w?: number; maxH: number } | null>(null);
-  const [host, setHost] = useState<HTMLElement>(() => (typeof document !== 'undefined' ? document.body : (null as unknown as HTMLElement)));
+  // Host dialog disimpan di ref agar portal tidak mount dulu ke body lalu pindah (remount mematahkan touch di mobile).
+  const hostRef = useRef<HTMLElement | null>(null);
+  const openedAt = useRef(0);
+  const [, setHostTick] = useState(0);
   useLayer(open, onClose);
+
+  if (open && typeof document !== 'undefined') {
+    const next = openDialogHost();
+    if (hostRef.current !== next) {
+      hostRef.current = next;
+    }
+  }
 
   useLayoutEffect(() => {
     if (!open) return;
-    setHost(openDialogHost());
+    openedAt.current = performance.now();
+    const next = openDialogHost();
+    if (hostRef.current !== next) {
+      hostRef.current = next;
+      setHostTick((n) => n + 1);
+    }
   }, [open]);
 
   const place = useCallback(() => {
@@ -218,15 +233,19 @@ export function Popover({
       if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return;
       place();
     };
-    const onDown = (e: Event) => {
+    const isInside = (t: EventTarget | null) => {
+      if (!(t instanceof Node)) return false;
+      if (ref.current?.contains(t)) return true;
+      if ('current' in anchor && anchor.current?.contains(t)) return true;
+      if (t instanceof Element && t.closest(`[data-popover-id="${CSS.escape(popId)}"]`)) return true;
+      if (isDescendantPopover(t, popId)) return true;
+      return false;
+    };
+    // pointerup + grace: pointerdown capture sering membatalkan tap pertama di mobile.
+    const onUp = (e: Event) => {
       if (!closeOnOutside) return;
-      const t = e.target as Node;
-      if (ref.current?.contains(t)) return;
-      if ('current' in anchor && anchor.current?.contains(t)) return;
-      // Top-layer/portal di mobile: andalkan atribut jika contains() gagal.
-      if (t instanceof Element && t.closest(`[data-popover-id="${CSS.escape(popId)}"]`)) return;
-      // Hanya abaikan klik pada popover turunan yang dibuka dari dalam popover ini (bukan popover terpisah).
-      if (isDescendantPopover(t, popId)) return;
+      if (performance.now() - openedAt.current < 320) return;
+      if (isInside(e.target)) return;
       onClose();
     };
     const vv = window.visualViewport;
@@ -234,8 +253,7 @@ export function Popover({
     window.addEventListener('scroll', onScroll, true);
     vv?.addEventListener('resize', place);
     vv?.addEventListener('scroll', place);
-    // pointerdown: di mobile mousedown sering tidak cukup untuk tutup/interaksi di luar.
-    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('pointerup', onUp, true);
     const ro = ref.current ? new ResizeObserver(() => place()) : null;
     if (ro && ref.current) ro.observe(ref.current);
     return () => {
@@ -243,11 +261,12 @@ export function Popover({
       window.removeEventListener('scroll', onScroll, true);
       vv?.removeEventListener('resize', place);
       vv?.removeEventListener('scroll', place);
-      document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('pointerup', onUp, true);
       ro?.disconnect();
     };
   }, [open, place, anchor, onClose, closeOnOutside, popId]);
 
+  const host = hostRef.current;
   if (!host) return null;
 
   return createPortal(

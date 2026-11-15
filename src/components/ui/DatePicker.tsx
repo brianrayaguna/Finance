@@ -46,7 +46,10 @@ export function MiniCalendar({
   const days = useMemo(() => monthMatrix(month, weekStart), [month, weekStart]);
 
   useEffect(() => {
-    if (autoFocus) grid.current?.focus();
+    if (!autoFocus) return;
+    // Di sentuh/kasar, fokus ke grid sering menggeser scroll modal dan terasa seperti kalender “macet”.
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) return;
+    grid.current?.focus();
   }, [autoFocus]);
 
   const moveTo = (d: string) => {

@@ -2,12 +2,15 @@
 .mini-cal {
   padding: 12px 12px 6px;
   width: 292px;
+  max-width: 100%;
+  flex: none;
 }
 .mc-head {
   display: flex;
   align-items: center;
   gap: 2px;
   padding: 0 2px 8px 6px;
+  flex: none;
 }
 .mc-title {
   flex: 1;
@@ -63,6 +66,7 @@
   font-weight: 520;
   font-variant-numeric: tabular-nums;
   color: var(--text);
+  touch-action: manipulation;
   transition: background var(--dur-1), color var(--dur-1), transform var(--dur-1);
 }
 .mc-day:hover,
@@ -119,9 +123,11 @@
 }
 .mc-foot {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 8px 12px 12px;
   border-top: 1px solid var(--line);
+  flex: none;
 }
 .mc-foot .chip {
   height: 26px;
