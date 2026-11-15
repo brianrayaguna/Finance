@@ -229,10 +229,6 @@ export function Popover({
 
   useEffect(() => {
     if (!open) return;
-    const onScroll = (e: Event) => {
-      if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return;
-      place();
-    };
     const isInside = (t: EventTarget | null) => {
       if (!(t instanceof Node)) return false;
       if (ref.current?.contains(t)) return true;
@@ -241,7 +237,14 @@ export function Popover({
       if (isDescendantPopover(t, popId)) return true;
       return false;
     };
-    // Tap luar menutup; pan luar (scroll modal/page) tidak — bedakan lewat jarak pointer.
+    // Scroll di luar → tutup (jangan place()/mengejar trigger). Scroll di dalam panel atau anak → biarkan.
+    const onScroll = (e: Event) => {
+      if (performance.now() - openedAt.current < 320) return;
+      const t = e.target;
+      if (t instanceof Node && (ref.current?.contains(t) || isDescendantPopover(t, popId))) return;
+      onClose();
+    };
+    // Tap luar menutup; pan luar yang memicu scroll host ditutup lewat onScroll di atas.
     const TAP_SLOP = 10;
     let down: { x: number; y: number; id: number } | null = null;
     const onDown = (e: PointerEvent) => {
@@ -256,18 +259,19 @@ export function Popover({
       if (!closeOnOutside) return;
       const start = down && down.id === e.pointerId ? down : null;
       down = null;
-      if (!start) return; // tanpa pointerdown luar yang tercatat → bukan tap dismiss
+      if (!start) return;
       if (performance.now() - openedAt.current < 320) return;
       if (isInside(e.target)) return;
       const dx = e.clientX - start.x;
       const dy = e.clientY - start.y;
-      if (dx * dx + dy * dy > TAP_SLOP * TAP_SLOP) return; // pan → biarkan host scroll
+      if (dx * dx + dy * dy > TAP_SLOP * TAP_SLOP) return;
       onClose();
     };
     const vv = window.visualViewport;
     window.addEventListener('resize', place);
     window.addEventListener('scroll', onScroll, true);
     vv?.addEventListener('resize', place);
+    // vv scroll (keyboard/chrome) cukup reposisi — bukan scroll konten host
     vv?.addEventListener('scroll', place);
     document.addEventListener('pointerdown', onDown, true);
     document.addEventListener('pointerup', onUp, true);
