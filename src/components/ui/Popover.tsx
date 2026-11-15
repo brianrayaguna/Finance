@@ -64,7 +64,7 @@ export function Popover({
   const ref = useRef<HTMLDivElement>(null);
   const popId = useId();
   const parentId = useContext(ParentPopoverCtx);
-  const [pos, setPos] = useState<{ top: number; left: number; origin: string; w?: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; origin: string; w?: number; maxH: number } | null>(null);
   useLayer(open, onClose);
 
   const place = useCallback(() => {
@@ -83,58 +83,98 @@ export function Popover({
     // Ukuran tata letak (offset*), bukan getBoundingClientRect: saat animasi masuk popover masih
     // diskalakan 0,96 sehingga lebarnya terukur lebih kecil dan popover di tepi kanan meluber.
     const pw = Math.max(w ?? el.offsetWidth, minWidth ?? 0);
-    const ph = el.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    let top: number;
-    let left: number;
+    const gap = 8;
+    const vv = window.visualViewport;
+    const vw = vv?.width ?? window.innerWidth;
+    const vh = vv?.height ?? window.innerHeight;
+    const vx = vv?.offsetLeft ?? 0;
+    const vy = vv?.offsetTop ?? 0;
+    const viewTop = vy + gap;
+    const viewBottom = vy + vh - gap;
+    const viewLeft = vx + gap;
+    const viewRight = vx + vw - gap;
+
+    let top = 0;
+    let left = 0;
     let origin = 'top';
     let originX = placement.endsWith('end') ? 'right' : 'left';
+    let maxH = 120;
+    let placeBelow = true;
     if (placement === 'right-start') {
       // baris pertama anak menu sejajar dengan baris pemicunya (menu punya padding 5–6px)
       left = r.right + offset;
       top = r.top - 6;
       originX = 'left';
-      if (left + pw > vw - 8) {
+      if (left + pw > viewRight) {
         const altLeft = r.left - offset - pw;
-        if (altLeft >= 8) {
+        if (altLeft >= viewLeft) {
           left = altLeft;
           originX = 'right';
         } else {
           // Layar sempit: tempatkan di bawah baris pemicu sedikit menjorok agar tidak menimpa induknya.
-          left = Math.min(r.left + 12, vw - pw - 8);
+          left = Math.min(r.left + 12, viewRight - pw);
           top = r.bottom + 4;
           originX = 'left';
-        }
-      }
-    } else {
-      const below = r.bottom + offset;
-      const above = r.top - offset - ph;
-      const preferTop = placement.startsWith('top');
-      top = preferTop ? above : below;
-      if (!preferTop && below + ph > vh - 8 && above > 8) {
-        top = above;
-        origin = 'bottom';
-      } else if (preferTop) {
-        origin = 'bottom';
-        if (above < 8) {
-          top = below;
           origin = 'top';
         }
       }
+      maxH = Math.max(120, viewBottom - Math.max(top, viewTop));
+    } else {
+      const spaceBelow = Math.max(0, viewBottom - (r.bottom + offset));
+      const spaceAbove = Math.max(0, r.top - offset - viewTop);
+      const preferTop = placement.startsWith('top');
+      const minUseful = 160;
+      // Pilih sisi yang muat; jika keduanya sempit, ambil yang lebih lapang.
+      placeBelow = !preferTop;
+      if (preferTop) {
+        placeBelow = spaceAbove < minUseful && spaceBelow > spaceAbove;
+      } else if (spaceBelow < minUseful && spaceAbove > spaceBelow) {
+        placeBelow = false;
+      }
+      maxH = Math.max(120, placeBelow ? spaceBelow : spaceAbove);
+      origin = placeBelow ? 'top' : 'bottom';
       left = placement.endsWith('end') ? r.right - pw : r.left;
     }
-    top = Math.max(8, Math.min(top, vh - ph - 8));
-    left = Math.max(8, Math.min(left, vw - pw - 8));
-    const next = { top, left, origin: `${origin} ${originX}`, w };
+
+    const applyMaxH = (h: number) => {
+      if (Math.abs((parseFloat(el.style.maxHeight) || 0) - h) > 0.5) el.style.maxHeight = `${h}px`;
+    };
+    applyMaxH(maxH);
+    let ph = el.offsetHeight;
+    if (placement !== 'right-start') {
+      top = placeBelow ? r.bottom + offset : r.top - offset - ph;
+    }
+    // Klem ke viewport, lalu ketatkan maxHeight ke sisa ruang aktual (bawah atau atas).
+    if (placeBelow || placement === 'right-start') {
+      top = Math.max(viewTop, Math.min(top, viewBottom - Math.min(ph, maxH)));
+      maxH = Math.max(120, Math.min(maxH, viewBottom - top));
+      applyMaxH(maxH);
+    } else {
+      const anchorTop = r.top - offset;
+      top = Math.max(viewTop, Math.min(top, anchorTop - 120));
+      maxH = Math.max(120, Math.min(maxH, anchorTop - top));
+      applyMaxH(maxH);
+      ph = el.offsetHeight;
+      top = Math.max(viewTop, anchorTop - ph);
+    }
+    left = Math.max(viewLeft, Math.min(left, viewRight - pw));
+    const next = { top, left, origin: `${origin} ${originX}`, w, maxH };
     setPos((p) =>
-      p && Math.abs(p.top - next.top) < 0.5 && Math.abs(p.left - next.left) < 0.5 && p.origin === next.origin && p.w === next.w ? p : next,
+      p &&
+      Math.abs(p.top - next.top) < 0.5 &&
+      Math.abs(p.left - next.left) < 0.5 &&
+      p.origin === next.origin &&
+      p.w === next.w &&
+      Math.abs(p.maxH - next.maxH) < 0.5
+        ? p
+        : next,
     );
   }, [anchor, placement, width, minWidth, offset]);
 
   useLayoutEffect(() => {
     if (!open) {
       setPos(null);
+      if (ref.current) ref.current.style.maxHeight = '';
       return;
     }
     place();
@@ -175,14 +215,19 @@ export function Popover({
       if (isDescendantPopover(t, popId)) return;
       onClose();
     };
+    const vv = window.visualViewport;
     window.addEventListener('resize', place);
     window.addEventListener('scroll', onScroll, true);
+    vv?.addEventListener('resize', place);
+    vv?.addEventListener('scroll', place);
     document.addEventListener('mousedown', onDown, true);
     const ro = ref.current ? new ResizeObserver(() => place()) : null;
     if (ro && ref.current) ro.observe(ref.current);
     return () => {
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', onScroll, true);
+      vv?.removeEventListener('resize', place);
+      vv?.removeEventListener('scroll', place);
       document.removeEventListener('mousedown', onDown, true);
       ro?.disconnect();
     };
@@ -204,6 +249,7 @@ export function Popover({
             left: pos?.left ?? -9999,
             width: pos?.w,
             minWidth,
+            maxHeight: pos?.maxH,
             transformOrigin: pos?.origin,
             visibility: pos ? 'visible' : 'hidden',
             ...style,
