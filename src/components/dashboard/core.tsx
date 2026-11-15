@@ -501,7 +501,7 @@ export function BudgetsWidget({ settings }: WidgetProps) {
                     <span className="truncate grow" style={{ fontSize: 13, fontWeight: 580 }}>
                       {bl.account.name}
                     </span>
-                    <span className="num" style={{ fontSize: 13 }}>
+                    <span className="num budget-mini-amt" style={{ fontSize: 13 }}>
                       <span className={`money-val${bl.used > 1 ? ' neg' : ''}`}>{shortMoney(bl.actual, compact)}</span>
                       <span className="muted">
                         {' '}

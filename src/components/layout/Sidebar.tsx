@@ -268,7 +268,7 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
 
   const items: MenuItem[] = [
     { note: book },
-    { label: 'Pengaturan', icon: SettingsIcon, kbd: isMac ? '⌘ ,' : 'Ctrl ,', onSelect: () => go('/pengaturan') },
+    { label: 'Pengaturan', icon: SettingsIcon, onSelect: () => go('/pengaturan') },
     {
       label: 'Tampilan',
       icon: Palette,
@@ -281,9 +281,9 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
         { label: 'Warna & kepadatan…', onSelect: () => go('/pengaturan#tampilan') },
       ],
     },
-    { label: 'Pintasan keyboard', icon: Keyboard, kbd: '?', onSelect: () => setShortcuts(true) },
+    { label: 'Pintasan keyboard', icon: Keyboard, onSelect: () => setShortcuts(true) },
     { separator: true },
-    { label: hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', icon: hideAmounts ? Eye : EyeOff, kbd: 'H', onSelect: () => setPrefs({ hideAmounts: !hideAmounts }) },
+    { label: hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', icon: hideAmounts ? Eye : EyeOff, onSelect: () => setPrefs({ hideAmounts: !hideAmounts }) },
     { label: 'Cadangkan data', icon: Download, onSelect: downloadBackup },
     { separator: true },
     { label: 'Tentang Keuanganku', icon: Info, onSelect: () => go('/pengaturan#tentang') },
