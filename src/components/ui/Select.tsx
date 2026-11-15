@@ -275,7 +275,10 @@ export function Select<T extends string>({
                   className={`option${i === active ? ' active' : ''}`}
                   style={o.disabled ? { opacity: 0.4, cursor: 'default' } : undefined}
                   onMouseMove={() => !o.disabled && active !== i && setActive(i)}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onPointerDown={(e) => {
+                    // Hanya mouse: cegah blur search. preventDefault di touch mematahkan scroll/tap di mobile.
+                    if (e.pointerType === 'mouse') e.preventDefault();
+                  }}
                   onClick={() => choose(o)}
                 >
                   {showIcon && o.icon && <IconTile icon={o.icon} color={o.color} size="sm" />}
