@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LayoutGrid, ArrowLeftRight, Wallet, Menu as MenuIcon, Plus } from '../../lib/glyphs';
+import { LayoutGrid, ArrowLeftRight, Wallet, FileChartColumn, Plus } from '../../lib/glyphs';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { usePrefs, useUI } from '../../store/ui';
@@ -108,8 +108,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 /** Navigasi bawah untuk layar ponsel: halaman utama + tombol catat melayang */
 function TabBar({ inert }: { inert?: boolean }) {
   const openTx = useUI((s) => s.openTx);
-  const mobileNav = useUI((s) => s.mobileNav);
-  const setMobileNav = useUI((s) => s.setMobileNav);
   return (
     <nav className="tabbar no-print" aria-label="Menu bawah" inert={inert ? true : undefined}>
       <NavLink to="/" end className="tab">
@@ -147,12 +145,16 @@ function TabBar({ inert }: { inert?: boolean }) {
           </>
         )}
       </NavLink>
-      <button type="button" className={`tab${mobileNav ? ' active' : ''}`} onClick={() => setMobileNav(!mobileNav)} aria-expanded={mobileNav} aria-controls="main-sidebar" aria-label="Menu lainnya">
-        <span className="tab-ico" aria-hidden>
-          <MenuIcon />
-        </span>
-        <span>Lainnya</span>
-      </button>
+      <NavLink to="/laporan" className="tab">
+        {({ isActive }) => (
+          <>
+            <span className="tab-ico" aria-hidden>
+              <FileChartColumn solid={isActive} />
+            </span>
+            <span>Laporan</span>
+          </>
+        )}
+      </NavLink>
     </nav>
   );
 }

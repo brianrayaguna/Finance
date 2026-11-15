@@ -40,7 +40,16 @@ export function Topbar() {
         >
           <MenuIcon aria-hidden />
         </button>
-        <LogoMark size={26} className="tb-logo" />
+        <button
+          type="button"
+          className="tb-logo"
+          onClick={() => setMobileNav(true)}
+          aria-expanded={mobileNav}
+          aria-controls="main-sidebar"
+          aria-label="Buka menu"
+        >
+          <LogoMark size={26} aria-hidden />
+        </button>
         <Breadcrumb />
       </div>
 
