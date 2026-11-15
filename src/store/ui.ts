@@ -82,7 +82,8 @@ export function sanitizePrefs(raw: Record<string, unknown>): Partial<PrefsState>
   if (REPORT_PRESETS.includes(raw.reportPreset as PresetKey)) p.reportPreset = raw.reportPreset as PresetKey;
   if (typeof raw.compactNumbers === 'boolean') p.compactNumbers = raw.compactNumbers;
   if (typeof raw.onboardingDismissed === 'boolean') p.onboardingDismissed = raw.onboardingDismissed;
-  if (Array.isArray(raw.readReminders)) p.readReminders = raw.readReminders.filter((id): id is string => typeof id === 'string');
+  // Selalu set: preferensi lama tanpa field ini / nilai rusak tidak boleh membuat state undefined.
+  p.readReminders = Array.isArray(raw.readReminders) ? raw.readReminders.filter((id): id is string => typeof id === 'string') : [];
   return p;
 }
 
@@ -112,19 +113,37 @@ export const usePrefs = create<Prefs>()(
       setLayout: (fn) => set((s) => ({ dashboard: fn(s.dashboard) })),
       setNav: (fn) => set((s) => ({ nav: fn(s.nav) })),
       markReminderRead: (id) =>
-        set((s) => (s.readReminders.includes(id) ? s : { readReminders: [...s.readReminders, id] })),
+        set((s) => {
+          const cur = Array.isArray(s.readReminders) ? s.readReminders : [];
+          return cur.includes(id) ? (cur === s.readReminders ? s : { readReminders: cur }) : { readReminders: [...cur, id] };
+        }),
     }),
     {
       // Nama kunci 'neraca.*' dipertahankan agar preferensi tersimpan tetap terbaca.
       name: 'neraca.prefs',
-      version: 3,
-      storage: createJSONStorage(() => {
-        try {
-          return localStorage;
-        } catch {
-          return sessionStorage;
-        }
-      }),
+      version: 4,
+      storage: (() => {
+        const base = createJSONStorage(() => {
+          try {
+            return localStorage;
+          } catch {
+            return sessionStorage;
+          }
+        })!;
+        return {
+          getItem: (...args: Parameters<typeof base.getItem>) => {
+            try {
+              const v = base.getItem(...args);
+              return v instanceof Promise ? v.catch(() => null) : v;
+            } catch (err) {
+              console.error('Gagal membaca neraca.prefs:', err);
+              return null;
+            }
+          },
+          setItem: base.setItem.bind(base),
+          removeItem: base.removeItem.bind(base),
+        };
+      })(),
       migrate: (persisted) => {
         const p = { ...(persisted as Record<string, unknown>) };
         // Warna aksen yang tidak dikenal kembali ke bawaan.
@@ -132,7 +151,16 @@ export const usePrefs = create<Prefs>()(
         return sanitizePrefs(p) as unknown as Prefs;
       },
       // Data tersimpan selalu dibersihkan sebelum digabung dengan nilai bawaan.
-      merge: (persisted, current) => ({ ...current, ...sanitizePrefs((persisted ?? {}) as Record<string, unknown>) }),
+      merge: (persisted, current) => {
+        try {
+          const raw = (persisted ?? {}) as Record<string, unknown>;
+          const body = raw.state && typeof raw.state === 'object' ? (raw.state as Record<string, unknown>) : raw;
+          return { ...current, ...sanitizePrefs(body) };
+        } catch (err) {
+          console.error('Gagal memuat preferensi:', err);
+          return current;
+        }
+      },
       partialize: ({ set: _s, setLayout: _l, setNav: _n, markReminderRead: _m, ...rest }) => {
         void _s;
         void _l;
@@ -152,8 +180,9 @@ export function markReminderRead(id: string) {
 /** Buang ID pengingat yang sudah tidak aktif agar tidak menumpuk di penyimpanan. */
 export function pruneReadReminders(activeIds: ReadonlySet<string>) {
   const cur = usePrefs.getState().readReminders;
-  const next = cur.filter((id) => activeIds.has(id));
-  if (next.length !== cur.length) usePrefs.getState().set({ readReminders: next });
+  const list = Array.isArray(cur) ? cur : [];
+  const next = list.filter((id) => activeIds.has(id));
+  if (next.length !== list.length || !Array.isArray(cur)) usePrefs.getState().set({ readReminders: next });
 }
 
 /* ───────── Ephemeral UI state ───────── */

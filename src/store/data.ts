@@ -227,7 +227,7 @@ const HISTORY = 80;
 
 let storageWarned = false;
 
-const safeStorage = createJSONStorage(() => {
+const underlyingStorage = (() => {
   const mem = new Map<string, string>();
   const memStorage: Storage = {
     length: 0,
@@ -297,7 +297,24 @@ const safeStorage = createJSONStorage(() => {
   } catch {
     return memStorage;
   }
-});
+})();
+
+const jsonStorage = createJSONStorage(() => underlyingStorage)!;
+
+/** JSON.parse gagal / data korup → null, jangan sampai layar putih. */
+const safeStorage = {
+  getItem: (...args: Parameters<typeof jsonStorage.getItem>) => {
+    try {
+      const v = jsonStorage.getItem(...args);
+      return v instanceof Promise ? v.catch(() => null) : v;
+    } catch (err) {
+      console.error('Gagal membaca neraca.data:', err);
+      return null;
+    }
+  },
+  setItem: (...args: Parameters<typeof jsonStorage.setItem>) => jsonStorage.setItem(...args),
+  removeItem: (...args: Parameters<typeof jsonStorage.removeItem>) => jsonStorage.removeItem(...args),
+};
 
 export const useData = create<DataState>()(
   persist(
@@ -364,9 +381,21 @@ export const useData = create<DataState>()(
       storage: safeStorage,
       partialize: (s) => ({ data: s.data }) as unknown as DataState,
       merge: (persisted, current) => {
-        const p = persisted as Partial<DataState> | undefined;
-        if (!p?.data) return current;
-        return { ...current, data: normalizeData(p.data) };
+        try {
+          const p = persisted as Partial<DataState> | undefined;
+          if (!p?.data) return current;
+          return { ...current, data: normalizeData(p.data) };
+        } catch (err) {
+          console.error('Gagal memuat data buku tersimpan:', err);
+          queueMicrotask(() =>
+            toast('Data buku tidak dapat dimuat penuh', {
+              tone: 'danger',
+              detail: 'Coba pulihkan dari berkas cadangan di Pengaturan › Data & cadangan.',
+              duration: 8000,
+            }),
+          );
+          return current;
+        }
       },
     },
   ),

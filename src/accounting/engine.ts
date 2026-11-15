@@ -31,7 +31,7 @@ export const TX_META: Record<TxType, { label: string; prefix: string; short: str
 
 export function refPrefix(tx: Pick<Transaction, 'type' | 'adjusting'>): string {
   if (tx.type === 'journal' && tx.adjusting) return 'JP';
-  return TX_META[tx.type].prefix;
+  return TX_META[tx.type]?.prefix ?? 'TX';
 }
 
 /** Nomor bukti: BKK/2026/09/0007 — berurutan per jenis per bulan. */

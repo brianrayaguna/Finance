@@ -28,6 +28,8 @@ export interface Reminders {
   budgetOver: number;
 }
 
+const EMPTY: Omit<Reminders, 'unreadItems'> = { items: [], dueCount: 0, budgetOver: 0 };
+
 let last: { data: AppData; today: string; value: Omit<Reminders, 'unreadItems'> } | null = null;
 
 /**
@@ -39,19 +41,26 @@ export function useReminders(): Reminders {
   const data = useData((s) => s.data);
   const today = useToday();
   const readReminders = usePrefs((s) => s.readReminders);
+  const readIds = Array.isArray(readReminders) ? readReminders : [];
 
   const base = useMemo(() => {
     if (last && last.data === data && last.today === today) return last.value;
-    const value = computeReminders(data, today);
-    last = { data, today, value };
-    return value;
+    try {
+      const value = computeReminders(data, today);
+      last = { data, today, value };
+      return value;
+    } catch (err) {
+      console.error('Gagal menghitung pengingat:', err);
+      last = { data, today, value: EMPTY };
+      return EMPTY;
+    }
   }, [data, today]);
 
   const unreadItems = useMemo(() => {
-    if (readReminders.length === 0) return base.items;
-    const read = new Set(readReminders);
+    if (readIds.length === 0) return base.items;
+    const read = new Set(readIds);
     return base.items.filter((r) => !read.has(r.id));
-  }, [base.items, readReminders]);
+  }, [base.items, readIds]);
 
   useEffect(() => {
     pruneReadReminders(new Set(base.items.map((r) => r.id)));

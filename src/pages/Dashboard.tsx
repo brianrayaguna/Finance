@@ -227,7 +227,8 @@ export default function Dashboard() {
           <LayoutGroup>
             <motion.div className="dash-grid" variants={stagger} initial="hidden" animate="show" key={month}>
               {layout.order.map((id, i) => {
-                const W = WIDGETS[id].Component;
+                const W = WIDGETS[id]?.Component;
+                if (!W) return null;
                 return (
                   <WidgetFrame
                     key={id}

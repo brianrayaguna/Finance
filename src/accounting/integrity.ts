@@ -80,7 +80,7 @@ function computeIntegrity(data: AppData): IntegrityIssue[] {
         code: 'orphan-payment',
         txId: t.id,
         ref: t.ref,
-        message: `${TX_META[t.type].label} ${t.ref} tidak terhubung ke ${t.type === 'payable_pay' ? 'hutang' : 'piutang'} yang valid.`,
+        message: `${TX_META[t.type]?.label ?? 'Transaksi'} ${t.ref} tidak terhubung ke ${t.type === 'payable_pay' ? 'hutang' : 'piutang'} yang valid.`,
       });
       continue;
     }

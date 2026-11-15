@@ -18,7 +18,7 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
   const a = (id?: string) => (id ? acc.get(id) : undefined);
   const cat = a(t.categoryId);
   const wal = a(t.accountId);
-  const kind = TX_META[t.type].label;
+  const kind = TX_META[t.type]?.label ?? 'Transaksi';
   const amt = t.amount + (t.fee || 0) + (t.interest || 0);
   const walletDebt = usesWallet(t);
   switch (t.type) {

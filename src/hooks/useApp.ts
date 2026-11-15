@@ -23,7 +23,11 @@ export function useToday() {
 }
 
 export function useThemeSync() {
-  const { theme, accent, density, reduceMotion, hideAmounts } = usePrefs();
+  const theme = usePrefs((s) => s.theme);
+  const accent = usePrefs((s) => s.accent);
+  const density = usePrefs((s) => s.density);
+  const reduceMotion = usePrefs((s) => s.reduceMotion);
+  const hideAmounts = usePrefs((s) => s.hideAmounts);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
