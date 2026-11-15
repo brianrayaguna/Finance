@@ -226,7 +226,9 @@ function SettingsButton({ id, layout, update }: { id: WidgetId; layout: DashLayo
         </button>
       </Tooltip>
       <Popover open={open} onClose={() => setOpen(false)} anchor={ref} placement="bottom-end" width={290} autoFocus>
-        <WidgetSettings id={id} layout={layout} update={update} />
+        <div className="popover-body">
+          <WidgetSettings id={id} layout={layout} update={update} />
+        </div>
       </Popover>
     </>
   );

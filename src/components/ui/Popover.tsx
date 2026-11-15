@@ -241,11 +241,27 @@ export function Popover({
       if (isDescendantPopover(t, popId)) return true;
       return false;
     };
-    // pointerup + grace: pointerdown capture sering membatalkan tap pertama di mobile.
-    const onUp = (e: Event) => {
+    // Tap luar menutup; pan luar (scroll modal/page) tidak — bedakan lewat jarak pointer.
+    const TAP_SLOP = 10;
+    let down: { x: number; y: number; id: number } | null = null;
+    const onDown = (e: PointerEvent) => {
       if (!closeOnOutside) return;
+      if (isInside(e.target)) {
+        down = null;
+        return;
+      }
+      down = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!closeOnOutside) return;
+      const start = down && down.id === e.pointerId ? down : null;
+      down = null;
+      if (!start) return; // tanpa pointerdown luar yang tercatat → bukan tap dismiss
       if (performance.now() - openedAt.current < 320) return;
       if (isInside(e.target)) return;
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (dx * dx + dy * dy > TAP_SLOP * TAP_SLOP) return; // pan → biarkan host scroll
       onClose();
     };
     const vv = window.visualViewport;
@@ -253,7 +269,9 @@ export function Popover({
     window.addEventListener('scroll', onScroll, true);
     vv?.addEventListener('resize', place);
     vv?.addEventListener('scroll', place);
+    document.addEventListener('pointerdown', onDown, true);
     document.addEventListener('pointerup', onUp, true);
+    document.addEventListener('pointercancel', onUp, true);
     const ro = ref.current ? new ResizeObserver(() => place()) : null;
     if (ro && ref.current) ro.observe(ref.current);
     return () => {
@@ -261,7 +279,9 @@ export function Popover({
       window.removeEventListener('scroll', onScroll, true);
       vv?.removeEventListener('resize', place);
       vv?.removeEventListener('scroll', place);
+      document.removeEventListener('pointerdown', onDown, true);
       document.removeEventListener('pointerup', onUp, true);
+      document.removeEventListener('pointercancel', onUp, true);
       ro?.disconnect();
     };
   }, [open, place, anchor, onClose, closeOnOutside, popId]);

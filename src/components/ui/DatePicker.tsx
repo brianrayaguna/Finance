@@ -237,29 +237,31 @@ export function DatePicker({
         <ChevronDown className="chev" />
       </button>
       <Popover open={open} onClose={close} anchor={ref} minWidth={292} ariaLabel="Pilih tanggal">
-        <MiniCalendar value={value || undefined} onSelect={pick} autoFocus min={min} max={max} />
-        <div className="mc-foot">
-          {(presets ?? [
-            { label: 'Hari ini', date: today },
-            { label: 'Kemarin', date: addDays(today, -1) },
-          ])
-            .filter((p) => allowed(p.date))
-            .map((p) => (
-              <button key={p.label} type="button" className="chip" onClick={() => pick(p.date)}>
-                {p.label}
+        <div className="popover-body">
+          <MiniCalendar value={value || undefined} onSelect={pick} autoFocus min={min} max={max} />
+          <div className="mc-foot">
+            {(presets ?? [
+              { label: 'Hari ini', date: today },
+              { label: 'Kemarin', date: addDays(today, -1) },
+            ])
+              .filter((p) => allowed(p.date))
+              .map((p) => (
+                <button key={p.label} type="button" className="chip" onClick={() => pick(p.date)}>
+                  {p.label}
+                </button>
+              ))}
+            {clearable ? (
+              <button type="button" className="chip" style={{ marginLeft: 'auto' }} onClick={() => pick('')}>
+                Kosongkan
               </button>
-            ))}
-          {clearable ? (
-            <button type="button" className="chip" style={{ marginLeft: 'auto' }} onClick={() => pick('')}>
-              Kosongkan
-            </button>
-          ) : (
-            allowed(addDays(today, 30)) && (
-              <button type="button" className="chip" style={{ marginLeft: 'auto' }} onClick={() => pick(addDays(today, 30))}>
-                +30 hari
-              </button>
-            )
-          )}
+            ) : (
+              allowed(addDays(today, 30)) && (
+                <button type="button" className="chip" style={{ marginLeft: 'auto' }} onClick={() => pick(addDays(today, 30))}>
+                  +30 hari
+                </button>
+              )
+            )}
+          </div>
         </div>
       </Popover>
     </>

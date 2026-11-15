@@ -166,30 +166,32 @@ export function PeriodPicker({
             </button>
           </div>
         ) : (
-          <div style={{ padding: 14 }} className="stack-sm">
-            <div className="label-caps">Rentang kustom</div>
-            <Field label="Dari">
-              <DatePicker value={from} onChange={setFrom} compact />
-            </Field>
-            <Field label="Sampai" hint={to && from && to < from ? 'Urutan tanggal akan ditukar otomatis' : undefined}>
-              <DatePicker value={to} onChange={setTo} compact />
-            </Field>
-            <div className="row" style={{ justifyContent: 'flex-end', marginTop: 6 }}>
-              <Button size="sm" variant="ghost" onClick={() => setCustom(false)}>
-                Kembali
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={!from || !to}
-                onClick={() => {
-                  const [a, b] = from <= to ? [from, to] : [to, from];
-                  onChange({ preset: 'custom', from: a, to: b });
-                  close();
-                }}
-              >
-                Terapkan
-              </Button>
+          <div className="popover-body" style={{ padding: 14 }}>
+            <div className="stack-sm">
+              <div className="label-caps">Rentang kustom</div>
+              <Field label="Dari">
+                <DatePicker value={from} onChange={setFrom} compact />
+              </Field>
+              <Field label="Sampai" hint={to && from && to < from ? 'Urutan tanggal akan ditukar otomatis' : undefined}>
+                <DatePicker value={to} onChange={setTo} compact />
+              </Field>
+              <div className="row" style={{ justifyContent: 'flex-end', marginTop: 6 }}>
+                <Button size="sm" variant="ghost" onClick={() => setCustom(false)}>
+                  Kembali
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={!from || !to}
+                  onClick={() => {
+                    const [a, b] = from <= to ? [from, to] : [to, from];
+                    onChange({ preset: 'custom', from: a, to: b });
+                    close();
+                  }}
+                >
+                  Terapkan
+                </Button>
+              </div>
             </div>
           </div>
         )}

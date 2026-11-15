@@ -854,7 +854,14 @@
 .rem {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   max-height: min(70vh, 460px);
+  overflow: hidden;
+}
+/* Popover sudah membatasi tinggi — rem mengisi sisa, gulir hanya di .rem-list */
+.popover > .rem {
+  max-height: none;
+  flex: 1 1 auto;
 }
 .rem-head {
   display: flex;
@@ -864,12 +871,18 @@
   padding: 12px 14px 10px;
   border-bottom: 1px solid var(--line);
   font-size: var(--fs-md);
+  flex: none;
 }
 .rem-head .muted {
   font-size: var(--fs-xs);
 }
 .rem-list {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding: 6px;
 }
 .rem-item {

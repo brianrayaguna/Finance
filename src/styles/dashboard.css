@@ -396,6 +396,8 @@ body.dragging-widget * {
   flex-direction: column;
   gap: 12px;
   padding: 14px;
+  /* Gulir lewat .popover-body induk; jangan buat scrollport kedua */
+  flex: none;
 }
 .wset-title {
   font-size: var(--fs-md);

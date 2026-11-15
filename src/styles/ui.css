@@ -456,13 +456,19 @@
   border-radius: var(--radius-md);
   background: var(--popover);
   box-shadow: var(--shadow-pop);
-  /* auto: DatePicker/Menu non-listbox harus bisa digulir saat maxHeight membatasi */
+  /* Shell bukan scrollport — gulir hanya di .popover-body / .listbox / .menu / .rem-list */
+  overflow: hidden;
+  transform-origin: top center;
+}
+/* Satu ruang sentuh gulir di dalam panel (Tanggal, form PeriodPicker kustom, dll.) */
+.popover-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  transform-origin: top center;
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 /* Di dalam dialog[open] (grid + place-items), jangan ikut ter-center. */
 dialog[open] > .popover {
@@ -504,6 +510,10 @@ dialog[open] > .popover {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   padding: 5px;
+}
+/* Di dalam Popover ber-maxHeight: listbox yang memegang gulir, bukan shell */
+.popover > .listbox {
+  max-height: none;
 }
 .list-group {
   padding: 9px 9px 4px;
@@ -566,6 +576,9 @@ dialog[open] > .popover {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+}
+.popover > .menu {
+  max-height: none;
 }
 .menu-item {
   display: flex;
