@@ -17,7 +17,7 @@ import {
   startOfMonth,
   compactNumber,
 } from '../lib/format';
-import { isTypingTarget, layerCount } from '../lib/layers';
+import { isImeComposing, isTypingTarget, layerCount } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, IconTile, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -115,7 +115,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (layerCount() > 0 || isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isImeComposing(e) || layerCount() > 0 || isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       const map: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
       if (view === 'month' && map[e.key] !== undefined) {
         e.preventDefault();
@@ -131,7 +131,9 @@ export default function CalendarPage() {
       } else if (e.key.toLowerCase() === 't') {
         e.preventDefault();
         moveSel(today);
-      } else if (e.key === 'Enter') {
+      } else if (view === 'month' && e.key === 'Enter') {
+        const btn = e.target instanceof Element ? e.target.closest('button, a, [role="button"], [role="tab"], [role="radio"]') : null;
+        if (btn && !btn.classList.contains('sel')) return;
         e.preventDefault();
         openTx({ date: sel });
       }

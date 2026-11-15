@@ -7,6 +7,7 @@ import { entryTotals } from '../accounting/engine';
 import { closingEntries } from '../accounting/reports';
 import type { JournalEntry } from '../accounting/types';
 import { formatDate, formatMoney, normalize, round2, isZero } from '../lib/format';
+import { rowAction } from '../lib/focus';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, EmptyState, TextInput, Dots, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -154,7 +155,7 @@ export default function Journal() {
                   {entries.slice(0, limit).map((e) => {
                     const ordered = [...e.lines].sort((x, y) => (x.debit ? 0 : 1) - (y.debit ? 0 : 1));
                     return (
-                      <tbody key={e.id} className="je-block" onClick={() => openEntry(e)}>
+                      <tbody key={e.id} className="je-block" {...rowAction(e.txId || e.assetId ? () => openEntry(e) : undefined)}>
                         {ordered.map((l, i) => {
                           const a = b.acc.get(l.accountId);
                           return (

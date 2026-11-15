@@ -17,7 +17,7 @@ import {
 } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, confirm } from '../store/ui';
-import { deleteTransactions, duplicateTransaction, childCount } from '../store/data';
+import { canDuplicateTransaction, deleteTransactions, duplicateTransaction, childCount } from '../store/data';
 import { notify } from '../store/history';
 import type { Transaction, TxType } from '../accounting/types';
 import { formatDate, formatMoney, normalize, endOfMonth, DAYS, parseISO, round2, isZero } from '../lib/format';
@@ -228,14 +228,19 @@ export default function Transactions() {
   };
 
   const duplicate = (t: Transaction, date?: string) => {
+    if (!canDuplicateTransaction(t)) return;
     const r = duplicateTransaction(t.id, date ?? t.date);
-    if (r) notify(`Diduplikat sebagai ${r.tx.ref}`, r.historyId);
+    if (r?.historyId) notify(`Diduplikat sebagai ${r.tx.ref}`, r.historyId);
   };
 
   const menuFor = (t: Transaction) => [
     { label: 'Ubah', icon: Pencil, kbd: '↵', onSelect: () => editTx(t) },
-    { label: 'Duplikat', icon: Copy, kbd: 'D', onSelect: () => duplicate(t) },
-    { label: 'Duplikat ke hari ini', icon: CalendarPlus, onSelect: () => duplicate(t, today) },
+    ...(canDuplicateTransaction(t)
+      ? [
+          { label: 'Duplikat', icon: Copy, kbd: 'D', onSelect: () => duplicate(t) },
+          { label: 'Duplikat ke hari ini', icon: CalendarPlus, onSelect: () => duplicate(t, today) },
+        ]
+      : []),
     { label: 'Lihat di jurnal', icon: NotebookPen, onSelect: () => navigate(`/jurnal?cari=${encodeURIComponent(t.ref)}`) },
     { separator: true },
     { label: selected.size > 1 && selected.has(t.id) ? `Hapus ${selected.size} transaksi` : 'Hapus', icon: Trash2, kbd: '⌫', danger: true, onSelect: () => removeIds(selected.size > 1 && selected.has(t.id) ? [...selected] : [t.id]) },

@@ -175,7 +175,7 @@ export function AccountModal({
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit}>
+          <Button variant="primary" onClick={() => submitRef.run()}>
             {editing ? 'Simpan' : 'Tambahkan'}
           </Button>
         </>

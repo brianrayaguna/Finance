@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { addTransaction, deleteTransactions, emptyData, normalizeData, replaceData, updateAsset, updateProfile, updateTransaction, useData } from '../../store/data';
+import { addTransaction, canDuplicateTransaction, deleteTransactions, duplicateTransaction, emptyData, normalizeData, replaceData, updateAsset, updateProfile, updateTransaction, useData } from '../../store/data';
 import { SYS } from '../coa';
 import { buildJournal, entryTotals } from '../engine';
 import { checkIntegrity } from '../integrity';
@@ -147,6 +147,40 @@ describe('kunci periode', () => {
       useData.getState().undo();
       expect(useData.getState().data.profile.lockDate).toBe(LOCK);
       expect(replaceData(normalizeData(emptyData()), 'Pulihkan')).not.toBe('');
+    });
+
+    it('duplicateTransaction mengembalikan null saat tanggal target terkunci dan hanya mengizinkan jenis transaksi yang aman diduplikat', () => {
+      const before = useData.getState().data;
+      expect(duplicateTransaction('locked-1', '2025-06-01')).toBeNull();
+      expect(useData.getState().data).toBe(before);
+      expect(useData.getState().past).toHaveLength(0);
+
+      const ok = duplicateTransaction('locked-1', '2025-07-05');
+      expect(ok).not.toBeNull();
+      expect(ok!.historyId).not.toBe('');
+      expect(ok!.tx.date).toBe('2025-07-05');
+
+      const restricted: Transaction['type'][] = ['opening', 'payable_pay', 'receivable_collect', 'receivable_writeoff'];
+      const seeded = useData.getState().data;
+      const extraTxs = restricted.map((type, i) =>
+        tx({
+          id: `r-${i}`,
+          type,
+          date: '2025-07-06',
+          amount: 25_000,
+          accountId: BANK,
+          parentId: type === 'opening' ? undefined : 'debt-1',
+        }),
+      );
+      useData.setState({ data: { ...seeded, transactions: [...seeded.transactions, ...extraTxs] }, past: [], future: [], lastId: null });
+      const snap = useData.getState().data;
+
+      for (const t of extraTxs) {
+        expect(canDuplicateTransaction(t)).toBe(false);
+        expect(duplicateTransaction(t.id, '2025-07-07')).toBeNull();
+      }
+      expect(useData.getState().data).toBe(snap);
+      expect(useData.getState().past).toHaveLength(0);
     });
   });
 

@@ -107,7 +107,7 @@ export function GoalModal({ open, onClose, editing }: { open: boolean; onClose: 
 
   const nameErr = !name.trim() ? 'Nama target wajib diisi' : null;
   const targetErr = !(target && target > 0) ? 'Isi jumlah target' : null;
-  const dateErr = targetDate && targetDate <= today && !editing ? 'Tenggat harus setelah hari ini' : null;
+  const dateErr = targetDate && targetDate <= today && targetDate !== editing?.targetDate ? 'Tenggat harus setelah hari ini' : null;
 
   const toggle = (id: string) => setAccountIds((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
 
@@ -145,7 +145,7 @@ export function GoalModal({ open, onClose, editing }: { open: boolean; onClose: 
         <>
           <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
-          <Button variant="primary" onClick={submit}>
+          <Button variant="primary" onClick={() => submitRef.run()}>
             {editing ? 'Simpan' : 'Buat target'}
           </Button>
         </>

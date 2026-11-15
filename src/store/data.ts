@@ -466,12 +466,17 @@ export function childCount(ids: string[]): number {
   return getData().transactions.filter((t) => t.parentId && set.has(t.parentId) && !set.has(t.id)).length;
 }
 
+export function canDuplicateTransaction(t: Pick<Transaction, 'type'>): boolean {
+  return t.type !== 'opening' && t.type !== 'payable_pay' && t.type !== 'receivable_collect' && t.type !== 'receivable_writeoff';
+}
+
 export function duplicateTransaction(id: string, date = todayISO()) {
   const src = getData().transactions.find((t) => t.id === id);
-  if (!src) return null;
+  if (!src || !canDuplicateTransaction(src)) return null;
   const { id: _i, ref: _r, createdAt: _c, updatedAt: _u, ...rest } = src;
   void _i; void _r; void _c; void _u;
-  return addTransaction({ ...rest, date }, 'Duplikat transaksi');
+  const r = addTransaction({ ...rest, date }, 'Duplikat transaksi');
+  return r.historyId ? r : null;
 }
 
 /* Akun & kategori */

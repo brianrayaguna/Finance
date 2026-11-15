@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Download,
@@ -187,6 +188,7 @@ function SectionHead({ title, desc }: { title: string; desc: string }) {
 function IntegrityPanel({ data }: { data: AppData }) {
   const issues = useMemo(() => checkIntegrity(data), [data]);
   const editTx = useUI((s) => s.editTx);
+  const nav = useNavigate();
   const [open, setOpen] = useState(false);
   const errors = issues.filter((i) => i.level === 'error').length;
   const warns = issues.length - errors;
@@ -224,6 +226,11 @@ function IntegrityPanel({ data }: { data: AppData }) {
                   }}
                 >
                   Perbaiki
+                </button>
+              )}
+              {!i.txId && i.assetId && (
+                <button type="button" className="link-btn" onClick={() => nav('/aset')}>
+                  Lihat aset
                 </button>
               )}
             </li>
