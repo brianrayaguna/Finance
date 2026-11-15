@@ -160,14 +160,9 @@ export default function Wallets() {
         title="Dompet & Rekening"
         subtitle="Kas, bank, dompet digital, investasi, dan kartu kredit"
         actions={
-          <>
-            <Button icon={ArrowLeftRight} onClick={() => openTx({ type: 'transfer' })}>
-              Transfer
-            </Button>
-            <Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>
-              Tambah akun
-            </Button>
-          </>
+          <Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>
+            Tambah akun
+          </Button>
         }
       />
       <div className="sum-strip big">
