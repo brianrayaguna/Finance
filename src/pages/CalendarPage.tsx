@@ -261,11 +261,6 @@ export default function CalendarPage() {
               <span>
                 <i className="due-sw receivable" /> Jatuh tempo piutang
               </span>
-              <span className="spacer" />
-              <span className="muted">
-                <span className="kbd">←</span>
-                <span className="kbd">→</span> pindah · <span className="kbd">↵</span> catat · <span className="kbd">T</span> hari ini
-              </span>
             </div>
           </div>
 
