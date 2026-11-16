@@ -62,16 +62,17 @@ export function trimSeries<T extends { month: string; income: number; expense: n
 export const isFlat = (values: number[]) => values.length < 2 || values.every((v) => Math.abs(v - values[0]) < 0.5);
 
 /** Sparkline yang disembunyikan bila datanya datar (tidak informatif). */
-export function Spark({ values, color }: { values: number[]; color: string }) {
+export function Spark({ values, color, fluid }: { values: number[]; color: string; fluid?: boolean }) {
   if (isFlat(values)) return null;
-  return <Sparkline values={values} color={color} />;
+  return <Sparkline values={values} color={color} fluid={fluid} />;
 }
 
 /**
  * Perubahan dibanding periode sebelumnya.
  * Bila periode sebelumnya nol, persentase tidak bermakna — tampilkan selisih rupiah.
  */
-export function Delta({ cur, prev, invert, unit = 'money', compact = true, vs = 'bulan sebelumnya' }: { cur: number; prev: number; invert?: boolean; unit?: 'money' | 'points'; compact?: boolean; vs?: string }) {
+/** `tight`: ruang sempit (kartu KPI di ponsel) — nominal diringkas mulai ribuan ("Rp 560 rb"), bukan jutaan. */
+export function Delta({ cur, prev, invert, unit = 'money', compact = true, tight = false, vs = 'bulan sebelumnya' }: { cur: number; prev: number; invert?: boolean; unit?: 'money' | 'points'; compact?: boolean; tight?: boolean; vs?: string }) {
   const diff = cur - prev;
   if (isZero(prev) && isZero(cur)) return <span className="delta muted">—</span>;
   if (unit === 'money' ? isZero(diff) : Math.abs(diff) < 0.0005) return <span className="delta muted">Tetap</span>;
@@ -84,7 +85,7 @@ export function Delta({ cur, prev, invert, unit = 'money', compact = true, vs = 
     text = `${formatPercent(Math.abs(diff))} poin`;
     title = `${up ? 'Naik' : 'Turun'} ${formatPercent(Math.abs(diff))} poin dibanding ${vs}`;
   } else if (isZero(prev)) {
-    text = <span className="money-val">{formatMoney(Math.abs(diff), { compact: compact && Math.abs(diff) >= 1e6 })}</span>;
+    text = <span className="money-val">{formatMoney(Math.abs(diff), { compact: (compact || tight) && Math.abs(diff) >= (tight ? 1e3 : 1e6) })}</span>;
     title = `${up ? 'Naik' : 'Turun'} ${formatMoney(Math.abs(diff))} dari nol pada ${vs}`;
   } else {
     text = formatPercent(Math.abs(diff / Math.abs(prev)));

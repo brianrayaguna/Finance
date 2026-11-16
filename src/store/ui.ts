@@ -9,6 +9,12 @@ import type { WeekStart } from '../lib/week';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type PerfMode = 'auto' | 'on' | 'off';
+/** Folder simpan pilihan pengguna di APK (Storage Access Framework). Kosong = Download/Keuanganku/…. */
+export interface SaveFolder {
+  uri: string;
+  label: string;
+}
+export type SaveKind = 'report' | 'backup';
 export type Accent = 'forest' | 'ocean' | 'plum' | 'clay' | 'graphite';
 
 export const ACCENTS: { key: Accent; name: string; color: string; dark: string }[] = [
@@ -31,6 +37,8 @@ export interface PrefsState {
   reduceMotion: boolean;
   /** Mode hemat: tanpa efek kaca/blur & animasi grafik. 'auto' = aktif di perangkat ber-RAM/CPU rendah */
   perfMode: PerfMode;
+  /** Lokasi simpan laporan & cadangan (per perangkat, tidak ikut berkas cadangan) */
+  saveFolders: Partial<Record<SaveKind, SaveFolder>>;
   hideAmounts: boolean;
   /** Tata letak dasbor yang dapat disesuaikan */
   dashboard: DashLayout;
@@ -75,6 +83,15 @@ export function sanitizePrefs(raw: Record<string, unknown>): Partial<PrefsState>
   if (raw.density === 'comfortable' || raw.density === 'compact') p.density = raw.density;
   if (typeof raw.reduceMotion === 'boolean') p.reduceMotion = raw.reduceMotion;
   if (raw.perfMode === 'auto' || raw.perfMode === 'on' || raw.perfMode === 'off') p.perfMode = raw.perfMode;
+  if (raw.saveFolders && typeof raw.saveFolders === 'object') {
+    const src = raw.saveFolders as Record<string, unknown>;
+    const out: Partial<Record<SaveKind, SaveFolder>> = {};
+    for (const k of ['report', 'backup'] as const) {
+      const f = src[k] as Partial<SaveFolder> | undefined;
+      if (f && typeof f.uri === 'string' && f.uri.startsWith('content://') && typeof f.label === 'string') out[k] = { uri: f.uri, label: f.label };
+    }
+    p.saveFolders = out;
+  }
   if (typeof raw.hideAmounts === 'boolean') p.hideAmounts = raw.hideAmounts;
   if (raw.dashboard !== undefined) p.dashboard = sanitizeLayout(raw.dashboard);
   if (raw.nav !== undefined) p.nav = sanitizeNavPrefs(raw.nav);
@@ -103,6 +120,7 @@ export const usePrefs = create<Prefs>()(
       density: 'comfortable',
       reduceMotion: false,
       perfMode: 'auto',
+      saveFolders: {},
       hideAmounts: false,
       dashboard: defaultLayout(),
       nav: defaultNavPrefs(),

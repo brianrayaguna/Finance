@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { SlidePill } from '../components/ui/SlidePill';
 import { isLowEndDevice } from '../lib/perf';
+import { chooseSaveFolder, defaultFolderLabel, isNativeApp, resetSaveFolder } from '../lib/saveFile';
 import {
   Download,
   Upload,
@@ -20,6 +21,7 @@ import {
   ArrowDown,
   Lock,
   ChevronRight,
+  Folder,
 } from '../lib/glyphs';
 import { checkIntegrity } from '../accounting/integrity';
 import type { AppData } from '../accounting/types';
@@ -36,6 +38,7 @@ import {
   REPORT_PRESET_OPTIONS,
   sanitizePrefs,
   type PrefsState,
+  type SaveKind,
   type ThemeMode,
 } from '../store/ui';
 import { SETTINGS_SECTIONS } from '../app/settings';
@@ -162,6 +165,40 @@ function Row({ title, desc, children, className }: { title: string; desc?: strin
       </div>
       <div className="set-ctl">{children}</div>
     </div>
+  );
+}
+
+/** Lokasi simpan laporan & cadangan. APK: bisa dipilih per jenis; web: folder unduhan peramban. */
+function SaveLocationRows() {
+  const folders = usePrefs((s) => s.saveFolders);
+  if (!isNativeApp())
+    return (
+      <Row title="Lokasi simpan" desc="Laporan dan cadangan masuk ke folder unduhan peramban. Lokasinya diatur di pengaturan peramban.">
+        <span className="muted">Folder unduhan</span>
+      </Row>
+    );
+  const rows: { kind: SaveKind; title: string }[] = [
+    { kind: 'report', title: 'Lokasi simpan laporan' },
+    { kind: 'backup', title: 'Lokasi simpan cadangan' },
+  ];
+  return (
+    <>
+      {rows.map(({ kind, title }) => {
+        const f = folders[kind];
+        return (
+          <Row key={kind} title={title} desc={f ? f.label : `${defaultFolderLabel(kind)} (bawaan)`}>
+            {f && (
+              <Button variant="ghost" onClick={() => resetSaveFolder(kind)}>
+                Bawaan
+              </Button>
+            )}
+            <Button icon={Folder} onClick={() => void chooseSaveFolder(kind)}>
+              Ubah
+            </Button>
+          </Row>
+        );
+      })}
+    </>
   );
 }
 
@@ -609,6 +646,7 @@ export default function Settings() {
                   Unduh cadangan
                 </Button>
               </Row>
+              <SaveLocationRows />
               <Row title="Pulihkan dari cadangan" desc="Muat berkas JSON hasil cadangan sebelumnya">
                 <input
                   ref={fileRef}

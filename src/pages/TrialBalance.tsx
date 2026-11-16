@@ -31,7 +31,6 @@ export default function TrialBalance() {
     try {
       const { exportReports } = await import('../export/excel');
       await exportReports(b, [rep], `Neraca Saldo ${to}`);
-      toast('Neraca saldo diekspor', { tone: 'success' });
     } catch (e) {
       console.error(e);
       toast('Ekspor gagal', { tone: 'danger' });

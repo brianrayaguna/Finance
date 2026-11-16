@@ -52,7 +52,6 @@ export default function Ledger() {
     try {
       const { exportLedger } = await import('../export/excel');
       await exportLedger(b, period, sel ? [sel] : undefined);
-      toast('Buku besar diekspor ke Excel', { tone: 'success' });
     } catch (e) {
       console.error(e);
       toast('Ekspor gagal', { tone: 'danger' });
@@ -65,7 +64,6 @@ export default function Ledger() {
     try {
       const { exportLedger } = await import('../export/excel');
       await exportLedger(b, period);
-      toast('Buku besar seluruh akun diekspor', { tone: 'success' });
     } catch (e) {
       console.error(e);
       toast('Ekspor gagal', { tone: 'danger' });

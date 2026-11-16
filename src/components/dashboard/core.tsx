@@ -239,13 +239,13 @@ export function KpiWidget({ layout }: WidgetProps) {
               {v.foot ??
                 (v.value !== null && v.prev !== null ? (
                   <span className="kpi-cmp">
-                    <Delta cur={v.value} prev={v.prev} invert={v.invert} unit={v.percent ? 'points' : 'money'} compact={d.compact} vs={v.compare ? `periode sama bulan lalu (${v.compare})` : undefined} />
+                    <Delta cur={v.value} prev={v.prev} invert={v.invert} unit={v.percent ? 'points' : 'money'} compact={d.compact} tight={phone} vs={v.compare ? `periode sama bulan lalu (${v.compare})` : undefined} />
                     {v.compare && <span className="kpi-vs">vs {v.compare}</span>}
                   </span>
                 ) : (
                   <span className="delta muted">—</span>
                 ))}
-              {v.spark && <Spark values={v.spark} color={meta.color} />}
+              {v.spark && <Spark values={v.spark} color={meta.color} fluid />}
             </div>
           </div>
         );

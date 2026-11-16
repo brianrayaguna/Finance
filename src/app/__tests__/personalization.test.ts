@@ -196,3 +196,17 @@ describe('kalender & deret dasbor', () => {
     expect(trimSeries(all)[0].month).toBe('2026-01');
   });
 });
+
+describe('lokasi simpan (saveFolders)', () => {
+  it('hanya menerima URI content:// yang lengkap per jenis', () => {
+    const p = sanitizePrefs({
+      saveFolders: {
+        report: { uri: 'content://com.android.externalstorage.documents/tree/primary%3ADocuments', label: 'Documents' },
+        backup: { uri: 'file:///sdcard/Download', label: 'Download' },
+        lain: { uri: 'content://x', label: 'x' },
+      },
+    });
+    expect(p.saveFolders).toEqual({ report: { uri: 'content://com.android.externalstorage.documents/tree/primary%3ADocuments', label: 'Documents' } });
+    expect(sanitizePrefs({ saveFolders: 'rusak' }).saveFolders).toBeUndefined();
+  });
+});

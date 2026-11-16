@@ -77,7 +77,6 @@ export default function Journal() {
     try {
       const { exportJournal } = await import('../export/excel');
       await exportJournal(b, entries.slice().reverse(), period);
-      toast('Jurnal umum diekspor ke Excel', { tone: 'success' });
     } catch (err) {
       console.error(err);
       toast('Ekspor gagal', { tone: 'danger' });

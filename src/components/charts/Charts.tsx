@@ -56,15 +56,19 @@ export function Donut(props: ComponentProps<HeavyModule['Donut']>) {
   );
 }
 
-/** Sparkline SVG ringan */
-export function Sparkline({ values, color = 'var(--chart-nw)', height = 32, width = 96, fill = true }: { values: number[]; color?: string; height?: number; width?: number; fill?: boolean }) {
+/**
+ * Sparkline SVG ringan. Diberi jarak 3 px di semua sisi agar garis & titik ujung tidak terpotong.
+ * `fluid`: lebar mengikuti wadah (garis diregangkan, tebal garis tetap; titik ujung digambar terpisah agar tetap bulat).
+ */
+export function Sparkline({ values, color = 'var(--chart-nw)', height = 32, width = 96, fill = true, fluid = false }: { values: number[]; color?: string; height?: number; width?: number; fill?: boolean; fluid?: boolean }) {
   const id = useId().replace(/:/g, '');
+  const PAD = 3;
   const path = useMemo(() => {
     if (values.length < 2) return null;
     const min = Math.min(...values);
     const max = Math.max(...values);
     const span = max - min || 1;
-    const pts = values.map((v, i) => [(i / (values.length - 1)) * width, height - 3 - ((v - min) / span) * (height - 6)]);
+    const pts = values.map((v, i) => [PAD + (i / (values.length - 1)) * (width - PAD * 2), height - PAD - ((v - min) / span) * (height - PAD * 2)]);
     let d = `M${pts[0][0]},${pts[0][1]}`;
     for (let i = 1; i < pts.length; i++) {
       const [x0, y0] = pts[i - 1];
@@ -72,11 +76,19 @@ export function Sparkline({ values, color = 'var(--chart-nw)', height = 32, widt
       const cx = (x0 + x1) / 2;
       d += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}`;
     }
-    return { d, area: `${d} L${width},${height} L0,${height} Z`, last: pts[pts.length - 1] };
+    const last = pts[pts.length - 1];
+    return { d, area: `${d} L${last[0]},${height} L${pts[0][0]},${height} Z`, last };
   }, [values, width, height]);
-  if (!path) return <svg width={width} height={height} />;
-  return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="sparkline" aria-hidden>
+  if (!path) return fluid ? null : <svg width={width} height={height} />;
+  const svg = (
+    <svg
+      width={fluid ? '100%' : width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio={fluid ? 'none' : undefined}
+      className="sparkline"
+      aria-hidden
+    >
       <defs>
         <linearGradient id={`sp-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor={color} stopOpacity={0.25} />
@@ -84,9 +96,16 @@ export function Sparkline({ values, color = 'var(--chart-nw)', height = 32, widt
         </linearGradient>
       </defs>
       {fill && <path d={path.area} fill={`url(#sp-${id})`} />}
-      <path d={path.d} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" className="sp-line" />
-      <circle cx={path.last[0]} cy={path.last[1]} r={2.6} fill={color} />
+      <path d={path.d} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" className="sp-line" vectorEffect={fluid ? 'non-scaling-stroke' : undefined} />
+      {!fluid && <circle cx={path.last[0]} cy={path.last[1]} r={2.6} fill={color} />}
     </svg>
+  );
+  if (!fluid) return svg;
+  return (
+    <span className="sparkline-fluid" style={{ height }} aria-hidden>
+      {svg}
+      <span className="sp-dot" style={{ left: `${(path.last[0] / width) * 100}%`, top: `${(path.last[1] / height) * 100}%`, background: color }} />
+    </span>
   );
 }
 

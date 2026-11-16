@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Download, RotateCcw, TriangleAlert } from '../../lib/glyphs';
 import { Button, IconTile } from './primitives';
 import { flushDataStorage } from '../../store/data';
+import { isNativeApp, saveFile } from '../../lib/saveFile';
 
 function todayStamp() {
   const d = new Date();
@@ -30,12 +31,11 @@ function exportEmergencyBackup() {
       prefs: parsedPrefs?.state ?? parsedPrefs,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `keuanganku-cadangan-darurat-${todayStamp()}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    // Layar galat utama tidak menampilkan toast: lokasi diberitahukan lewat dialog sistem.
+    void saveFile({ kind: 'backup', name: `keuanganku-cadangan-darurat-${todayStamp()}.json`, mime: 'application/json', blob, quiet: true }).then((path) => {
+      if (!path) window.alert('Cadangan darurat gagal disimpan.');
+      else if (isNativeApp()) window.alert(`Cadangan darurat disimpan di:\n${path}`);
+    });
   } catch (err) {
     console.error('Emergency backup failed:', err);
   }

@@ -111,7 +111,6 @@ export default function Reports() {
       const { exportReports, exportRatios } = await import('../export/excel');
       if (key === 'rasio') await exportRatios(b, ratioList, { from, to: asOf });
       else if (report) await exportReports(b, [report], `${meta.label} ${describePeriod(period)}`);
-      toast(`${meta.label} diekspor ke Excel`, { tone: 'success' });
     } catch (e) {
       console.error(e);
       toast('Ekspor gagal', { tone: 'danger' });
@@ -127,7 +126,6 @@ export default function Reports() {
       const { exportTransactions } = await import('../export/excel');
       const rows = b.data.transactions.filter((t) => t.date >= from && t.date <= asOf).sort((x, y) => y.date.localeCompare(x.date));
       await exportTransactions(b, rows, { from, to: asOf });
-      toast(`${rows.length.toLocaleString('id-ID')} transaksi diekspor ke Excel`, { tone: 'success' });
     } catch (e) {
       console.error(e);
       toast('Ekspor gagal', { tone: 'danger' });
@@ -297,7 +295,6 @@ function PackModal({ onClose, initialPeriod }: { onClose: () => void; initialPer
       const from = period.preset === 'all' ? (b.entries[0]?.date ?? today) : period.from;
       const to = period.preset === 'all' ? today : period.to;
       await exportPackage(b, { from, to, compare, include: sel });
-      toast('Paket laporan keuangan berhasil dibuat', { tone: 'success', detail: `${sel.size} lembar kerja, ${describePeriod(period)}` });
       onClose();
     } catch (e) {
       console.error(e);

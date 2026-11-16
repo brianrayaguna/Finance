@@ -5,6 +5,7 @@
  * panel beku, filter otomatis, sampul dengan ikhtisar & daftar isi berhyperlink.
  */
 import ExcelJS from 'exceljs';
+import { saveFile } from '../lib/saveFile';
 import type { Borders, Cell, Fill, Font, Worksheet, Workbook } from 'exceljs';
 import { SUBTYPE_META, TYPE_LABEL, normalSide } from '../accounting/coa';
 import { TX_META, accumulatedAt, disposalStop, entryTotals } from '../accounting/engine';
@@ -1065,17 +1066,11 @@ function writeCover(ws: Worksheet, ctx: Ctx, from: string, to: string, toc: { sh
 
 /* ───────── Unduh ───────── */
 
+/** Simpan buku kerja lewat saveFile: APK ke Download/Keuanganku/Laporan (atau folder pilihan), web ke unduhan peramban. */
 async function download(wb: Workbook, base: string) {
+  const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const buf = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${base.replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ').trim()}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  await saveFile({ kind: 'report', name: `${base}.xlsx`, mime, blob: new Blob([buf], { type: mime }) });
 }
 
 const ctxOf = (b: Books): Ctx => ({ entity: b.data.profile.entityName || 'Buku Keuangan', owner: b.data.profile.name, refs: new Map() });

@@ -110,7 +110,7 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
-/* Layar sempit: tetap 2×2 (bukan satu kolom) dengan kartu ringkas — separuh tinggi, tanpa sparkline. */
+/* Layar sempit: tetap 2×2 (bukan satu kolom) dengan kartu ringkas. */
 @container (max-width: 470px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -128,8 +128,23 @@
     margin-top: 8px;
     font-size: 20px;
   }
+  /* Kartu sempit: dua baris — delta di atas, sparkline selebar kartu di bawahnya. */
   .kpi-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
     padding-top: 6px;
+  }
+  .kpi .kpi-foot .kpi-cmp,
+  .kpi .kpi-foot > .delta {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+  .kpi .kpi-foot .sparkline-fluid {
+    flex: none;
+    max-width: none;
+    margin-left: 0;
+    height: 24px !important;
   }
   .kpi-foot > .fi {
     display: none;
@@ -159,6 +174,34 @@
 .kpi-sub .money-val {
   font-weight: 600;
   color: var(--text-2);
+}
+/* Kaki kartu KPI: delta di kiri, sparkline mengisi sisa ruang (48–96 px) — tidak pernah menumpuk. */
+.kpi-foot .kpi-cmp,
+.kpi-foot > .delta {
+  flex: 0 1 auto;
+}
+.kpi-foot .sparkline-fluid {
+  flex: 1 1 48px;
+  min-width: 48px;
+  max-width: 96px;
+  margin-left: auto;
+}
+.sparkline-fluid {
+  position: relative;
+  display: block;
+}
+.sparkline-fluid > svg {
+  display: block;
+  height: 100%;
+  overflow: visible;
+}
+.sp-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  pointer-events: none;
 }
 .kpi-cmp {
   display: flex;

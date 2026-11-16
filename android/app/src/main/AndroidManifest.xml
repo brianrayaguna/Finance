@@ -38,4 +38,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Hanya Android 7–9: menyimpan laporan/cadangan ke Download/Keuanganku. Android 10+ memakai MediaStore tanpa izin. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
 </manifest>
