@@ -196,7 +196,7 @@ function kpiValue(k: KpiMetric, d: DashData, budget: { budget: number; actual: n
           <div className="kpi-budget">
             <span className="kpi-note">
               {formatPercent(used, 0)} dari <span className="money-val">{shortMoney(budget.budget, true)}</span>
-              {budget.over > 0 && <strong className="neg"> · {budget.over} lewat batas</strong>}
+              {budget.over > 0 && <strong className="neg">, {budget.over} lewat batas</strong>}
             </span>
             <Progress value={used} thin color={used > 1 ? 'var(--neg)' : used > 0.85 ? 'var(--warn)' : 'var(--accent-ink)'} label="Anggaran terpakai" />
           </div>
@@ -268,9 +268,8 @@ export function CashflowWidget({ settings }: WidgetProps) {
         <div className="grow">
           <h2 className={embedded ? 'sr-only' : 'card-title'}>Pendapatan & beban</h2>
           <div className="card-sub">
-            {data.length} bulan terakhir ·{' '}
+            {data.length} bulan terakhir,{' '}
             <span title="Belanja & pemasukan harian dicatat saat uang bergerak. Penyusutan, piutang, dan hutang kredit diakui secara akrual. Bunga pinjaman diakui saat dibayar.">akrual sebagian</span>
-            {data[data.length - 1]?.partial ? ' · bulan berjalan sampai hari ini' : ''}
           </div>
         </div>
         <div className="legend" aria-hidden>
@@ -291,7 +290,7 @@ export function CashflowWidget({ settings }: WidgetProps) {
         </div>
       </div>
       <div className="card-body" style={{ paddingTop: 10 }}>
-        <CashflowChart data={data.map((s) => ({ ...s, full: formatMonth(s.month) + (s.partial ? ' · berjalan' : '') }))} height={264} showNet={showNet} />
+        <CashflowChart data={data.map((s) => ({ ...s, full: formatMonth(s.month) + (s.partial ? ' (berjalan sampai hari ini)' : '') }))} height={264} showNet={showNet} />
       </div>
     </WCard>
   );
@@ -351,7 +350,7 @@ export function CompositionWidget({ settings }: WidgetProps) {
                   type="button"
                   key={c.id}
                   className={`cat-leg${hoverCat && hoverCat !== c.id ? ' dim' : ''}`}
-                  title={`${c.name} · ${formatMoney(c.value)}`}
+                  title={`${c.name}: ${formatMoney(c.value)}`}
                   onMouseEnter={() => setHoverCat(c.id)}
                   onMouseLeave={() => setHoverCat(null)}
                   onFocus={() => setHoverCat(c.id)}
@@ -575,7 +574,7 @@ export function DueRow({ d, today, onClick, showKind }: { d: ReturnType<typeof d
           {d.tx.contact || '—'}
         </span>
         <span className="muted" style={{ fontSize: 12 }}>
-          {showKind ? `${d.kind === 'payable' ? 'Bayar hutang' : 'Tagih piutang'} · ` : ''}
+          {showKind ? `${d.kind === 'payable' ? 'Bayar hutang' : 'Tagih piutang'}, ` : ''}
           {relativeDay(d.tx.dueDate!, today)}
         </span>
       </span>

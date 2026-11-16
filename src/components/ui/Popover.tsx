@@ -75,6 +75,8 @@ export function Popover({
   // Host dialog disimpan di ref agar portal tidak mount dulu ke body lalu pindah (remount mematahkan touch di mobile).
   const hostRef = useRef<HTMLElement | null>(null);
   const openedAt = useRef(0);
+  // Pemicu hanya digulir sekali per pembukaan, saat isi tidak muat di atas maupun di bawah.
+  const nudged = useRef(false);
   const [, setHostTick] = useState(0);
   useLayer(open, onClose);
 
@@ -95,7 +97,7 @@ export function Popover({
     }
   }, [open]);
 
-  const place = useCallback(() => {
+  const place = useCallback((): void => {
     const el = ref.current;
     if (!el) return;
     if (typeof el.showPopover === 'function' && !el.matches(':popover-open')) {
@@ -151,7 +153,18 @@ export function Popover({
       const spaceBelow = Math.max(0, viewBottom - (r.bottom + offset));
       const spaceAbove = Math.max(0, r.top - offset - viewTop);
       const preferTop = placement.startsWith('top');
-      const minUseful = 160;
+      // Ambang = tinggi alami isi (mis. kalender ±360px), dibatasi 70% layar. Dengan ambang tetap 160px
+      // kalender tanggal terbuka ke bawah lalu terpotong separuh di ponsel.
+      const minUseful = Math.max(160, Math.min(el.scrollHeight, vh * 0.7));
+      if (spaceBelow < minUseful && spaceAbove < minUseful && !nudged.current && 'current' in anchor && anchor.current) {
+        nudged.current = true;
+        const before = r.top;
+        anchor.current.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+        if (Math.abs(anchorRect(anchor).top - before) > 1) {
+          openedAt.current = performance.now();
+          return place();
+        }
+      }
       // Pilih sisi yang muat; jika keduanya sempit, ambil yang lebih lapang.
       placeBelow = !preferTop;
       if (preferTop) {
@@ -201,6 +214,7 @@ export function Popover({
 
   useLayoutEffect(() => {
     if (!open) {
+      nudged.current = false;
       setPos(null);
       if (ref.current) ref.current.style.maxHeight = '';
       return;
@@ -487,7 +501,6 @@ export function MenuList({
             <span className="grow">{it.label}</span>
             {it.hint && <span className="menu-hint">{it.hint}</span>}
             {it.checked && <Check className="menu-check" aria-hidden />}
-            {it.kbd && <span className="kbd">{it.kbd}</span>}
             {it.submenu && <ChevronRight className="menu-sub-chev" aria-hidden />}
           </button>
         ),

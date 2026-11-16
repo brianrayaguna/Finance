@@ -205,7 +205,7 @@ function writeReport(wb: Workbook, ctx: Ctx, report: Report, sheetName: string, 
   ws.getColumn(labelCol).width = isWS ? 34 : report.id.startsWith('aging') ? 44 : 54;
   for (let i = 0; i < nVal; i++) ws.getColumn(firstVal + i).width = isWS ? 15 : report.columns[i].kind === 'percent' ? 10 : report.columns[i].label.length > 15 ? 20 : 18;
 
-  const period = report.subtitle.split(' · ').slice(1).join(' · ');
+  const period = report.subtitle;
   let r = letterhead(ws, ctx, report.title, period, lastCol);
 
   // header kolom
@@ -659,7 +659,7 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
         x.getCell(1).value = xDate(e.date);
         x.getCell(1).numFmt = DATE;
         x.getCell(2).value = e.ref + (e.adjusting ? ' (AJP)' : '');
-        x.getCell(5).value = l.memo ? `${e.description} · ${l.memo}` : e.description;
+        x.getCell(5).value = l.memo ? `${e.description}, ${l.memo}` : e.description;
       } else if (l.memo) x.getCell(5).value = l.memo;
       x.getCell(3).value = a?.code ?? '';
       x.getCell(4).value = a?.name ?? '';
@@ -751,7 +751,7 @@ function writeLedger(wb: Workbook, ctx: Ctx, b: Books, from: string, to: string,
     // judul akun
     const t = ws.getRow(r);
     ws.mergeCells(r, 1, r, 7);
-    t.getCell(1).value = `${a.code}  ${a.name}   ·   ${TYPE_LABEL[a.type]} — ${SUBTYPE_META[a.subtype].label} — saldo normal ${debitNormal ? 'debit' : 'kredit'}`;
+    t.getCell(1).value = `${a.code}  ${a.name} (${SUBTYPE_META[a.subtype].label}), saldo normal ${debitNormal ? 'debit' : 'kredit'}`;
     t.getCell(1).font = font({ bold: true, size: 10.5, color: { argb: INK } });
     t.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' };
     t.getCell(1).fill = fill(HEAD_FILL);
@@ -773,7 +773,7 @@ function writeLedger(wb: Workbook, ctx: Ctx, b: Books, from: string, to: string,
       x.getCell(1).value = xDate(row.date);
       x.getCell(1).numFmt = DATE;
       x.getCell(2).value = row.ref;
-      x.getCell(3).value = row.description + (row.memo ? ` · ${row.memo}` : '');
+      x.getCell(3).value = row.description + (row.memo ? `, ${row.memo}` : '');
       x.getCell(4).value = row.counter;
       x.getCell(5).value = row.debit || null;
       x.getCell(6).value = row.credit || null;
@@ -991,7 +991,7 @@ function writeCover(ws: Worksheet, ctx: Ctx, from: string, to: string, toc: { sh
   put('B4', 'LAPORAN KEUANGAN', { size: 24, bold: true }, 34).alignment = { vertical: 'middle', horizontal: 'left' };
   put('B5', ctx.entity, { size: 16, color: { argb: ACCENT }, bold: true }, 24).alignment = { vertical: 'middle', horizontal: 'left' };
   put('B6', `Untuk periode ${periodLabel(from, to)}`, { size: 11, color: { argb: INK_2 } }, 18).alignment = { vertical: 'middle', horizontal: 'left' };
-  put('B7', `Disusun oleh ${ctx.owner || '—'} · ${formatDate(todayISO(), 'long')}`, { size: 9.5, color: { argb: INK_3 } }, 16).alignment = { vertical: 'middle', horizontal: 'left' };
+  put('B7', `Disusun oleh ${ctx.owner || '—'}, ${formatDate(todayISO(), 'long')}`, { size: 9.5, color: { argb: INK_3 } }, 16).alignment = { vertical: 'middle', horizontal: 'left' };
 
   let r = 10;
   const kpis: [string, string, string][] = [
@@ -1116,7 +1116,7 @@ export async function exportTransactions(b: Books, txs: Transaction[], p: { from
   const ctx = ctxOf(b);
   const from = p.from === '1900-01-01' ? txs.reduce((m, t) => (t.date < m ? t.date : m), txs[0]?.date ?? todayISO()) : p.from;
   const to = p.to === '2999-12-31' ? txs.reduce((m, t) => (t.date > m ? t.date : m), txs[0]?.date ?? todayISO()) : p.to;
-  writeTransactions(wb, ctx, b, txs, `Periode ${periodLabel(from, to)} · ${txs.length} transaksi`);
+  writeTransactions(wb, ctx, b, txs, `Periode ${periodLabel(from, to)}, ${txs.length} transaksi`);
   await download(wb, `${ctx.entity} - Transaksi ${from} sd ${to}`);
 }
 

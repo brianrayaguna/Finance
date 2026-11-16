@@ -8,12 +8,12 @@ import { confirm } from '../../store/ui';
 import { notify } from '../../store/history';
 import { addDays, formatDate, formatMoney, round2, todayISO, uid, isZero, nowTime } from '../../lib/format';
 import { focusNext, useSubmitRef } from '../../lib/focus';
-import { isImeComposing, MOD } from '../../lib/layers';
+import { isImeComposing } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
 import { AmountInput } from '../ui/AmountInput';
-import { Badge, Button, Field, Kbd, Switch, TextInput } from '../ui/primitives';
+import { Badge, Button, Field, Switch, TextInput } from '../ui/primitives';
 import { useAccountOptions } from './options';
 
 interface Line extends JournalLineInput {
@@ -207,9 +207,6 @@ export function JournalModal({
           </>
         ) : (
           <>
-            <span className="hint">
-              <Kbd>↵</Kbd> berikutnya · <Kbd>{MOD}</Kbd><Kbd>↵</Kbd> posting
-            </span>
             <span className="spacer" />
             <Button onClick={onClose}>Batal</Button>
             <Button variant="primary" onClick={() => actionRef.run('submit')} disabled={tried && !!error}>

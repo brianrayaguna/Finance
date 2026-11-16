@@ -197,7 +197,7 @@ const nonZero = (vals: (number | null)[]) => vals.some((v) => v !== null && !isZ
 
 /* ───────── LAPORAN LABA RUGI ───────── */
 
-export function incomeStatement(b: Books, periods: Period[], entityName: string): Report {
+export function incomeStatement(b: Books, periods: Period[], _entityName: string): Report {
   const n = periods.length;
   const acts = periods.map((p) => activity(b, p.from, p.to));
   const plAccounts = b.accounts.filter((a) => isPL(a));
@@ -285,13 +285,13 @@ export function incomeStatement(b: Books, periods: Period[], entityName: string)
   return {
     id: 'income-statement',
     title: 'Laporan Laba Rugi',
-    subtitle: n > 1 ? `${entityName} · ${periods.map((p) => p.label).join(' dibanding ')}` : `${entityName} · Untuk periode ${periods[0].label}`,
+    subtitle: n > 1 ? `${periods.map((p) => p.label).join(' dibanding ')}` : `Untuk periode ${periods[0].label}`,
     columns: valueColumns(periods.map((p) => (n > 1 ? { label: p.label, sub: `${formatDate(p.from)} – ${formatDate(p.to)}` } : { label: `${formatDate(p.from)} – ${formatDate(p.to)}` })), n > 1),
     rows,
     checks,
     notes: [
       n > 1
-        ? `Margin laba bersih: ${periods.map((p, i) => `${p.label} ${(margin[i] * 100).toFixed(1).replace('.', ',')}%`).join(' · ')}`
+        ? `Margin laba bersih: ${periods.map((p, i) => `${p.label} ${(margin[i] * 100).toFixed(1).replace('.', ',')}%`).join(', ')}`
         : `Margin laba bersih: ${(margin[0] * 100).toFixed(1).replace('.', ',')}%`,
       'Dasar pencatatan: pemasukan dan pengeluaran harian diakui saat uang diterima/dibayar; penyusutan, piutang, dan hutang kredit diakui secara akrual; bunga pinjaman diakui saat dibayar.',
     ],
@@ -300,7 +300,7 @@ export function incomeStatement(b: Books, periods: Period[], entityName: string)
 
 /* ───────── LAPORAN POSISI KEUANGAN (NERACA) ───────── */
 
-export function balanceSheet(b: Books, dates: { to: string; label: string }[], entityName: string): Report {
+export function balanceSheet(b: Books, dates: { to: string; label: string }[], _entityName: string): Report {
   const n = dates.length;
   const maps = dates.map((d) => balancesAt(b, d.to));
   const fyStarts = dates.map((d) => fiscalYearStart(d.to, b.fyStartMonth));
@@ -378,7 +378,7 @@ export function balanceSheet(b: Books, dates: { to: string; label: string }[], e
   return {
     id: 'balance-sheet',
     title: 'Laporan Posisi Keuangan (Neraca)',
-    subtitle: n > 1 ? `${entityName} · Per ${dates.map((d) => formatDate(d.to, 'long')).join(' & ')}` : `${entityName} · Per ${formatDate(dates[0].to, 'long')}`,
+    subtitle: n > 1 ? `Per ${dates.map((d) => formatDate(d.to, 'long')).join(' & ')}` : `Per ${formatDate(dates[0].to, 'long')}`,
     columns: valueColumns(dates.map((d) => ({ label: n > 1 ? d.label : `Per ${formatDate(d.to)}` })), n > 1),
     rows,
     checks,
@@ -532,7 +532,7 @@ function cashFlowCore(b: Books, from: string, to: string): CFCore {
   return { begin: round2(begin), opened: round2(opened), end, net: round2(net), flows, ni: round2(ni), adj, wc, nonCash };
 }
 
-export function cashFlowStatement(b: Books, periods: Period[], entityName: string): Report {
+export function cashFlowStatement(b: Books, periods: Period[], _entityName: string): Report {
   const n = periods.length;
   const cores = periods.map((p) => cashFlowCore(b, p.from, p.to));
   const empty = Array(n).fill(null);
@@ -609,14 +609,14 @@ export function cashFlowStatement(b: Books, periods: Period[], entityName: strin
     notes.push('Aktivitas investasi dan pendanaan yang tidak memengaruhi kas:');
     for (let i = 0; i < cores.length; i++) {
       const prefix = n > 1 ? `[${periods[i].label}] ` : '';
-      for (const x of cores[i].nonCash) notes.push(`${prefix}${formatDate(x.date)} · ${x.ref} · ${x.description} · ${formatMoney(x.amount)}`);
+      for (const x of cores[i].nonCash) notes.push(`${prefix}${formatDate(x.date)}, ${x.ref}: ${x.description}, ${formatMoney(x.amount)}`);
     }
   }
 
   return {
     id: 'cash-flow',
     title: 'Laporan Arus Kas',
-    subtitle: n > 1 ? `${entityName} · ${periods.map((p) => p.label).join(' dibanding ')}` : `${entityName} · Untuk periode ${periods[0].label}`,
+    subtitle: n > 1 ? `${periods.map((p) => p.label).join(' dibanding ')}` : `Untuk periode ${periods[0].label}`,
     columns: valueColumns(periods.map((p) => (n > 1 ? { label: p.label, sub: `${formatDate(p.from)} – ${formatDate(p.to)}` } : { label: `${formatDate(p.from)} – ${formatDate(p.to)}` })), n > 1),
     rows,
     checks,
@@ -626,7 +626,7 @@ export function cashFlowStatement(b: Books, periods: Period[], entityName: strin
 
 /* ───────── LAPORAN PERUBAHAN EKUITAS ───────── */
 
-export function equityStatement(b: Books, p: Period, entityName: string): Report {
+export function equityStatement(b: Books, p: Period, _entityName: string): Report {
   const before = addDays(p.from, -1);
   const mB = balancesAt(b, before);
   const act = activity(b, p.from, p.to);
@@ -682,7 +682,7 @@ export function equityStatement(b: Books, p: Period, entityName: string): Report
   return {
     id: 'equity',
     title: 'Laporan Perubahan Ekuitas',
-    subtitle: `${entityName} · Untuk periode ${p.label}`,
+    subtitle: `Untuk periode ${p.label}`,
     columns: [
       { label: 'Modal Pemilik', kind: 'value' },
       { label: 'Ekuitas Saldo Awal', kind: 'value' },
@@ -697,7 +697,7 @@ export function equityStatement(b: Books, p: Period, entityName: string): Report
 
 /* ───────── NERACA SALDO ───────── */
 
-export function trialBalance(b: Books, to: string, entityName: string): Report {
+export function trialBalance(b: Books, to: string, _entityName: string): Report {
   const fy = fiscalYearStart(to, b.fyStartMonth);
   const m = balancesAt(b, to);
   const mPrior = balancesAt(b, addDays(fy, -1));
@@ -738,7 +738,7 @@ export function trialBalance(b: Books, to: string, entityName: string): Report {
   return {
     id: 'trial-balance',
     title: 'Neraca Saldo',
-    subtitle: `${entityName} · Per ${formatDate(to, 'long')}`,
+    subtitle: `Per ${formatDate(to, 'long')}`,
     columns: [
       { label: 'Debit', kind: 'value' },
       { label: 'Kredit', kind: 'value' },
@@ -750,7 +750,7 @@ export function trialBalance(b: Books, to: string, entityName: string): Report {
 
 /* ───────── NERACA LAJUR (KERTAS KERJA) ───────── */
 
-export function worksheet(b: Books, p: Period, entityName: string): Report {
+export function worksheet(b: Books, p: Period, _entityName: string): Report {
   const isAdj = (e: JournalEntry) => !!e.adjusting && e.date >= p.from && e.date <= p.to;
   const mUnadj = sumByAccount(b.entries, { to: p.to, exclude: isAdj });
   const mPrior = sumByAccount(b.entries, { to: addDays(p.from, -1) });
@@ -804,7 +804,7 @@ export function worksheet(b: Books, p: Period, entityName: string): Report {
   return {
     id: 'worksheet',
     title: 'Neraca Lajur',
-    subtitle: `${entityName} · Untuk periode ${p.label}`,
+    subtitle: `Untuk periode ${p.label}`,
     columns: [
       { label: 'Neraca Saldo', sub: 'Debit' },
       { label: 'Neraca Saldo', sub: 'Kredit' },
@@ -1041,7 +1041,7 @@ export function debtInfos(data: AppData, asOf = todayISO()): DebtInfo[] {
 
 export const AGING_BUCKETS = ['Belum jatuh tempo', '1–30 hari', '31–60 hari', '61–90 hari', '> 90 hari'];
 
-export function agingReport(data: AppData, kind: 'payable' | 'receivable', asOf: string, entityName: string): Report {
+export function agingReport(data: AppData, kind: 'payable' | 'receivable', asOf: string, _entityName: string): Report {
   const list = debtInfos(data, asOf).filter((d) => d.kind === kind && d.remaining > 0.005);
   const rows: ReportRow[] = [];
   const tot = Array(6).fill(0) as number[];
@@ -1053,7 +1053,7 @@ export function agingReport(data: AppData, kind: 'payable' | 'receivable', asOf:
     const vals = [d.remaining, ...b];
     vals.forEach((v, i) => (tot[i] += v));
     rows.push(
-      row('d-' + d.tx.id, `${d.tx.contact || '—'} · ${d.tx.description || ''}`.trim(), 'account', vals, 0, {
+      row('d-' + d.tx.id, (d.tx.description ? `${d.tx.contact || '—'}, ${d.tx.description}` : d.tx.contact || '—'), 'account', vals, 0, {
         code: d.tx.dueDate ? formatDate(d.tx.dueDate, 'short') : 'Tanpa JT',
       }),
     );
@@ -1064,7 +1064,7 @@ export function agingReport(data: AppData, kind: 'payable' | 'receivable', asOf:
   return {
     id: kind === 'receivable' ? 'aging-ar' : 'aging-ap',
     title: kind === 'receivable' ? 'Analisis Umur Piutang' : 'Analisis Umur Hutang',
-    subtitle: `${entityName} · Per ${formatDate(asOf, 'long')}`,
+    subtitle: `Per ${formatDate(asOf, 'long')}`,
     columns: [
       { label: 'Sisa Saldo', kind: 'value' },
       ...AGING_BUCKETS.map((l) => ({ label: l, kind: 'value' as const })),
@@ -1122,7 +1122,7 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
   return lines.sort((x, y) => y.used - x.used);
 }
 
-export function budgetReport(b: Books, p: Period, entityName: string): Report {
+export function budgetReport(b: Books, p: Period, _entityName: string): Report {
   const lines = budgetVsActual(b, p.from, p.to).sort((x, y) => x.account.code.localeCompare(y.account.code, 'en', { numeric: true }));
   const budgeted = new Set(lines.map((l) => l.account.id));
   const act = activity(b, p.from, p.to);
@@ -1167,7 +1167,7 @@ export function budgetReport(b: Books, p: Period, entityName: string): Report {
   return {
     id: 'budget',
     title: 'Laporan Anggaran vs Realisasi',
-    subtitle: `${entityName} · Untuk periode ${p.label}`,
+    subtitle: `Untuk periode ${p.label}`,
     columns: [
       { label: 'Anggaran', kind: 'value' },
       { label: 'Realisasi', kind: 'value' },

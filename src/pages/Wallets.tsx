@@ -87,7 +87,7 @@ export default function Wallets() {
               </Link>
             </div>
             <div className="wc-type">
-              {SUBTYPE_META[a.subtype].label} · <span className="num">{a.code}</span>
+              {SUBTYPE_META[a.subtype].label}, <span className="num">{a.code}</span>
             </div>
           </div>
           <div className="row-front">
@@ -144,7 +144,7 @@ export default function Wallets() {
             {!isZero(trend) && (
               <span className={`wc-trend ${trend > 0 ? 'pos' : 'neg'}`}>
                 {trend > 0 ? '▲' : '▼'} <span className="money-val">{formatMoney(Math.abs(trend), { compact: true })}</span>
-                <span className="muted"> · 30 hari</span>
+                <span className="muted"> dalam 30 hari</span>
               </span>
             )}
           </span>

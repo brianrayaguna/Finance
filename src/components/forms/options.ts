@@ -80,7 +80,7 @@ export function useOpenDebtOptions(kind: 'payable' | 'receivable', includeId?: s
         .map((d) => ({
           value: d.tx.id,
           label: d.tx.contact || '—',
-          description: `${d.tx.description || (kind === 'payable' ? 'Hutang' : 'Piutang')} · ${formatDate(d.tx.date)}`,
+          description: `${d.tx.description || (kind === 'payable' ? 'Hutang' : 'Piutang')}, ${formatDate(d.tx.date)}`,
           sub: formatMoney(d.remaining),
           icon: kind === 'payable' ? 'handshake' : 'hand-coins',
           color: d.status === 'overdue' ? 'var(--neg)' : kind === 'payable' ? 'var(--tone-payable)' : 'var(--tone-receivable)',

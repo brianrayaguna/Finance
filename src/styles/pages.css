@@ -83,6 +83,23 @@
 .ms-label:hover {
   background: var(--fill);
 }
+/* Varian ringkas untuk bilah atas ponsel: visual 32px; area ketuk ≥44px dari aturan umum di ui.css */
+.month-switch.compact {
+  height: 32px;
+  padding: 2px;
+  background: var(--fill);
+  box-shadow: none;
+}
+.month-switch.compact .ms-btn {
+  width: 28px;
+}
+.month-switch.compact .ms-label {
+  min-width: 0;
+  padding: 0 6px;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  white-space: nowrap;
+}
 
 .sum-strip {
   container-type: inline-size;
@@ -316,18 +333,6 @@
   padding: 16px;
   border-top: 1px solid var(--line);
 }
-.kbd-hint {
-  margin-top: 14px;
-  text-align: center;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-.kbd-hint .kbd {
-  height: 18px;
-  min-width: 18px;
-  font-size: var(--fs-xs);
-}
-
 .code {
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
@@ -611,8 +616,19 @@
 }
 .dp-split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+.dp-box {
+  min-width: 0;
+}
+@media (max-width: 360px) {
+  .dp-box {
+    padding: 10px 12px;
+  }
+  .dp-val {
+    font-size: 16px;
+  }
 }
 .dp-box {
   display: flex;
@@ -711,6 +727,11 @@
 }
 .tx-ref-h {
   width: 150px;
+}
+.tx-count,
+.tx-select-toggle,
+.ddate-short {
+  display: none;
 }
 .tx-amt-h {
   width: 150px;
@@ -988,6 +1009,25 @@
   line-height: 1.35;
   color: var(--text-2);
 }
+.cc-tight {
+  display: none;
+}
+@media (max-width: 360px) {
+  .cal-cell.cal-cell {
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+  .cc-vals.cc-vals {
+    font-size: 10px;
+    letter-spacing: -0.03em;
+  }
+}
+/* Chip filter Transaksi pasti meluap di ponsel kecil: tepi kanan memudar sebagai petunjuk geser */
+@media (max-width: 480px) {
+  .list-toolbar .seg {
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+}
 .cc-vals > span {
   max-width: 100%;
   overflow: hidden;
@@ -1216,8 +1256,14 @@ i.ym-cell {
     letter-spacing: -0.02em;
     line-height: 1.25;
   }
-  .cc-vals span:nth-child(2) {
+  .cc-vals > span:nth-child(2) {
     display: none;
+  }
+  .cc-full {
+    display: none;
+  }
+  .cc-tight {
+    display: inline;
   }
   .cc-count {
     display: none;
@@ -2448,13 +2494,82 @@ button.tl-item:hover {
     grid-template-columns: 1fr 1fr;
   }
 }
-@media (max-width: 640px) {
-  .paper {
-    padding: 28px 16px 20px;
+@media screen and (max-width: 640px) {
+  .paper,
+  .paper.wide {
+    padding: 18px 12px 16px;
   }
-  .paper::before {
-    left: 16px;
-    right: 16px;
+  .paper::before,
+  .paper.wide::before {
+    left: 12px;
+    right: 12px;
+  }
+  /* Kop kertas: jenis laporan sudah tampil di tab aktif & nama buku di profil —
+     di layar ponsel cukup satu baris periode. Kop lengkap tetap ada saat dicetak. */
+  .paper-head {
+    margin-bottom: 12px;
+    text-align: left;
+  }
+  .ph-entity,
+  .ph-unit {
+    display: none;
+  }
+  .ph-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .ph-period {
+    margin-top: 0;
+    font-size: var(--fs-sm);
+  }
+  /* Tabel laporan muat di 320–375px: tanpa lebar minimum desktop, nominal tak terpotong */
+  .stmt {
+    font-size: var(--fs-sm);
+  }
+  .stmt th,
+  .stmt td {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .stmt td {
+    height: auto;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .stmt .st-label,
+  .stmt.cols-10 .st-label,
+  .stmt.cols-4 .st-label,
+  .stmt.cols-5 .st-label {
+    min-width: 0;
+  }
+  .stmt td.r {
+    min-width: 0;
+    padding-left: 10px;
+    padding-right: 4px;
+  }
+  /* Satu kolom angka: judul kolom = baris periode di atasnya, cukup untuk pembaca layar */
+  .stmt.cols-1 thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  /* Kode akun di baris sendiri, kecil, agar tidak patah "6–/1120" */
+  .st-code {
+    display: block;
+    margin: 0 0 1px;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .report-controls {
+    gap: 8px 10px;
+    padding: 8px 10px;
   }
 }
 @media print {
@@ -2917,7 +3032,6 @@ button.tl-item:hover {
 
 /* Petunjuk pintasan keyboard tidak relevan di perangkat sentuh */
 @media (hover: none) and (pointer: coarse) {
-  .kbd-hint,
   .fb-search .kbd,
   .modal-foot .hint .kbd {
     display: none;
@@ -2976,11 +3090,58 @@ button.tl-item:hover {
   .dash .card-head:has(.legend) .legend {
     width: 100%;
   }
-  /* Segmented yang panjang dapat digulir, bukan terpotong */
+  /* Segmented yang panjang dapat digulir, bukan terpotong; tepi kanan memudar sebagai petunjuk geser */
   .list-toolbar .seg {
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+  /* Daftar transaksi: label kolom tak perlu di tampilan kartu; jumlah + tombol "Pilih" menggantikannya */
+  .tx-head {
+    gap: 10px;
+    height: 44px;
+    padding: 0 12px;
+  }
+  .tx-head .grow,
+  .tx-head .tx-ref-h,
+  .tx-head .tx-amt-h {
+    display: none;
+  }
+  .tx-head .check {
+    margin-right: 0;
+  }
+  .tx-count {
+    display: block;
+    flex: 1;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .tx-select-toggle {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-sm);
+    font-weight: 650;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+  }
+  .tx-card:not(.select-mode) .tx-head .check,
+  .tx-card:not(.select-mode) .tx-check {
+    display: none;
+  }
+  /* Kepala grup tanggal satu baris: cukup "Sen, 16 Nov" */
+  .tx-day-head .dname,
+  .tx-day-head .ddate {
+    display: none;
+  }
+  .ddate-short {
+    display: inline;
+    font-weight: 680;
+    white-space: nowrap;
   }
 }
 
@@ -3067,4 +3228,160 @@ button.tl-item:hover {
   padding-top: 12px;
   border-top: 1px solid var(--line);
   font-size: var(--fs-sm);
+}
+
+/* ═══════════ Ponsel: Dompet, Jurnal, Hutang lebih ringkas ═══════════ */
+@media screen and (max-width: 640px) {
+  /* Dompet: nama di atas, saldo + statistik di kiri, sparkline di kanan — ±3 akun per layar */
+  .wallet-grid {
+    gap: 10px;
+  }
+  .wallet-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'top top'
+      'bal spark'
+      'stats spark';
+    gap: 2px 12px;
+    padding: 12px 14px;
+  }
+  .wc-top {
+    grid-area: top;
+    margin-bottom: 8px;
+  }
+  .wc-bal {
+    grid-area: bal;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .wc-bal strong {
+    font-size: 20px;
+  }
+  .wc-foot {
+    display: contents;
+  }
+  .wc-stats {
+    grid-area: stats;
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 6px;
+    font-size: var(--fs-xs);
+  }
+  .wallet-card .sparkline,
+  .wallet-card .wc-foot > svg {
+    grid-area: spark;
+    align-self: end;
+    width: 84px;
+    height: 30px;
+  }
+
+  /* Jurnal umum: tabel → kartu per jurnal (tanggal & bukti di atas, baris akun di bawah) */
+  .journal-table,
+  .journal-table tbody,
+  .journal-table tfoot {
+    display: block;
+    width: 100%;
+  }
+  .journal-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+  .journal-table .je-block {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .journal-table tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    column-gap: 8px;
+  }
+  .journal-table td {
+    height: auto;
+    padding: 2px 0;
+    border: 0 !important;
+    white-space: normal;
+  }
+  .journal-table td:empty,
+  .journal-table td.code {
+    display: none;
+  }
+  .journal-table .je-block td:nth-child(1) {
+    grid-area: 1 / 1;
+    font-weight: 650;
+    font-size: var(--fs-sm);
+  }
+  .journal-table .je-block td:nth-child(2) {
+    grid-area: 1 / 2 / 2 / 4;
+    padding-bottom: 4px;
+  }
+  .journal-table .je-block td:nth-child(3) {
+    grid-area: 2 / 1 / 3 / 3;
+    padding-left: 0 !important;
+    font-size: var(--fs-sm);
+  }
+  /* Akun kredit tetap menjorok (konvensi jurnal), cukup 18px di ponsel */
+  .journal-table .je-block td:nth-child(3)[style*='40px'] {
+    padding-left: 18px !important;
+  }
+  .journal-table .je-block td:nth-child(5),
+  .journal-table .je-block td:nth-child(6) {
+    grid-area: 2 / 3;
+    font-size: var(--fs-sm);
+  }
+  .journal-table .je-desc {
+    display: block;
+  }
+  .journal-table .je-desc td {
+    padding-top: 4px;
+    font-size: var(--fs-xs);
+  }
+  .journal-table tfoot tr {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 10px 12px;
+    font-weight: 650;
+  }
+  .journal-table tfoot td {
+    font-size: var(--fs-sm);
+  }
+
+  /* Hutang & Piutang: tiga angka ringkas jadi baris label–nilai, tanpa kartu yatim */
+  .debt-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .ds-main {
+    grid-column: auto;
+  }
+  .ds-kpi {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'label val'
+      'meta val';
+    align-items: center;
+    gap: 0 12px;
+    padding: 12px 16px;
+  }
+  .ds-kpi .kpi-label {
+    grid-area: label;
+  }
+  .ds-kpi strong {
+    grid-area: val;
+    font-size: 18px;
+  }
+  .ds-kpi .muted {
+    grid-area: meta;
+  }
+}
+
+/* Pintasan keyboard tidak relevan di layar sentuh */
+@media (pointer: coarse) {
+  .set-row-keys {
+    display: none;
+  }
 }

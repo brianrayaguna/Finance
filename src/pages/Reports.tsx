@@ -109,13 +109,13 @@ export default function Reports() {
     <div className="reports-page">
       <PageHeader
         title="Laporan Keuangan"
-        subtitle={`${b.data.profile.entityName || 'Buku keuangan'} · ${periodLabel(from, asOf)}`}
+        subtitle={`${b.data.profile.entityName || 'Buku keuangan'}, ${periodLabel(from, asOf)}`}
         actions={
           <>
-            <Button icon={Printer} onClick={() => window.print()}>
+            <Button collapse icon={Printer} onClick={() => window.print()}>
               Cetak
             </Button>
-            <Button icon={exporting ? undefined : Download} onClick={exportOne} disabled={exporting}>
+            <Button collapse icon={exporting ? undefined : Download} onClick={exportOne} disabled={exporting}>
               {exporting ? <Dots /> : 'Ekspor laporan ini'}
             </Button>
             <Button variant="primary" icon={FileSpreadsheet} onClick={() => setPack(true)}>
@@ -258,7 +258,7 @@ function PackModal({ onClose, initialPeriod }: { onClose: () => void; initialPer
       const from = period.preset === 'all' ? (b.entries[0]?.date ?? today) : period.from;
       const to = period.preset === 'all' ? today : period.to;
       await exportPackage(b, { from, to, compare, include: sel });
-      toast('Paket laporan keuangan berhasil dibuat', { tone: 'success', detail: `${sel.size} lembar kerja · ${describePeriod(period)}` });
+      toast('Paket laporan keuangan berhasil dibuat', { tone: 'success', detail: `${sel.size} lembar kerja, ${describePeriod(period)}` });
       onClose();
     } catch (e) {
       console.error(e);

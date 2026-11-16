@@ -64,10 +64,10 @@ export default function Accounts() {
                 <span className="col grow" style={{ minWidth: 0, alignItems: 'flex-start' }}>
                   <span className="ct-name clamp-2">{a.name}</span>
                   <span className="ct-meta row" style={{ gap: 4 }}>
-                    <span className="num">{a.code}</span>
                     {a.system && <Lock size={10} aria-label="Akun sistem" />}
-                    <span>· {usage.get(a.id) ?? 0}× dipakai</span>
-                    {a.archived && <span>· arsip</span>}
+                    <span>
+                      <span className="num">{a.code}</span>, {a.archived ? 'diarsipkan' : `${usage.get(a.id) ?? 0}× dipakai`}
+                    </span>
                   </span>
                 </span>
                 <span className="col ct-right" title="Realisasi bulan ini">
@@ -138,7 +138,7 @@ export default function Accounts() {
                   <tbody key={t}>
                     <tr className="tb-group">
                       <td colSpan={6}>
-                        {t === 'asset' ? '1' : t === 'liability' ? '2' : t === 'equity' ? '3' : t === 'revenue' ? '4' : '5–7'} · {TYPE_LABEL[t].toUpperCase()}
+                        {t === 'asset' ? '1' : t === 'liability' ? '2' : t === 'equity' ? '3' : t === 'revenue' ? '4' : '5–7'}. {TYPE_LABEL[t].toUpperCase()}
                       </td>
                     </tr>
                     {list.map((a) => {

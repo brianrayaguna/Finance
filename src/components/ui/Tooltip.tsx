@@ -135,15 +135,6 @@ export function Tooltip({
               exit={{ opacity: 0, transition: { duration: 0.08 } }}
             >
               <span>{label}</span>
-              {kbd && (
-                <span className="row" style={{ gap: 2 }}>
-                  {kbd.map((k) => (
-                    <span key={k} className="kbd">
-                      {k}
-                    </span>
-                  ))}
-                </span>
-              )}
             </motion.div>
           )}
         </AnimatePresence>,

@@ -229,7 +229,7 @@ export function DatePicker({
         {value ? (
           <span className="truncate">
             {compact ? formatDate(value) : `${DAYS_SHORT[parseISO(value).getDay()]}, ${formatDate(value)}`}
-            {isRel && !compact && <span className="muted"> · {rel}</span>}
+            {isRel && !compact && <span className="muted"> ({rel.toLowerCase()})</span>}
           </span>
         ) : (
           <span className="placeholder">{placeholder}</span>

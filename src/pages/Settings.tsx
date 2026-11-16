@@ -163,9 +163,9 @@ function ThemeTile({ mode, active, onClick }: { mode: ThemeMode; active: boolean
   );
 }
 
-function Row({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
+function Row({ title, desc, children, className }: { title: string; desc?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="set-row">
+    <div className={className ? `set-row ${className}` : 'set-row'}>
       <div className="grow">
         <div className="set-title">{title}</div>
         {desc && <div className="set-desc">{desc}</div>}
@@ -203,7 +203,7 @@ function IntegrityPanel({ data }: { data: AppData }) {
           <span className="integrity-sum">
             {issues.length === 0
               ? 'Semua transaksi terjurnal, debit = kredit, dan tidak ada data yatim.'
-              : [errors && `${errors} masalah`, warns && `${warns} peringatan`].filter(Boolean).join(' · ')}
+              : [errors && `${errors} masalah`, warns && `${warns} peringatan`].filter(Boolean).join(', ')}
           </span>
         </span>
         {issues.length > 0 && (
@@ -551,7 +551,7 @@ export default function Settings() {
                   />
                 </div>
               </Row>
-              <Row title="Pintasan keyboard" desc="Daftar lengkap kombinasi tombol">
+              <Row title="Pintasan keyboard" desc="Daftar tombol untuk bekerja lebih cepat dengan keyboard" className="set-row-keys">
                 <Button icon={Keyboard} onClick={() => setShortcuts(true)}>
                   Lihat pintasan
                 </Button>
@@ -571,9 +571,8 @@ export default function Settings() {
             <div className="set-body">
               <div className="storage-info">
                 <HardDrive size={18} />
-                <span className="grow">
-                  <strong>{data.transactions.length.toLocaleString('id-ID')}</strong> transaksi · <strong>{data.accounts.length}</strong> akun · <strong>{data.assets.length}</strong> aset ·{' '}
-                  {(size / 1024).toFixed(1).replace('.', ',')} KB
+                <span className="grow" title={`${data.accounts.length} akun, ${data.assets.length} aset`}>
+                  <strong>{data.transactions.length.toLocaleString('id-ID')}</strong> transaksi, {(size / 1024).toFixed(1).replace('.', ',')} KB
                 </span>
                 <span className="muted">Sejak {formatDate(isoFromTs(profile.createdAt))}</span>
               </div>
@@ -618,7 +617,7 @@ export default function Settings() {
                 <LogoMark size={46} />
                 <div>
                   <div className="wordmark">Keuanganku</div>
-                  <p>Versi {APP_VERSION} · Pembukuan double-entry · Berjalan sepenuhnya di peramban Anda</p>
+                  <p>Versi {APP_VERSION}. Pembukuan double-entry yang berjalan sepenuhnya di peramban Anda.</p>
                   <p>
                     <a className="link" href="https://www.flaticon.com/uicons" target="_blank" rel="noopener noreferrer">
                       Uicons by Flaticon

@@ -17,10 +17,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   iconOnly?: boolean;
   block?: boolean;
   kbd?: string[];
+  /** Ponsel: tampil sebagai tombol ikon saja; label tetap dibaca pembaca layar. */
+  collapse?: boolean;
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'secondary', size = 'md', icon: I, iconRight: IR, iconOnly, block, kbd, className = '', children, type = 'button', ...rest },
+  { variant = 'secondary', size = 'md', icon: I, iconRight: IR, iconOnly, block, kbd, collapse, className = '', children, type = 'button', ...rest },
   ref,
 ) {
   const cls = [
@@ -29,6 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     size !== 'md' && `btn-${size}`,
     iconOnly && 'btn-icon',
     block && 'btn-block',
+    collapse && 'btn-collapse',
     className,
   ]
     .filter(Boolean)
@@ -36,9 +39,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   return (
     <button ref={ref} type={type} className={cls} {...rest}>
       {I && <I aria-hidden />}
-      {children}
+      {collapse ? <span className="btn-label">{children}</span> : children}
       {IR && <IR aria-hidden />}
-      {kbd && kbd.map((k) => <span key={k} className="kbd">{k}</span>)}
     </button>
   );
 });
@@ -239,7 +241,7 @@ export function Field({
       {label && (
         <label className="field-label" htmlFor={id}>
           {label}
-          {optional && <span className="opt">· opsional</span>}
+          {optional && <span className="opt">(opsional)</span>}
         </label>
       )}
       <FieldCtx.Provider value={ctx}>{children}</FieldCtx.Provider>

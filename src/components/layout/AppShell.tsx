@@ -72,10 +72,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, hash]);
 
   useLayer(mobileNav, () => setMobileNav(false));
-  // Judul tab mengikuti halaman aktif, mis. "Transaksi · Keuanganku"
+  // Judul tab mengikuti halaman aktif, mis. "Transaksi – Keuanganku"
   useEffect(() => {
     const label = navLabel(pathname);
-    document.title = label === 'Keuanganku' ? 'Keuanganku' : `${label} · Keuanganku`;
+    document.title = label === 'Keuanganku' ? 'Keuanganku' : `${label} – Keuanganku`;
   }, [pathname]);
   return (
     <div className={`app${collapsed ? ' collapsed' : ''}${drawerOpen ? ' nav-open' : ''}`}>

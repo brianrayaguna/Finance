@@ -505,7 +505,7 @@ label.wset-row {
   line-height: 1.35;
 }
 .gal-item.on .gal-name::after {
-  content: '· tampil';
+  content: '(tampil)';
   margin-left: 6px;
   font-size: var(--fs-xs);
   font-weight: 600;

@@ -94,7 +94,7 @@ export default function Journal() {
         actions={
           <>
             {tab === 'general' && <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />}
-            <Button icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting || tab !== 'general'}>
+            <Button collapse icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting || tab !== 'general'}>
               {exporting ? <Dots /> : 'Ekspor Excel'}
             </Button>
             <Button variant="primary" icon={Plus} onClick={() => openTx({ type: 'journal' })}>
@@ -171,7 +171,7 @@ export default function Journal() {
                               </td>
                               <td style={{ paddingLeft: l.credit ? 40 : 14 }}>
                                 {a?.name ?? '—'}
-                                {l.memo && <span className="muted"> · {l.memo}</span>}
+                                {l.memo && <span className="muted">, {l.memo}</span>}
                               </td>
                               <td className="code">{a?.code}</td>
                               <td className="r num money-val">{l.debit ? formatMoney(l.debit, { symbol: false }) : ''}</td>
@@ -191,7 +191,7 @@ export default function Journal() {
                     <tr>
                       <td colSpan={4}>
                         <span className="row" style={{ gap: 8 }}>
-                          Jumlah · {entries.length.toLocaleString('id-ID')} jurnal
+                          Jumlah ({entries.length.toLocaleString('id-ID')} jurnal)
                           {isZero(totals.d - totals.c) ? (
                             <Badge tone="pos" icon={CircleCheck}>Seimbang</Badge>
                           ) : (

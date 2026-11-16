@@ -82,7 +82,7 @@ export default function Ledger() {
         actions={
           <>
             <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-            <Button icon={Download} onClick={exportAll} disabled={exporting}>
+            <Button collapse icon={Download} onClick={exportAll} disabled={exporting} aria-label="Ekspor semua akun">
               Semua akun
             </Button>
             <Button variant="primary" icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting || !sel}>
@@ -184,11 +184,11 @@ export default function Ledger() {
                           <td className="lg-desc">
                             <span className="truncate">
                               {r.description}
-                              {r.memo && <span className="muted"> · {r.memo}</span>}
+                              {r.memo && <span className="muted">, {r.memo}</span>}
                             </span>
                             <span className="lg-sub truncate">
                               <span className="code">{r.ref}</span>
-                              {r.counter && <> · {r.counter}</>}
+                              {r.counter && <>, {r.counter}</>}
                             </span>
                           </td>
                           <td className="r num money-val">{r.debit ? formatMoney(r.debit, { symbol: false }) : ''}</td>

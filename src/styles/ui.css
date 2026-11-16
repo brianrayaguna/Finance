@@ -1594,6 +1594,9 @@ dialog[open] > .popover {
   .link-btn,
   .btn,
   .cat-legend button,
+  .seg-item,
+  .tx-select-toggle,
+  .chip,
   .sb-icon {
     position: relative;
   }
@@ -1606,6 +1609,10 @@ dialog[open] > .popover {
   .link-btn::after,
   .btn::after,
   .cat-legend button::after,
+  .seg-item::after,
+  .tx-select-toggle::after,
+  .chip::after,
+  .switch::before,
   .sb-icon::after {
     content: '';
     position: absolute;

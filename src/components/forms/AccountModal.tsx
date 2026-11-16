@@ -158,7 +158,7 @@ export function AccountModal({
       open={open}
       onClose={onClose}
       title={title}
-      subtitle={`${SUBTYPE_META[subtype].label} · ${TYPE_LABEL[SUBTYPE_META[subtype].type]} · saldo normal ${['asset', 'expense'].includes(SUBTYPE_META[subtype].type) && subtype !== 'accum_depreciation' ? 'debit' : 'kredit'}`}
+      subtitle={`${SUBTYPE_META[subtype].label}, saldo normal ${['asset', 'expense'].includes(SUBTYPE_META[subtype].type) && subtype !== 'accum_depreciation' ? 'debit' : 'kredit'}`}
       icon={<IconTile icon={icon} color={color} size="lg" solid />}
       size="lg"
       headerExtra={

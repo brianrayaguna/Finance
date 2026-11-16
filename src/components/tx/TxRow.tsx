@@ -65,9 +65,8 @@ export const TxRow = memo(function TxRow({
             v.title
           )}
         </div>
-        <div className="tx-sub truncate">
+        <div className="tx-sub truncate" title={tx.note ? `Catatan: ${tx.note}` : undefined}>
           {v.subtitle}
-          {tx.note && <span className="tx-note"> · {tx.note}</span>}
         </div>
       </div>
       <div className="tx-ref">{tx.ref}</div>

@@ -40,10 +40,10 @@ export function goalNote(p: GoalProgress): string {
     case 'on_track':
     case 'behind': {
       const need = `Perlu ${formatMoney(p.perMonth ?? 0, { compact: true })}/bln hingga ${formatMonth(g.targetDate!.slice(0, 7), true)}`;
-      return p.status === 'behind' && p.pace > 0 ? `${need} · kini ${formatMoney(p.pace, { compact: true })}/bln` : need;
+      return p.status === 'behind' && p.pace > 0 ? `${need}, kini ${formatMoney(p.pace, { compact: true })}/bln` : need;
     }
     case 'overdue':
-      return `Tenggat ${formatDate(g.targetDate!)} terlewat · kurang ${formatMoney(p.remaining)}`;
+      return `Tenggat ${formatDate(g.targetDate!)} terlewat, kurang ${formatMoney(p.remaining)}`;
     case 'no_date':
       return p.projected ? `Dengan laju kini, tercapai sekitar ${formatMonth(p.projected.slice(0, 7))}` : 'Belum ada kenaikan saldo dalam 3 bulan terakhir';
     case 'unlinked':

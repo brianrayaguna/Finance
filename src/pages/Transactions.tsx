@@ -20,8 +20,8 @@ import { useUI, confirm } from '../store/ui';
 import { canDuplicateTransaction, deleteTransactions, duplicateTransaction, childCount } from '../store/data';
 import { notify } from '../store/history';
 import type { Transaction, TxType } from '../accounting/types';
-import { formatDate, formatMoney, normalize, endOfMonth, DAYS, parseISO, round2, isZero } from '../lib/format';
-import { isImeComposing, isTypingTarget, layerCount, MOD } from '../lib/layers';
+import { formatDate, formatMoney, normalize, endOfMonth, DAYS, DAYS_SHORT, MONTHS_SHORT, parseISO, round2, isZero } from '../lib/format';
+import { isImeComposing, isTypingTarget, layerCount } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, Checkbox, EmptyState, TextInput, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
@@ -72,6 +72,8 @@ export default function Transactions() {
   const [category, setCategory] = useState(params.get('kategori') ?? '');
   const [limit, setLimit] = useState(PAGE);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Ponsel: kotak centang baris disembunyikan sampai pengguna menekan "Pilih".
+  const [selectMode, setSelectMode] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const anchorIdx = useRef<number | null>(null);
@@ -345,12 +347,12 @@ export default function Transactions() {
     <div>
       <PageHeader
         title="Transaksi"
-        subtitle={`${filtered.length.toLocaleString('id-ID')} transaksi · ${formatDate(period.from === '1900-01-01' ? (filtered[filtered.length - 1]?.date ?? today) : period.from)} – ${formatDate(period.to === '2999-12-31' ? today : period.to)}`}
+        subtitle={`${filtered.length.toLocaleString('id-ID')} transaksi, ${formatDate(period.from === '1900-01-01' ? (filtered[filtered.length - 1]?.date ?? today) : period.from)} – ${formatDate(period.to === '2999-12-31' ? today : period.to)}`}
         actions={
           <>
             <TxViewSwitch value="daftar" />
             <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-            <Button icon={exporting ? undefined : Download} onClick={() => doExport()} disabled={!filtered.length || exporting}>
+            <Button collapse icon={exporting ? undefined : Download} onClick={() => doExport()} disabled={!filtered.length || exporting}>
               {exporting ? <Dots /> : 'Ekspor Excel'}
             </Button>
           </>
@@ -378,7 +380,7 @@ export default function Transactions() {
         </div>
       </div>
 
-      <div className="card tx-card" ref={listRef}>
+      <div className={`card tx-card${selectMode || selected.size > 0 ? ' select-mode' : ''}`} ref={listRef}>
         <div className="list-toolbar">
           <div className="lt-row">
             <div className="fb-search">
@@ -390,7 +392,6 @@ export default function Transactions() {
                 placeholder="Cari keterangan, kategori, nominal, nomor bukti…"
                 clearable
                 sunken
-                suffix={!q ? <span className="kbd">/</span> : undefined}
               />
             </div>
           </div>
@@ -447,12 +448,31 @@ export default function Transactions() {
               <span className="grow">Keterangan</span>
               <span className="tx-ref-h">No. Bukti</span>
               <span className="tx-amt-h">Nominal</span>
+              <span className="tx-count">{filtered.length.toLocaleString('id-ID')} transaksi</span>
+              <button
+                type="button"
+                className="tx-select-toggle"
+                aria-pressed={selectMode || selected.size > 0}
+                onClick={() => {
+                  if (selectMode || selected.size > 0) {
+                    setSelectMode(false);
+                    setSelected(new Set());
+                  } else setSelectMode(true);
+                }}
+              >
+                {selectMode || selected.size > 0 ? 'Selesai' : 'Pilih'}
+              </button>
             </div>
             {groups.map((g) => (
               <section key={g.date} className="tx-day">
                 <header className="tx-day-head">
                   <span className="dname">{DAYS[parseISO(g.date).getDay()]}</span>
                   <span className="ddate">{formatDate(g.date, 'long')}</span>
+                  {/* Ponsel: "Sen, 16 Nov" agar kepala grup muat satu baris */}
+                  <span className="ddate-short" aria-hidden>
+                    {DAYS_SHORT[parseISO(g.date).getDay()]}, {parseISO(g.date).getDate()} {MONTHS_SHORT[parseISO(g.date).getMonth()]}
+                    {g.date.slice(0, 4) !== today.slice(0, 4) ? ` ${g.date.slice(0, 4)}` : ''}
+                  </span>
                   {g.date === today && <span className="badge badge-accent">Hari ini</span>}
                   <span className="spacer" />
                   <span className={`num money-val dnet ${g.net > 0 ? 'pos' : ''}`}>{isZero(g.net) ? '' : formatMoney(g.net, { sign: 'always' })}</span>
@@ -483,7 +503,7 @@ export default function Transactions() {
             {filtered.length > limit && (
               <div className="load-more">
                 <Button onClick={() => setLimit((l) => l + PAGE)}>
-                  Tampilkan {Math.min(PAGE, filtered.length - limit)} lagi · {(filtered.length - limit).toLocaleString('id-ID')} tersisa
+                  Tampilkan {Math.min(PAGE, filtered.length - limit)} lagi ({(filtered.length - limit).toLocaleString('id-ID')} tersisa)
                 </Button>
               </div>
             )}
@@ -518,12 +538,6 @@ export default function Transactions() {
       </AnimatePresence>,
       document.body,
       )}
-      <div className="kbd-hint no-print">
-        <span className="kbd">↑</span>
-        <span className="kbd">↓</span> pilih · <span className="kbd">↵</span> ubah · <span className="kbd">D</span> duplikat · <span className="kbd">⌫</span> hapus ·{' '}
-        <span className="kbd">{MOD}</span>
-        <span className="kbd">A</span> pilih semua
-      </div>
     </div>
   );
 }

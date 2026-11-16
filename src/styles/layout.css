@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Kerangka aplikasi: sidebar tetap · bilah atas lengket · kolom konten
+   Kerangka aplikasi: sidebar tetap, bilah atas lengket, dan kolom konten
    Sidebar: kepala + tombol panel, Cari & Catat di atas,
    menu berkelompok yang dapat dilipat, daftar rekening, profil di bawah.
    ═══════════════════════════════════════════════════════════════ */
@@ -747,6 +747,10 @@
   min-width: 0;
   flex: 1;
 }
+/* Pemilih bulan di bilah atas (hanya ponsel, halaman Ringkasan) */
+.tb-month {
+  display: none;
+}
 /* Jejak halaman */
 .crumbs {
   min-width: 0;
@@ -1025,6 +1029,9 @@
   letter-spacing: -0.035em;
   color: var(--text);
 }
+.page-meta {
+  display: none;
+}
 .page-sub {
   margin-top: 6px;
   max-width: 680px;
@@ -1174,8 +1181,98 @@
   .crumbs li + li::before {
     display: none;
   }
+  /* Laporan: jenis laporan sudah tampil sebagai tab aktif, bilah atas cukup "Laporan Keuangan" */
+  .crumbs-report .crumb-extra {
+    display: none;
+  }
+  .crumbs-report li.crumb-page {
+    display: block;
+  }
+  .crumbs-report .crumb-page a {
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+  }
   .page {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+  /* Ringkasan: tanggal di bilah atas, tanpa judul besar & tanpa ikon mata */
+  .tb-privacy {
+    display: none !important;
+  }
+  .crumbs.crumbs-home {
+    display: none;
+  }
+  .tb-month {
+    display: flex;
+    min-width: 0;
+  }
+  /* Nama halaman sudah tertulis di bilah atas: judul & subjudul halaman hanya untuk pembaca layar */
+  .page-head .ph-main {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .page-head {
+    margin-bottom: 14px;
+    gap: 8px;
+    align-items: center;
+  }
+  .page-head:not(:has(.page-actions, .page-meta)) {
+    margin: 0;
+  }
+  .page-meta {
+    display: block;
+    width: 100%;
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Aksi halaman: satu baris yang bisa digeser, bukan menumpuk 2–3 baris */
+  .page-head .page-actions {
+    order: 2;
+    width: auto;
+    max-width: calc(100% + var(--page-x) * 2);
+    margin: 0 calc(var(--page-x) * -1);
+    padding: 2px var(--page-x);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    /* Pudar hanya di area padding kanan: terlihat saat isi meluap, tak menutupi tombol bila tidak */
+    mask-image: linear-gradient(90deg, #000 calc(100% - var(--page-x)), transparent);
+  }
+  .page-head .page-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .page-actions > * {
+    flex: none;
+  }
+  .btn-collapse {
+    width: var(--ctl-h);
+    padding: 0;
+  }
+  .btn-collapse .btn-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  /* Ringkasan: pemilih bulan sudah pindah ke bilah atas */
+  .dash-head {
+    margin: 0;
+  }
+  .dash-head .page-actions {
+    display: none;
   }
   .tabbar {
     position: fixed;
@@ -1186,7 +1283,7 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     align-items: end;
-    height: calc(62px + env(safe-area-inset-bottom));
+    height: calc(56px + env(safe-area-inset-bottom));
     padding: 0 6px env(safe-area-inset-bottom);
     background: color-mix(in srgb, var(--surface) 90%, transparent);
     backdrop-filter: blur(18px) saturate(180%);
@@ -1194,7 +1291,7 @@
     border-top: 1px solid var(--line);
   }
   .tab {
-    height: 62px;
+    height: 56px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1208,13 +1305,13 @@
   .tab-ico {
     display: grid;
     place-items: center;
-    width: 56px;
-    height: 30px;
+    width: 48px;
+    height: 26px;
     border-radius: var(--radius-pill);
     transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease);
   }
   .tab .fi {
-    font-size: 21px;
+    font-size: 19px;
   }
   .tab.active {
     color: var(--text);
@@ -1227,9 +1324,9 @@
     justify-content: flex-start;
   }
   .tab-fab {
-    width: 50px;
-    height: 50px;
-    margin-top: -14px;
+    width: 44px;
+    height: 44px;
+    margin-top: -12px;
     border-radius: 50%;
     display: grid;
     place-items: center;
@@ -1242,11 +1339,16 @@
     transform: scale(0.92);
   }
   .tab-fab .fi {
-    font-size: 24px;
+    font-size: 21px;
   }
   .toast-stack,
   .toast-stack[popover] {
-    bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+  }
+  /* Bilah aksi massal duduk di atas tab bar, bukan menutupinya */
+  .bulk-bar.bulk-bar {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 16px);
   }
 }
 @media (max-width: 640px) {
@@ -1255,16 +1357,6 @@
   }
   .page {
     padding-top: 8px;
-  }
-  .page-title {
-    font-size: 26px;
-  }
-  .page-head {
-    margin-bottom: 18px;
-    align-items: flex-start;
-  }
-  .page-actions {
-    width: 100%;
   }
   .tb-undo-group {
     display: none !important;

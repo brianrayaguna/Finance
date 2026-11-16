@@ -7,7 +7,8 @@ import { REPORTS } from '../../app/reports';
 import { markReminderRead, usePrefs, useUI } from '../../store/ui';
 import { useData } from '../../store/data';
 import { undo, redo } from '../../store/history';
-import { useScrolled } from '../../hooks/useApp';
+import { useScrolled, useToday } from '../../hooks/useApp';
+import { MonthSwitcher } from '../ui/MonthSwitcher';
 import { useReminders } from '../../hooks/useReminders';
 import { Tooltip } from '../ui/Tooltip';
 import { Menu, Popover } from '../ui/Popover';
@@ -120,20 +121,33 @@ function Breadcrumb() {
   if (pathname.startsWith('/laporan')) extra = REPORTS.find((r) => r.key === params.get('r'))?.label ?? REPORTS[0].label;
   if (pathname.startsWith('/buku-besar')) extra = accounts.find((a) => a.id === params.get('akun'))?.name;
   const pageRoot = ALL_NAV.find((n) => n.label === page)?.to ?? '/';
+  const today = useToday();
+  const dashMonth = useUI((s) => s.dashMonth);
+  const setDashMonth = useUI((s) => s.setDashMonth);
+  const isHome = pathname === '/';
+  const cur = today.slice(0, 7);
   return (
-    <nav className="crumbs" aria-label="Lokasi halaman">
-      <ol>
-        {section && <li className="crumb-sec">{section}</li>}
-        <li className={extra ? 'crumb-page' : 'crumb-page current'} aria-current={extra ? undefined : 'page'}>
-          {extra ? <Link to={pageRoot}>{page}</Link> : page}
-        </li>
-        {extra && (
-          <li className="crumb-extra current" aria-current="page">
-            {extra}
+    <>
+      {/* Ponsel, halaman Ringkasan: pemilih bulan menggantikan nama halaman */}
+      {isHome && (
+        <span className="tb-month">
+          <MonthSwitcher compact value={dashMonth ?? cur} onChange={(m) => setDashMonth(m === cur ? null : m)} />
+        </span>
+      )}
+      <nav className={`crumbs${isHome ? ' crumbs-home' : ''}${pathname.startsWith('/laporan') ? ' crumbs-report' : ''}`} aria-label="Lokasi halaman">
+        <ol>
+          {section && <li className="crumb-sec">{section}</li>}
+          <li className={extra ? 'crumb-page' : 'crumb-page current'} aria-current={extra ? undefined : 'page'}>
+            {extra ? <Link to={pageRoot}>{page}</Link> : page}
           </li>
-        )}
-      </ol>
-    </nav>
+          {extra && (
+            <li className="crumb-extra current" aria-current="page">
+              {extra}
+            </li>
+          )}
+        </ol>
+      </nav>
+    </>
   );
 }
 
@@ -192,7 +206,7 @@ function ReminderBell() {
                       {r.detail}
                       {r.when && (
                         <>
-                          {' · '}
+                          {', '}
                           <span className="rem-when">{r.when}</span>
                         </>
                       )}
@@ -241,17 +255,27 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  className,
+  meta,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  className?: string;
+  /** Info singkat yang tetap tampil di ponsel saat judul & subjudul disembunyikan (mis. "29 transaksi"). */
+  meta?: ReactNode;
 }) {
   return (
-    <header className="page-head">
+    <header className={className ? `page-head ${className}` : 'page-head'}>
       <div className="ph-main">
         <h1 className="page-title">{title}</h1>
         {subtitle && <p className="page-sub">{subtitle}</p>}
       </div>
+      {meta && (
+        <p className="page-meta" aria-hidden>
+          {meta}
+        </p>
+      )}
       {actions && <div className="page-actions no-print">{actions}</div>}
     </header>
   );

@@ -1,7 +1,7 @@
 /*
  * Sidebar aplikasi:
- *  kepala (merek + ciutkan) · Cari & Catat transaksi · menu berkelompok yang dapat dilipat ·
- *  daftar saldo rekening · profil dengan menu pengaturan.
+ *  kepala (merek dan tombol ciutkan), Cari dan Catat transaksi, menu berkelompok yang dapat
+ *  dilipat, daftar saldo rekening, serta profil dengan menu pengaturan.
  */
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -17,7 +17,6 @@ import {
   EyeOff,
   Settings as SettingsIcon,
   Palette,
-  Keyboard,
   Download,
   Info,
   Sun,
@@ -221,7 +220,7 @@ function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boole
                 className={`sb-acct${activeId === w.account.id ? ' active' : ''}`}
                 onClick={onNavigate}
                 aria-current={activeId === w.account.id ? 'page' : undefined}
-                title={hideAmounts ? w.account.name : `${w.account.name} · ${formatMoney(v)}`}
+                title={hideAmounts ? w.account.name : `${w.account.name}: ${formatMoney(v)}`}
               >
                 <span className="sb-acct-dot" style={{ background: w.account.color }} aria-hidden />
                 <span className="sb-acct-name">{w.account.name}</span>
@@ -255,7 +254,6 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
   const mode = usePrefs((s) => s.mode);
   const hideAmounts = usePrefs((s) => s.hideAmounts);
   const setPrefs = usePrefs((s) => s.set);
-  const setShortcuts = useUI((s) => s.setShortcuts);
   const nav = useNavigate();
   const name = profile.name?.trim() || 'Pengguna';
   const book = profile.entityName?.trim() || 'Keuangan pribadi';
@@ -279,7 +277,6 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
         { label: 'Warna & kepadatan…', onSelect: () => go('/pengaturan#tampilan') },
       ],
     },
-    { label: 'Pintasan keyboard', icon: Keyboard, onSelect: () => setShortcuts(true) },
     { separator: true },
     { label: hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', icon: hideAmounts ? Eye : EyeOff, onSelect: () => setPrefs({ hideAmounts: !hideAmounts }) },
     { label: 'Cadangkan data', icon: Download, onSelect: downloadBackup },
@@ -294,7 +291,7 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
       className="profile-pop"
       items={items}
       trigger={(p) => (
-        <Tooltip label={`${name} · ${book}`} side="right" disabled={!collapsed}>
+        <Tooltip label={`${name}, ${book}`} side="right" disabled={!collapsed}>
           <button
             type="button"
             className="profile-chip"
@@ -307,10 +304,10 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
             <span className="avatar" aria-hidden>
               {initials(name)}
             </span>
-            {/* Satu baris "Nama · Mode" */}
+            {/* Satu baris "Nama, mode Sederhana" */}
             <span className="p-meta">
               <span className="p-name">{name}</span>
-              <span className="p-tag"> · {mode === 'simple' ? 'Sederhana' : 'Akuntan'}</span>
+              <span className="p-tag">, mode {mode === 'simple' ? 'Sederhana' : 'Akuntan'}</span>
             </span>
             <ChevronDown className="p-chev" aria-hidden />
           </button>

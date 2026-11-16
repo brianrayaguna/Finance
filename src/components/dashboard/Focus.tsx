@@ -22,7 +22,7 @@ export function AttentionStrip() {
               <span className="attention-text">
                 <span className="attention-title">{r.title}</span>
                 <span className="attention-detail">
-                  {r.when ? `${r.when} · ` : ''}
+                  {r.when ? `${r.when.charAt(0).toUpperCase()}${r.when.slice(1)}, ` : ''}
                   {r.detail}
                 </span>
               </span>

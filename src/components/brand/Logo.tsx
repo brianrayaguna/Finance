@@ -1,13 +1,15 @@
 import type { CSSProperties } from 'react';
 
 /**
- * Logo Keuanganku — monogram "K" terbelah di atas kotak hijau hutan.
- * Lengan atas (lime) naik = pemasukan, kaki bawah (krem) turun = pengeluaran.
+ * Logo Keuanganku: koin emas di atas kotak merah.
+ * Tepi bawah koin yang lebih gelap memberi kesan tebal; kilau kecil di kiri atas tetap terbaca di 16px.
  */
 export const BRAND = {
-  forest: '#163300',
-  lime: '#9FE870',
-  cream: '#F2F5EE',
+  red: '#D7372B',
+  gold: '#F6C445',
+  goldDeep: '#E0A82E',
+  goldEdge: '#C98A1E',
+  shine: '#FFF4CF',
 } as const;
 
 export function LogoMark({ size = 32, className, style, title }: { size?: number; className?: string; style?: CSSProperties; title?: string }) {
@@ -22,10 +24,12 @@ export function LogoMark({ size = 32, className, style, title }: { size?: number
       aria-hidden={title ? undefined : true}
       aria-label={title}
     >
-      <rect width="32" height="32" rx="9" fill={BRAND.forest} />
-      <rect x="9" y="8" width="3.8" height="16" rx="1.2" fill={BRAND.lime} />
-      <path d="M23.4 8h-4.9l-5.2 6.4 2.45 3z" fill={BRAND.lime} />
-      <path d="M16.9 17.95 22.1 24h-4.9l-2.68-3.12z" fill={BRAND.cream} />
+      <rect width="32" height="32" rx="9" fill={BRAND.red} />
+      <circle cx="16" cy="16.8" r="9.6" fill={BRAND.goldEdge} />
+      <circle cx="16" cy="15.6" r="9.6" fill={BRAND.gold} />
+      <circle cx="16" cy="15.6" r="7.2" fill={BRAND.goldDeep} />
+      <circle cx="16" cy="15.6" r="5.6" fill={BRAND.gold} />
+      <path d="M9.3 12.9c.6-2 2-3.5 3.9-4.3.5-.2.9.4.5.8-1.5.9-2.6 2.2-3.3 3.8-.3.6-1.2.3-1.1-.3z" fill={BRAND.shine} />
     </svg>
   );
 }

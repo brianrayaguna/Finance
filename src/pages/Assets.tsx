@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Plus, Boxes, Ellipsis, Pencil, Trash2, CalendarRange, BadgeDollarSign, Undo2 } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { addAsset, deleteAsset, updateAsset, useData } from '../store/data';
-import { confirm, usePrefs } from '../store/ui';
+import { confirm } from '../store/ui';
 import { notify } from '../store/history';
 import { accumulatedAt, depreciationSchedule, disposalStop } from '../accounting/engine';
 import { isLocked } from '../accounting/lock';
@@ -116,7 +116,7 @@ export default function Assets() {
                 <tr>
                   <th>Aset</th>
                   <th className="r">Harga perolehan</th>
-                  <th>Umur · Metode</th>
+                  <th>Umur dan metode</th>
                   <th className="r">Akum. penyusutan</th>
                   <th className="r">Nilai buku</th>
                   <th style={{ width: 120 }}>Tersusutkan</th>
@@ -135,7 +135,7 @@ export default function Assets() {
                           <div className="col" style={{ minWidth: 0 }}>
                             <strong className="truncate" style={{ maxWidth: 240 }}>{a.name}</strong>
                             <span className="muted" style={{ fontSize: 12 }}>
-                              {account?.name} · {a.ref}
+                              {account?.name}, {a.ref}
                             </span>
                           </div>
                         </div>
@@ -419,7 +419,6 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
     }
     return [...m.entries()];
   }, [rows, stop]);
-  const hideAmounts = usePrefs((s) => s.hideAmounts);
   return (
     <Modal
       open
@@ -428,12 +427,8 @@ function ScheduleModal({ asset, onClose }: { asset: FixedAsset; onClose: () => v
       title="Jadwal penyusutan"
       subtitle={
         asset.depreciable === false
-          ? hideAmounts
-            ? `${asset.name} · tidak disusutkan`
-            : `${asset.name} · ${formatMoney(asset.cost)} · tidak disusutkan`
-          : hideAmounts
-            ? `${asset.name} · ${lifeLabel(asset.usefulLifeMonths)} · ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`
-            : `${asset.name} · ${formatMoney(asset.cost)} · ${lifeLabel(asset.usefulLifeMonths)} · ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`
+          ? `${asset.name}, tidak disusutkan`
+          : `${asset.name}, ${lifeLabel(asset.usefulLifeMonths)} metode ${asset.method === 'straight_line' ? 'garis lurus' : 'saldo menurun ganda'}`
       }
       headerExtra={<Segmented size="sm" value={mode} onChange={setMode} ariaLabel="Periode jadwal penyusutan" options={[{ value: 'year', label: 'Tahunan' }, { value: 'month', label: 'Bulanan' }]} />}
     >

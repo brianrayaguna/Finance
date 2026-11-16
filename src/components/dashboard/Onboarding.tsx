@@ -118,7 +118,7 @@ export function Onboarding({ onGoal, first = false }: { onGoal: () => void; firs
           {close}
         </div>
         <div className="onb-sub-head">
-          <span>Langkah awal · {done} dari {steps.length} selesai</span>
+          <span>Langkah awal, {done} dari {steps.length} selesai</span>
           <div className="onb-progress">
             <Progress value={done / steps.length} thin label="Kemajuan langkah awal" />
           </div>

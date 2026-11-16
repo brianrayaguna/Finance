@@ -68,12 +68,12 @@ export function UpcomingWidget({ settings }: WidgetProps) {
             ))}
             {list.length > 6 && <div className="w-more">+{list.length - 6} tagihan lainnya</div>}
             <div className="mini-total">
-              <span>{withRec ? 'Keluar · masuk' : 'Total dibayar'}</span>
+              <span>{withRec ? 'Keluar / masuk' : 'Total dibayar'}</span>
               <span className="num">
                 <span className="money-val">{formatMoney(pay)}</span>
                 {withRec && (
                   <>
-                    <span className="muted"> · </span>
+                    <span className="muted"> / </span>
                     <span className="money-val pos">{formatMoney(rec)}</span>
                   </>
                 )}
@@ -100,7 +100,7 @@ export function TopCatsWidget({ settings }: WidgetProps) {
   const max = top[0]?.value ?? 0;
   return (
     <WCard>
-      <CardHead title="Kategori teratas" sub={`${formatMonth(month)} · dibanding ${isCurrent ? 'periode sama' : 'bulan'} sebelumnya`} to="/laporan?r=laba-rugi" link="Rinci" />
+      <CardHead title="Kategori teratas" sub={`${formatMonth(month)}, dibanding ${isCurrent ? 'periode sama' : 'bulan'} sebelumnya`} to="/laporan?r=laba-rugi" link="Rinci" />
       <div className="card-body">
         {top.length === 0 ? (
           <EmptyState compact heading="h3" icon={Star} title="Belum ada pengeluaran" text="Kategori dengan beban terbesar akan tampil di sini." />
@@ -175,7 +175,7 @@ export function HeatmapWidget() {
         title="Kalender pengeluaran"
         sub={
           <>
-            <span className="money-val">{shortMoney(total, compact)}</span> · {noSpend} hari tanpa belanja
+            <span className="money-val">{shortMoney(total, compact)}</span>, {noSpend} hari tanpa belanja
           </>
         }
         to="/transaksi?tampil=kalender"
@@ -201,7 +201,7 @@ export function HeatmapWidget() {
                   type="button"
                   className={`hm-cell lv${lvl(v)}${d === today ? ' today' : ''}${future ? ' future' : ''}`}
                   onClick={() => nav(`/transaksi?tampil=kalender&tanggal=${d}`)}
-                  title={`${formatDate(d, 'full')} · ${v ? formatMoney(v) : 'tidak ada pengeluaran'}`}
+                  title={`${formatDate(d, 'full')}: ${v ? formatMoney(v) : 'tidak ada pengeluaran'}`}
                   aria-label={`${formatDate(d, 'full')}, pengeluaran ${formatMoney(v)}`}
                 >
                   {Number(d.slice(8))}
@@ -337,7 +337,7 @@ export function DailyCashWidget({ settings }: WidgetProps) {
   const change = last.balance - (first.balance - first.inflow + first.outflow);
   return (
     <WCard>
-      <CardHead title="Saldo kas harian" sub={`${days} hari terakhir · kas, bank & e-wallet`} to="/dompet" link="Dompet" />
+      <CardHead title="Saldo kas harian" sub={`Kas, bank & e-wallet selama ${days} hari terakhir`} to="/dompet" link="Dompet" />
       <div className="card-body">
         <div className="dc-stats">
           <div>
@@ -349,10 +349,10 @@ export function DailyCashWidget({ settings }: WidgetProps) {
             <strong className={`money-val num ${change > 0.004 ? 'pos' : change < -0.004 ? 'neg' : ''}`}>{shortMoney(change, compact, { sign: 'always' })}</strong>
           </div>
           <div>
-            <span>Masuk · keluar</span>
+            <span>Masuk / keluar</span>
             <strong className="num">
               <span className="money-val">{shortMoney(inflow, compact)}</span>
-              <span className="muted"> · </span>
+              <span className="muted"> / </span>
               <span className="money-val">{shortMoney(outflow, compact)}</span>
             </strong>
           </div>
@@ -442,14 +442,14 @@ export function IntegrityWidget() {
   const ok = balanced && errors.length === 0;
   return (
     <WCard>
-      <CardHead title="Integritas buku" sub={`${entries.toLocaleString('id-ID')} jurnal · ${b.data.transactions.length.toLocaleString('id-ID')} transaksi`} to="/pengaturan#integritas" link="Periksa" />
+      <CardHead title="Integritas buku" sub={`${entries.toLocaleString('id-ID')} jurnal, ${b.data.transactions.length.toLocaleString('id-ID')} transaksi`} to="/pengaturan#integritas" link="Periksa" />
       <div className="card-body">
         <div className={`integ-status ${ok ? (warns.length ? 'warn' : 'ok') : 'bad'}`}>
           {ok ? <ShieldCheck aria-hidden /> : <TriangleAlert aria-hidden />}
           <div>
             <strong>{ok ? (warns.length ? 'Seimbang, ada catatan' : 'Buku seimbang') : 'Perlu diperiksa'}</strong>
             <span>
-              {errors.length} galat · {warns.length} peringatan
+              {errors.length} galat, {warns.length} peringatan
             </span>
           </div>
         </div>

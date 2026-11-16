@@ -14,7 +14,6 @@ import {
   Moon,
   Eye,
   EyeOff,
-  Keyboard,
   FileSpreadsheet,
   PanelLeft,
   CornerDownLeft,
@@ -135,7 +134,6 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
   const nav = useNavigate();
   const openTx = useUI((s) => s.openTx);
   const editTx = useUI((s) => s.editTx);
-  const setShortcuts = useUI((s) => s.setShortcuts);
   const prefs = usePrefs();
 
   useEffect(() => {
@@ -180,7 +178,6 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       ['a-theme', prefs.theme === 'dark' ? 'Beralih ke tema terang' : 'Beralih ke tema gelap', prefs.theme === 'dark' ? Sun : Moon, 'var(--text-2)', () => prefs.set({ theme: prefs.theme === 'dark' ? 'light' : 'dark' })],
       ['a-priv', prefs.hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', prefs.hideAmounts ? Eye : EyeOff, 'var(--text-2)', () => prefs.set({ hideAmounts: !prefs.hideAmounts })],
       ['a-side', prefs.sidebarCollapsed ? 'Tampilkan sidebar' : 'Ciutkan sidebar', PanelLeft, 'var(--text-2)', () => prefs.set({ sidebarCollapsed: !prefs.sidebarCollapsed })],
-      ['a-keys', 'Lihat pintasan keyboard', Keyboard, 'var(--text-2)', () => setShortcuts(true)],
     ];
     for (const [id, title, I, c, run] of actions) {
       const s = match(title);
@@ -227,7 +224,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           id: 't-' + t.id,
           group: 'Transaksi',
           title,
-          sub: `${formatDate(t.date)} · ${t.ref}${cat && cat !== title ? ' · ' + cat : ''}`,
+          sub: `${formatDate(t.date)}, ${t.ref}`,
           right: <span className={isIn ? 'pos money-val' : 'money-val'}>{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
@@ -241,7 +238,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           id: 'acc-' + a.id,
           group: 'Akun',
           title: a.name,
-          sub: `${a.code} · ${TYPE_LABEL[a.type]} · Buka buku besar`,
+          sub: `${a.code}, ${TYPE_LABEL[a.type]}`,
           icon: <IconTile icon={a.icon} color={a.color} size="sm" />,
           run: go(() => nav(`/buku-besar?akun=${a.id}`)),
           score: s,
@@ -256,7 +253,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           id: 't-' + t.id,
           group: 'Terakhir dicatat',
           title: t.description || catAcc?.name || TX_META[t.type].label,
-          sub: `${formatDate(t.date)} · ${t.ref}`,
+          sub: `${formatDate(t.date)}, ${t.ref}`,
           right: <span className="money-val">{formatMoney(t.amount)}</span>,
           icon: <IconTile icon={catAcc?.icon ?? 'receipt'} color={catAcc?.color} size="sm" />,
           run: go(() => editTx(t)),
@@ -275,7 +272,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
         counts.set(it.group, c);
         return c <= (it.group === 'Transaksi' ? 12 : 6);
       });
-  }, [q, data, nav, openTx, editTx, prefs, setShortcuts, onClose]);
+  }, [q, data, nav, openTx, editTx, prefs, onClose]);
 
   useEffect(() => setActive(0), [q]);
   useEffect(() => {
@@ -319,7 +316,6 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
           spellCheck={false}
           autoComplete="off"
         />
-        <span className="kbd">esc</span>
       </div>
       <div className="palette-list" ref={listRef} id={listId} role="listbox" aria-label="Hasil pencarian">
         {items.length === 0 && <div className="list-empty">Tidak ada hasil untuk “{q}”</div>}
@@ -357,17 +353,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
         })}
       </div>
       <div className="palette-foot">
-        <span>
-          <span className="kbd">↑</span>
-          <span className="kbd">↓</span> pilih
-        </span>
-        <span>
-          <span className="kbd">↵</span> buka
-        </span>
-        <span>
-          <span className="kbd">esc</span> tutup
-        </span>
-        <span style={{ marginLeft: 'auto' }}>{data.transactions.length.toLocaleString('id-ID')} transaksi tercatat</span>
+        <span>{data.transactions.length.toLocaleString('id-ID')} transaksi tercatat</span>
       </div>
     </>
   );

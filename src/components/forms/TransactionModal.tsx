@@ -20,6 +20,7 @@ import {
   TriangleAlert,
   Lock,
   Copy,
+  Undo2,
 } from '../../lib/glyphs';
 import { SYS, isWallet } from '../../accounting/coa';
 import { TX_META, journalizeTx, makeCtx } from '../../accounting/engine';
@@ -31,14 +32,14 @@ import { confirm, usePrefs, useUI } from '../../store/ui';
 import { notify } from '../../store/history';
 import { addDays, formatDate, formatMoney, isoFromTs, nowTime, round2, todayISO, daysBetween } from '../../lib/format';
 import { focusField, focusNext, useSubmitRef } from '../../lib/focus';
-import { isImeComposing, MOD } from '../../lib/layers';
+import { isImeComposing } from '../../lib/layers';
 import { Modal } from '../ui/Modal';
 import { Segmented } from '../ui/Segmented';
 import { AmountInput } from '../ui/AmountInput';
 import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
 import { AutoComplete } from '../ui/AutoComplete';
-import { Badge, Button, Field, IconTile, Kbd, Progress, Switch, TextArea } from '../ui/primitives';
+import { Badge, Button, Field, IconTile, Progress, Switch, TextArea } from '../ui/primitives';
 import { useCategoryOptions, useContacts, useOpenDebtOptions, useWalletOptions } from './options';
 import { JournalModal } from './JournalModal';
 
@@ -168,6 +169,7 @@ function TransactionModal({
   const [d, setD] = useState<Draft>(() => initDraft(editing, defaults));
   const [tried, setTried] = useState(false);
   const [showNote, setShowNote] = useState(!!editing?.note);
+  const [showRefund, setShowRefund] = useState(false);
   const [showJournal, setShowJournal] = useState(false);
   const autoDebtAmt = useRef<number | null>(null);
   const accountTouched = useRef(!!(editing || defaults?.accountId));
@@ -185,6 +187,7 @@ function TransactionModal({
     setD(initDraft(editing, defaults));
     setTried(false);
     setShowNote(!!editing?.note);
+    setShowRefund(false);
     setShowJournal(false);
     autoDebtAmt.current = null;
     accountTouched.current = !!(editing || defaults?.accountId);
@@ -574,9 +577,8 @@ function TransactionModal({
           {debt.status === 'overdue' && <Badge tone="neg">Lewat jatuh tempo</Badge>}
           {debt.status === 'due_soon' && <Badge tone="warn">Segera jatuh tempo</Badge>}
         </div>
-        <div className="muted" style={{ fontSize: 12 }}>
-          Pokok {formatMoney(debt.tx.amount)} · Terbayar {formatMoney(debt.paid + debt.writtenOff)}
-          {debt.tx.dueDate && ` · JT ${formatDate(debt.tx.dueDate)}`}
+        <div className="muted" style={{ fontSize: 12 }} title={debt.tx.dueDate ? `Jatuh tempo ${formatDate(debt.tx.dueDate, 'long')}` : undefined}>
+          Pokok {formatMoney(debt.tx.amount)}, terbayar {formatMoney(debt.paid + debt.writtenOff)}
         </div>
         <div style={{ marginTop: 6 }}>
           <Progress value={debt.tx.amount ? (debt.paid + debt.writtenOff) / debt.tx.amount : 0} thin label="Porsi terbayar" color={debt.kind === 'payable' ? 'var(--tone-payable)' : 'var(--tone-receivable)'} />
@@ -594,13 +596,7 @@ function TransactionModal({
       open={open}
       onClose={onClose}
       title={title}
-      subtitle={
-        editing
-          ? `${editing.ref} · dibuat ${formatDate(isoFromTs(editing.createdAt))}`
-          : uiMode === 'simple'
-            ? 'Catat pemasukan, pengeluaran, transfer, atau hutang-piutang'
-            : 'Setiap transaksi otomatis dijurnal secara berpasangan'
-      }
+      subtitle={editing ? `${editing.ref}, dibuat ${formatDate(isoFromTs(editing.createdAt), 'long')}` : undefined}
       size="md"
       initialFocus={editing ? '[data-field]' : 'input[data-field]'}
       headerExtra={
@@ -620,10 +616,6 @@ function TransactionModal({
           </>
         ) : (
           <>
-            <span className="hint">
-              <Kbd>↵</Kbd> berikutnya · <Kbd>{MOD}</Kbd>
-              <Kbd>↵</Kbd> simpan
-            </span>
             <span className="spacer" />
             {!editing && (
               <Button onClick={() => submitRef.run('new')} icon={Plus}>
@@ -746,13 +738,13 @@ function TransactionModal({
               <Select value={d.categoryId} onChange={(v) => set('categoryId', v)} options={cats} placeholder="Pilih kategori…" invalid={!!err('categoryId')} searchable advance />
             </Field>
           )}
-          {(d.mode === 'expense' || d.mode === 'income') && (
+          {(d.mode === 'expense' || d.mode === 'income') && (showRefund || d.refund) && (
             <Field
               label={d.mode === 'income' ? 'Pengembalian dana (refund)' : 'Pengembalian pendapatan'}
               hint={
                 d.mode === 'income'
-                  ? 'Aktifkan bila uang kembali dari belanja atau biaya sebelumnya: mengurangi beban, bukan menambah pendapatan.'
-                  : 'Aktifkan bila pendapatan dikembalikan (mis. gaji kelebihan bayar): mengurangi pendapatan, bukan menambah beban.'
+                  ? 'Untuk uang belanja yang dikembalikan. Mengurangi beban, bukan menambah pendapatan.'
+                  : 'Untuk gaji atau pendapatan yang dikembalikan. Mengurangi pendapatan, bukan menambah beban.'
               }
             >
               <Switch
@@ -874,7 +866,7 @@ function TransactionModal({
                   }));
               }}
               placeholder={
-                d.mode === 'expense' ? 'mis. Makan siang bersama tim' : d.mode === 'income' ? 'mis. Gaji bulan ini' : 'Tambahkan keterangan'
+                d.mode === 'expense' ? 'Contoh: makan siang bersama tim' : d.mode === 'income' ? 'Contoh: gaji bulan ini' : 'Tambahkan keterangan'
               }
               icon={Text}
             />
@@ -885,7 +877,7 @@ function TransactionModal({
           <div className="tx-warn" role="status">
             <TriangleAlert aria-hidden />
             <span>
-              Saldo {balanceWarn.name} akan menjadi <strong className="money-val">{formatMoney(balanceWarn.after)}</strong> setelah transaksi ini. Periksa akun atau isi saldo awalnya.
+              Saldo {balanceWarn.name} jadi <strong className="money-val">{formatMoney(balanceWarn.after)}</strong> setelah ini. Periksa akun atau isi saldo awal.
             </span>
           </div>
         )}
@@ -893,8 +885,8 @@ function TransactionModal({
           <div className="tx-warn info" role="status">
             <Copy aria-hidden />
             <span>
-              Transaksi serupa sudah tercatat: <strong>{duplicate.ref}</strong>
-              {duplicate.description ? ` · ${duplicate.description}` : ''}. Pastikan ini bukan catatan ganda.
+              Transaksi serupa sudah ada (<strong>{duplicate.ref}</strong>
+              {duplicate.description ? `, ${duplicate.description}` : ''}). Pastikan ini bukan catatan ganda.
             </span>
           </div>
         )}
@@ -906,8 +898,13 @@ function TransactionModal({
             </button>
           ) : (
             <div style={{ width: '100%' }}>
-              <TextArea value={d.note} onChange={(v) => set('note', v)} placeholder="Catatan tambahan (tidak tampil di laporan)" rows={2} autoFocus={!editing?.note} />
+              <TextArea value={d.note} onChange={(v) => set('note', v)} placeholder="Catatan pribadi, tidak tampil di laporan" rows={2} autoFocus={!editing?.note} />
             </div>
+          )}
+          {(d.mode === 'expense' || d.mode === 'income') && !showRefund && !d.refund && (
+            <button type="button" className="link-btn" onClick={() => setShowRefund(true)}>
+              <Undo2 size={14} /> Pengembalian dana
+            </button>
           )}
           {canFavorite && (
             <button
@@ -980,7 +977,7 @@ function TransactionModal({
 
         {(d.mode === 'payable' || d.mode === 'receivable') && d.sub === 'new' && d.dueDate && d.date && d.dueDate >= d.date && (
           <div className="muted" style={{ fontSize: 12, marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <CalendarClock size={13} /> Tenor {daysBetween(d.date, d.dueDate)} hari · jatuh tempo {formatDate(d.dueDate, 'long')}
+            <CalendarClock size={13} /> Tenor {daysBetween(d.date, d.dueDate)} hari, jatuh tempo {formatDate(d.dueDate, 'long')}
           </div>
         )}
       </div>

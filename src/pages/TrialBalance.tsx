@@ -44,7 +44,7 @@ export default function TrialBalance() {
     <div>
       <PageHeader
         title="Neraca Saldo"
-        subtitle={`Saldo seluruh akun sebelum penutupan · per ${formatDate(to, 'long')}`}
+        subtitle={`Saldo seluruh akun sebelum penutupan per ${formatDate(to, 'long')}`}
         actions={
           <>
             <div style={{ width: 230 }}>

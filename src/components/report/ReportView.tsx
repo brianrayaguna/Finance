@@ -34,7 +34,7 @@ export function ReportView({
 }) {
   const valueCols = report.columns;
   const multiHeader = report.columns.some((c) => c.sub) && report.id === 'worksheet';
-  const period = report.subtitle.split(' · ').slice(1).join(' · ');
+  const period = report.subtitle;
 
   return (
     <div className={`paper${compact ? ' compact' : ''}${report.columns.length > 3 ? ' wide' : ''}`}>

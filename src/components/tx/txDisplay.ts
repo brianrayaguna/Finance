@@ -23,13 +23,13 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
   const walletDebt = usesWallet(t);
   switch (t.type) {
     case 'income':
-      return { title: t.description || cat?.name || kind, subtitle: [cat?.name, wal?.name].filter(Boolean).join(' · '), icon: cat?.icon ?? 'trending-up', color: cat?.color ?? '#4C8A58', amount: t.amount, sign: 1, kind };
+      return { title: t.description || cat?.name || kind, subtitle: [cat?.name, wal?.name].filter(Boolean).join(', '), icon: cat?.icon ?? 'trending-up', color: cat?.color ?? '#4C8A58', amount: t.amount, sign: 1, kind };
     case 'expense':
-      return { title: t.description || cat?.name || kind, subtitle: [cat?.name, wal?.name].filter(Boolean).join(' · '), icon: cat?.icon ?? 'receipt', color: cat?.color ?? 'var(--tone-payable)', amount: t.amount, sign: -1, kind };
+      return { title: t.description || cat?.name || kind, subtitle: [cat?.name, wal?.name].filter(Boolean).join(', '), icon: cat?.icon ?? 'receipt', color: cat?.color ?? 'var(--tone-payable)', amount: t.amount, sign: -1, kind };
     case 'transfer':
       return {
         title: t.description || 'Transfer',
-        subtitle: `${wal?.name ?? '—'} → ${a(t.toAccountId)?.name ?? '—'}${t.fee ? ' · biaya admin' : ''}`,
+        subtitle: `${wal?.name ?? '—'} → ${a(t.toAccountId)?.name ?? '—'}${t.fee ? ', dengan biaya admin' : ''}`,
         icon: 'repeat',
         color: 'var(--tone-transfer)',
         amount: amt,
@@ -39,7 +39,7 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
     case 'payable_new':
       return {
         title: t.description || `Hutang kepada ${t.contact}`,
-        subtitle: `Hutang · ${t.contact ?? ''}${walletDebt && wal ? ' · ' + wal.name : t.counter === 'category' && cat ? ' · ' + cat.name : t.counter === 'opening' ? ' · saldo awal' : ''}`,
+        subtitle: `Hutang${t.contact ? ' ke ' + t.contact : ''}${walletDebt && wal ? ', ' + wal.name : t.counter === 'category' && cat ? ', ' + cat.name : t.counter === 'opening' ? ', saldo awal' : ''}`,
         icon: 'handshake',
         color: 'var(--tone-payable)',
         amount: t.amount,
@@ -47,11 +47,11 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
         kind,
       };
     case 'payable_pay':
-      return { title: t.description || `Bayar hutang ${parent?.contact ?? ''}`.trim(), subtitle: `Pembayaran hutang · ${wal?.name ?? ''}${t.interest ? ' · termasuk bunga' : ''}`, icon: 'handshake', color: 'var(--tone-payable)', amount: amt, sign: -1, kind };
+      return { title: t.description || `Bayar hutang ${parent?.contact ?? ''}`.trim(), subtitle: `Pembayaran hutang${wal ? ' dari ' + wal.name : ''}${t.interest ? ', termasuk bunga' : ''}`, icon: 'handshake', color: 'var(--tone-payable)', amount: amt, sign: -1, kind };
     case 'receivable_new':
       return {
         title: t.description || `Piutang ${t.contact}`,
-        subtitle: `Piutang · ${t.contact ?? ''}${walletDebt && wal ? ' · ' + wal.name : t.counter === 'category' && cat ? ' · ' + cat.name : t.counter === 'opening' ? ' · saldo awal' : ''}`,
+        subtitle: `Piutang${t.contact ? ' ke ' + t.contact : ''}${walletDebt && wal ? ', ' + wal.name : t.counter === 'category' && cat ? ', ' + cat.name : t.counter === 'opening' ? ', saldo awal' : ''}`,
         icon: 'hand-coins',
         color: 'var(--tone-receivable)',
         amount: t.amount,
@@ -59,13 +59,13 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
         kind,
       };
     case 'receivable_collect':
-      return { title: t.description || `Terima piutang ${parent?.contact ?? ''}`.trim(), subtitle: `Penerimaan piutang · ${wal?.name ?? ''}`, icon: 'hand-coins', color: 'var(--tone-receivable)', amount: amt, sign: 1, kind };
+      return { title: t.description || `Terima piutang ${parent?.contact ?? ''}`.trim(), subtitle: `Penerimaan piutang${wal ? ' ke ' + wal.name : ''}`, icon: 'hand-coins', color: 'var(--tone-receivable)', amount: amt, sign: 1, kind };
     case 'receivable_writeoff':
       return { title: t.description || `Hapus buku piutang ${parent?.contact ?? ''}`.trim(), subtitle: 'Beban piutang tak tertagih', icon: 'receipt-text', color: 'var(--neg)', amount: t.amount, sign: 0, kind };
     case 'opening':
       return { title: `Saldo awal ${wal?.name ?? ''}`.trim(), subtitle: 'Ekuitas saldo awal', icon: wal?.icon ?? 'scale', color: wal?.color ?? '#8A6546', amount: t.amount, sign: 0, kind };
     case 'journal':
-      return { title: t.description || 'Jurnal umum', subtitle: `${t.adjusting ? 'Jurnal penyesuaian' : 'Jurnal umum'} · ${t.lines?.length ?? 0} baris`, icon: 'pen', color: '#78736A', amount: t.amount, sign: 0, kind };
+      return { title: t.description || 'Jurnal umum', subtitle: `${t.adjusting ? 'Jurnal penyesuaian' : 'Jurnal umum'}, ${t.lines?.length ?? 0} baris`, icon: 'pen', color: '#78736A', amount: t.amount, sign: 0, kind };
   }
 }
 

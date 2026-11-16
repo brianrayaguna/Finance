@@ -271,7 +271,6 @@ textarea:focus-visible {
 
 @media (hover: none) {
   .btn .kbd,
-  .kbd-hint,
   .sb-search .kbd,
   .tb-search .kbd {
     display: none !important;

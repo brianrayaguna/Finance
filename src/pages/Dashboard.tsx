@@ -4,7 +4,7 @@ import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
 import { LayoutDashboard, Plus, RotateCcw } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useData } from '../store/data';
-import { confirm, toast, usePrefs } from '../store/ui';
+import { confirm, toast, usePrefs, useUI } from '../store/ui';
 import { monthlySeries, periodFlow, positionAt } from '../accounting/reports';
 import { addMonths, endOfMonth, formatDate, startOfMonth } from '../lib/format';
 import { defaultLayout, moveWidget, packSpans, presetLayout, sizeOf, PRESETS, type DashLayout, type PresetId, type WidgetId } from '../app/dashboardLayout';
@@ -48,7 +48,10 @@ export default function Dashboard() {
   const setLayout = usePrefs((s) => s.setLayout);
   const compact = usePrefs((s) => s.compactNumbers);
   const onboardingDismissed = usePrefs((s) => s.onboardingDismissed);
-  const [month, setMonth] = useState(today.slice(0, 7));
+  const dashMonth = useUI((s) => s.dashMonth);
+  const setDashMonth = useUI((s) => s.setDashMonth);
+  const month = dashMonth ?? today.slice(0, 7);
+  const setMonth = (m: string) => setDashMonth(m === today.slice(0, 7) ? null : m);
   const [draft, setDraft] = useState<DashLayout | null>(null);
   const [gallery, setGallery] = useState(false);
   const [announce, setAnnounce] = useState('');
@@ -186,8 +189,9 @@ export default function Dashboard() {
   return (
     <div className={`dash${editing ? ' editing' : ''}`} ref={dashRef}>
       <PageHeader
+        className="dash-head"
         title="Ringkasan"
-        subtitle={`Posisi per ${formatDate(asOf, 'long')} · ${entity}`}
+        subtitle={`${entity}, posisi per ${formatDate(asOf, 'long')}`}
         actions={<MonthSwitcher value={month} onChange={setMonth} />}
       />
 

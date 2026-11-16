@@ -26,6 +26,13 @@ import { TxRow } from '../components/tx/TxRow';
 import { TxViewSwitch } from '../components/tx/TxViewSwitch';
 import { txFlow } from '../components/tx/txDisplay';
 
+/** Nominal sangat ringkas untuk sel kalender ponsel: "540", "33rb", "1,1jt". */
+function tightNumber(n: number): string {
+  if (n >= 1e6) return `${new Intl.NumberFormat('id-ID', { maximumFractionDigits: n >= 1e7 ? 0 : 1 }).format(n / 1e6)}jt`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)}rb`;
+  return String(Math.round(n));
+}
+
 interface DayAgg {
   inc: number;
   exp: number;
@@ -151,7 +158,8 @@ export default function CalendarPage() {
     <div>
       <PageHeader
         title="Transaksi"
-        subtitle={view === 'month' ? `${MONTHS[m.getMonth()]} ${m.getFullYear()} · ${monthStats.active} hari dengan transaksi` : `Tahun ${m.getFullYear()} · intensitas pengeluaran harian`}
+        meta={view === 'month' ? `${MONTHS[m.getMonth()]} ${m.getFullYear()}, ${monthStats.active} hari dengan transaksi` : `Tahun ${m.getFullYear()}`}
+        subtitle={view === 'month' ? `${MONTHS[m.getMonth()]} ${m.getFullYear()}, ${monthStats.active} hari dengan transaksi` : `Tahun ${m.getFullYear()}, intensitas pengeluaran harian`}
         actions={
           <>
             <TxViewSwitch value="kalender" />
@@ -242,8 +250,18 @@ export default function CalendarPage() {
                         </span>
                       )}
                       <span className="cc-vals">
-                        {a && a.inc > 0 && <span className="pos money-val">+{compactNumber(a.inc)}</span>}
-                        {a && a.exp > 0 && <span className="money-val">−{compactNumber(a.exp)}</span>}
+                        {a && a.inc > 0 && (
+                          <span className="pos money-val">
+                            <span className="cc-full">+{compactNumber(a.inc)}</span>
+                            <span className="cc-tight">+{tightNumber(a.inc)}</span>
+                          </span>
+                        )}
+                        {a && a.exp > 0 && (
+                          <span className="money-val">
+                            <span className="cc-full">−{compactNumber(a.exp)}</span>
+                            <span className="cc-tight">{tightNumber(a.exp)}</span>
+                          </span>
+                        )}
                       </span>
                       {a && a.count > 0 && <span className="cc-count">{a.count}</span>}
                     </button>
@@ -411,7 +429,7 @@ function YearView({
                       type="button"
                       className={`ym-cell lv${lv}${d === today ? ' today' : ''}${dues.has(d) ? ' due' : ''}`}
                       onClick={() => onPick(d)}
-                      title={`${formatDate(d, 'full')} · pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
+                      title={`${formatDate(d, 'full')}: pengeluaran ${a ? formatMoney(a.exp) : 'Rp 0'}`}
                       aria-label={formatDate(d, 'full')}
                     />
                   );

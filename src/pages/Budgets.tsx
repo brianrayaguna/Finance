@@ -65,7 +65,7 @@ export default function Budgets() {
     <div>
       <PageHeader
         title="Anggaran"
-        subtitle={`Batas beban bulanan per kategori dan target tabungan · ${formatMonth(month)}`}
+        subtitle={`Batas beban per kategori dan target tabungan untuk ${formatMonth(month)}`}
         actions={
           <>
             <MonthSwitcher value={month} onChange={setMonth} />

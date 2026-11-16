@@ -155,8 +155,44 @@
   .tx-grid .span-2 {
     grid-column: auto;
   }
+  /* Lima jenis transaksi tampil semua tanpa geser: ikon di atas label */
+  .tx-form .tx-modes {
+    border-radius: var(--radius-md);
+  }
+  /* Lebar kolom mengikuti panjang label (Pengeluaran lebih lebar dari Hutang) */
+  .tx-form .tx-modes .seg-item {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+    height: auto;
+    min-height: 50px;
+    padding: 6px 1px;
+    font-size: 12px;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    border-radius: calc(var(--radius-md) - 3px);
+  }
   .tx-form .tx-modes .seg-item .fi {
+    font-size: 16px;
+  }
+  .tx-form .tx-modes .seg-thumb {
+    border-radius: calc(var(--radius-md) - 3px);
+  }
+  /* Kategori cepat: satu baris geser dengan pudar di tepi kanan */
+  .quick-cats.quick-cats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-right: 24px;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .quick-cats::-webkit-scrollbar {
     display: none;
+  }
+  .quick-cats .chip {
+    flex: none;
   }
 }
 .quick-cats {
@@ -181,8 +217,12 @@
 .tx-extras {
   margin-top: 12px;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 16px;
+  gap: 6px 16px;
+}
+.tx-extras > .link-btn {
+  white-space: nowrap;
 }
 .tx-extras .fav-link {
   margin-left: auto;

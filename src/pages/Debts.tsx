@@ -33,7 +33,7 @@ function Avatar({ name }: { name: string }) {
 function StatusBadge({ d }: { d: DebtInfo }) {
   if (d.status === 'paid') {
     if (d.writtenOff > 0.005) {
-      return d.paid <= 0.005 ? <Badge>Dihapusbukukan</Badge> : <Badge tone="pos" icon={CircleCheck}>Selesai · sebagian dihapus</Badge>;
+      return d.paid <= 0.005 ? <Badge>Dihapusbukukan</Badge> : <Badge tone="pos" icon={CircleCheck}>Selesai, sebagian dihapus</Badge>;
     }
     return <Badge tone="pos" icon={CircleCheck}>Lunas</Badge>;
   }
@@ -134,7 +134,7 @@ export default function Debts() {
           <div className="aging-bar">
             {aging.map((v, i) =>
               v > 0 ? (
-                <Tooltip key={i} label={`${AGING_BUCKETS[i]} · ${formatMoney(v)}`}>
+                <Tooltip key={i} label={`${AGING_BUCKETS[i]}: ${formatMoney(v)}`}>
                   <span style={{ flex: v, background: agingColors[i] }} />
                 </Tooltip>
               ) : null,
@@ -224,14 +224,14 @@ export default function Debts() {
                       </strong>
                       <StatusBadge d={d} />
                     </div>
-                    <div className="muted truncate" style={{ fontSize: 13 }}>
-                      {d.tx.description || '—'} · {formatDate(d.tx.date)} · {d.tx.ref}
+                    <div className="muted truncate" style={{ fontSize: 13 }} title={d.tx.ref}>
+                      {d.tx.description || '—'}, {formatDate(d.tx.date)}
                     </div>
                   </div>
                   <div className="dr-progress">
                     <Progress value={pct} thin label="Porsi terbayar" color={d.status === 'paid' ? 'var(--pos)' : kind === 'payable' ? 'var(--tone-payable)' : 'var(--tone-receivable)'} />
                     <span className="muted num" style={{ fontSize: 12 }}>
-                      {Math.round(pct * 100)}% · {d.payments.length}× {kind === 'payable' ? 'bayar' : 'terima'}
+                      {Math.round(pct * 100)}%, {d.payments.length}× {kind === 'payable' ? 'bayar' : 'terima'}
                     </span>
                   </div>
                   <div className="dr-amt">
@@ -286,7 +286,7 @@ export default function Debts() {
               <div className="grow" style={{ minWidth: 0 }}>
                 <div className="modal-title truncate">{current.tx.contact}</div>
                 <div className="muted" style={{ fontSize: 13 }}>
-                  {current.kind === 'payable' ? 'Hutang' : 'Piutang'} · {current.tx.ref}
+                  {current.kind === 'payable' ? 'Hutang' : 'Piutang'} {current.tx.ref}
                 </div>
               </div>
               <button type="button" className="close-btn" onClick={() => setDetail(null)} aria-label="Tutup">
@@ -337,7 +337,7 @@ export default function Debts() {
                   <div className="grow">
                     <strong>{current.tx.description || (current.kind === 'payable' ? 'Hutang dicatat' : 'Piutang dicatat')}</strong>
                     <div className="muted" style={{ fontSize: 12 }}>
-                      {formatDate(current.tx.date, 'long')} · {current.tx.ref}
+                      {formatDate(current.tx.date, 'long')}, {current.tx.ref}
                     </div>
                   </div>
                   <Money value={current.tx.amount} />
@@ -348,8 +348,8 @@ export default function Debts() {
                     <div className="grow" style={{ textAlign: 'left' }}>
                       <strong>{p.type === 'receivable_writeoff' ? 'Hapus buku' : current.kind === 'payable' ? 'Pembayaran' : 'Penerimaan'}</strong>
                       <div className="muted" style={{ fontSize: 12 }}>
-                        {formatDate(p.date, 'long')} · {p.ref}
-                        {p.interest ? ` · bunga ${formatMoney(p.interest)}` : ''}
+                        {formatDate(p.date, 'long')}
+                        {p.interest ? `, termasuk bunga ${formatMoney(p.interest)}` : `, ${p.ref}`}
                       </div>
                     </div>
                     <Money value={-p.amount} className={p.type === 'receivable_writeoff' ? 'neg' : 'pos'} sign="always" />

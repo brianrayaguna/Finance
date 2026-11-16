@@ -198,6 +198,9 @@ interface UIState {
   palette: boolean;
   shortcuts: boolean;
   mobileNav: boolean;
+  /** Bulan yang dilihat di Ringkasan (YYYY-MM); null = bulan berjalan. Dipakai bersama bilah atas ponsel. */
+  dashMonth: string | null;
+  setDashMonth: (v: string | null) => void;
   openTx: (defaults?: TxModalState['defaults']) => void;
   editTx: (t: Transaction) => void;
   closeTx: () => void;
@@ -211,6 +214,8 @@ export const useUI = create<UIState>()((set) => ({
   palette: false,
   shortcuts: false,
   mobileNav: false,
+  dashMonth: null,
+  setDashMonth: (v) => set({ dashMonth: v }),
   // Membuka formulir dari laci ponsel juga menutup lacinya.
   openTx: (defaults) => set({ tx: { open: true, defaults }, palette: false, mobileNav: false }),
   editTx: (t) => set({ tx: { open: true, editing: t }, palette: false }),
