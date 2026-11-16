@@ -32,13 +32,113 @@
           var low = (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4);
           var perf = s.perfMode || 'auto';
           if (perf === 'on' || (perf === 'auto' && low)) r.dataset.perf = 'lite';
+          // Animasi pembuka: sekali per sesi (tiap aplikasi dibuka dari awal), lihat src/components/brand/Intro.tsx.
+          if (!sessionStorage.getItem('neraca.intro')) {
+            sessionStorage.setItem('neraca.intro', '1');
+            r.dataset.intro = s.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'still' : 'play';
+          }
         } catch (e) {
           document.documentElement.dataset.theme = 'light';
         }
       })();
     </script>
+    <style>
+      /* ───────── Animasi pembuka ───────── */
+      .intro {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background: #f5f5f7;
+        cursor: pointer;
+        transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      /* Fase keluar: memudar, lalu komponen dilepas dari DOM */
+      .intro.out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* Logo muncul memantul (0–450 ms) */
+      .intro-mark {
+        animation: intro-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .intro-mark svg {
+        display: block;
+        border-radius: 24px;
+        box-shadow: 0 12px 32px rgba(215, 55, 43, 0.28);
+      }
+      .intro-coin {
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: intro-coin-flip 650ms 350ms cubic-bezier(0.45, 0, 0.3, 1) both;
+      }
+      :root[data-intro='still'] .intro-mark,
+      :root[data-intro='still'] .intro-name,
+      :root[data-intro='still'] .intro-coin {
+        animation: none;
+      }
+      .intro-name {
+        font-size: 20px;
+        font-weight: 650;
+        letter-spacing: -0.015em;
+        color: #0e0f0c;
+        /* Nama naik masuk (600–950 ms) */
+        animation: intro-rise 350ms 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      @keyframes intro-pop {
+        from {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+      }
+      @keyframes intro-rise {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+      }
+      /* Koin berputar sekali pada sumbu tegak (diperas ke 0 lalu terbalik) */
+      @keyframes intro-coin-flip {
+        0% {
+          transform: scaleX(1);
+        }
+        25% {
+          transform: scaleX(0.04);
+        }
+        50% {
+          transform: scaleX(-1);
+        }
+        75% {
+          transform: scaleX(0.04);
+        }
+        100% {
+          transform: scaleX(1);
+        }
+      }
+
+      :root[data-theme='dark'] .intro {
+        background: #0b0c0a;
+      }
+      :root[data-theme='dark'] .intro-name {
+        color: #f1f3ee;
+      }
+      /* Hanya tampil pada pembukaan pertama per sesi (ditandai skrip di <head>). */
+      :root:not([data-intro]) .intro {
+        display: none;
+      }
+    </style>
   </head>
   <body>
+    <div id="intro" class="intro" aria-hidden="true">
+      <div class="intro-mark">
+        <svg width="88" height="88" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#D7372B" /><g class="intro-coin"><circle cx="16" cy="16.8" r="9.6" fill="#C98A1E" /><circle cx="16" cy="15.6" r="9.6" fill="#F6C445" /><circle cx="16" cy="15.6" r="7.2" fill="#E0A82E" /><circle cx="16" cy="15.6" r="5.6" fill="#F6C445" /><path d="M9.3 12.9c.6-2 2-3.5 3.9-4.3.5-.2.9.4.5.8-1.5.9-2.6 2.2-3.3 3.8-.3.6-1.2.3-1.1-.3z" fill="#FFF4CF" /></g></svg>
+      </div>
+      <span class="intro-name">Keuanganku</span>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

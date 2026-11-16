@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Grid3x3, Inbox } from '../lib/glyphs';
+import { ChevronLeft, ChevronRight, Plus, CalendarMonth, CalendarYear, Inbox } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { usePrefs, useUI } from '../store/ui';
 import { debtInfos } from '../accounting/reports';
@@ -158,34 +158,40 @@ export default function CalendarPage() {
     <div>
       <PageHeader
         title="Transaksi"
-        meta={view === 'month' ? `${MONTHS[m.getMonth()]} ${m.getFullYear()}, ${monthStats.active} hari dengan transaksi` : `Tahun ${m.getFullYear()}`}
-        subtitle={view === 'month' ? `${MONTHS[m.getMonth()]} ${m.getFullYear()}, ${monthStats.active} hari dengan transaksi` : `Tahun ${m.getFullYear()}, intensitas pengeluaran harian`}
+        meta={view === 'month' ? `${monthStats.active} hari dengan transaksi` : 'Intensitas pengeluaran harian'}
+        subtitle={view === 'month' ? `${monthStats.active} hari dengan transaksi bulan ini` : 'Intensitas pengeluaran harian sepanjang tahun'}
         actions={
-          <>
-            <TxViewSwitch value="kalender" />
+          <div className="cal-controls">
+            <TxViewSwitch value="kalender" block />
             <Segmented
               size="sm"
+              block
               value={view}
               onChange={setView}
+              ariaLabel="Rentang kalender"
               options={[
-                { value: 'month', label: 'Bulan', icon: CalendarDays },
-                { value: 'year', label: 'Tahun', icon: Grid3x3 },
+                { value: 'month', label: 'Bulan', icon: CalendarMonth },
+                { value: 'year', label: 'Tahun', icon: CalendarYear },
               ]}
             />
-            <div className="month-switch">
-              <button type="button" className="ms-btn" onClick={() => (view === 'year' ? setMonth(addMonths(month, -12)) : shiftMonth(-1))} aria-label="Sebelumnya">
-                <ChevronLeft />
-              </button>
-              <button type="button" className="ms-label" onClick={() => moveSel(today)}>
-                Hari ini
-              </button>
-              <button type="button" className="ms-btn" onClick={() => (view === 'year' ? setMonth(addMonths(month, 12)) : shiftMonth(1))} aria-label="Berikutnya">
-                <ChevronRight />
-              </button>
-            </div>
-          </>
+          </div>
         }
       />
+
+      {/* Periode yang tampil + panah sebelumnya/berikutnya (tombol T untuk kembali ke hari ini). */}
+      <div className="cal-period">
+        <h2 className="cal-period-title" aria-live="polite">
+          {view === 'month' ? `${MONTHS[m.getMonth()]} ${m.getFullYear()}` : m.getFullYear()}
+        </h2>
+        <div className="month-switch">
+          <button type="button" className="ms-btn" onClick={() => (view === 'year' ? setMonth(addMonths(month, -12)) : shiftMonth(-1))} aria-label={view === 'year' ? 'Tahun sebelumnya' : 'Bulan sebelumnya'}>
+            <ChevronLeft />
+          </button>
+          <button type="button" className="ms-btn" onClick={() => (view === 'year' ? setMonth(addMonths(month, 12)) : shiftMonth(1))} aria-label={view === 'year' ? 'Tahun berikutnya' : 'Bulan berikutnya'}>
+            <ChevronRight />
+          </button>
+        </div>
+      </div>
 
       {view === 'month' ? (
         <div className="cal-layout">

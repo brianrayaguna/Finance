@@ -5,9 +5,7 @@ const config: CapacitorConfig = {
   appId: 'com.keuanganku.app',
   appName: 'Keuanganku',
   webDir: 'dist',
-  android: {
-    backgroundColor: '#0B0C0A',
-  },
+  // Latar WebView diatur di MainActivity sesuai tema sistem (res/values{,-night}/colors.xml).
 };
 
 export default config;

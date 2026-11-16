@@ -1290,13 +1290,20 @@
     width: var(--ctl-h);
     padding: 0;
   }
-  /* Anggaran: pemilih bulan mengisi baris, tombol tambah ringkas di kanan — tanpa geser & pudar */
-  .page-head .page-actions:has(.ms-stretch) {
+  /* Anggaran & Kalender: kontrol mengisi baris — tanpa geser & pudar */
+  .page-head .page-actions:has(.ms-stretch, .cal-controls) {
     width: 100%;
     margin: 0;
     padding: 2px 0;
     overflow: visible;
     mask-image: none;
+  }
+  .page-actions .cal-controls {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  .cal-controls .seg-item {
+    padding: 0 6px;
   }
   .page-actions .ms-stretch {
     flex: 1 1 auto;

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema gelap: sama dengan warna canvas gelap. -->
+    <color name="splash_bg">#0B0C0A</color>
+</resources>

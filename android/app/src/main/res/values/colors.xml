@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Latar layar pembuka & WebView sebelum halaman termuat; sama dengan warna canvas tema terang. -->
+    <color name="splash_bg">#F5F5F7</color>
+</resources>

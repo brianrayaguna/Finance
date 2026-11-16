@@ -5,11 +5,12 @@ import { Segmented } from '../ui/Segmented';
 export type TxView = 'daftar' | 'kalender';
 
 /** Tab Daftar | Kalender di halaman Transaksi (Kalender tidak punya menu sendiri). */
-export function TxViewSwitch({ value }: { value: TxView }) {
+export function TxViewSwitch({ value, block }: { value: TxView; block?: boolean }) {
   const nav = useNavigate();
   return (
     <Segmented
       size="sm"
+      block={block}
       value={value}
       ariaLabel="Tampilan transaksi"
       onChange={(v) => nav(v === 'kalender' ? '/transaksi?tampil=kalender' : '/transaksi')}
