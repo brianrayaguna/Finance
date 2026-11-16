@@ -3386,9 +3386,6 @@ button.tl-item:hover {
     right: 16px;
     border-top: 1px solid var(--line);
   }
-  .debt-switch .btn {
-    flex: none;
-  }
   .ds-kpi {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3414,6 +3411,13 @@ button.tl-item:hover {
 /* Pintasan keyboard tidak relevan di layar sentuh */
 @media (pointer: coarse) {
   .set-row-keys {
+    display: none;
+  }
+}
+
+/* Saat tab bar bawah tampil, tombol + di tengahnya sudah ada; tombol tambah Hutang & Piutang tidak perlu */
+@media (max-width: 760px) {
+  .debt-switch .btn {
     display: none;
   }
 }
