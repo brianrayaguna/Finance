@@ -123,11 +123,18 @@ export const usePrefs = create<Prefs>()(
       name: 'neraca.prefs',
       version: 4,
       storage: (() => {
+        // Tanpa penyimpanan peramban (mis. Node/vitest, mode privat ketat), preferensi hanya disimpan di memori.
+        const mem = new Map<string, string>();
+        const memory = {
+          getItem: (k: string) => mem.get(k) ?? null,
+          setItem: (k: string, v: string) => void mem.set(k, v),
+          removeItem: (k: string) => void mem.delete(k),
+        };
         const base = createJSONStorage(() => {
           try {
-            return localStorage;
+            return typeof localStorage !== 'undefined' ? localStorage : memory;
           } catch {
-            return sessionStorage;
+            return typeof sessionStorage !== 'undefined' ? sessionStorage : memory;
           }
         })!;
         return {

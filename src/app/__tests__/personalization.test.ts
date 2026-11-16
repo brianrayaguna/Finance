@@ -102,7 +102,7 @@ describe('navigasi', () => {
 describe('preferensi', () => {
   it('mengabaikan nilai tidak valid', () => {
     const p = sanitizePrefs({ theme: 'ungu', weekStart: 0, landing: '/tidak-ada', reportPreset: 'this_year', mode: 'simple', compactNumbers: 'ya' });
-    expect(p).toEqual({ weekStart: 0, reportPreset: 'this_year', mode: 'simple' });
+    expect(p).toEqual({ weekStart: 0, reportPreset: 'this_year', mode: 'simple', readReminders: [] });
   });
 });
 
