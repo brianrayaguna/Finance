@@ -12,7 +12,7 @@ import {
   updateWallet,
   useData,
 } from '../../store/data';
-import { confirm } from '../../store/ui';
+import { confirm, usePrefs } from '../../store/ui';
 import { notify } from '../../store/history';
 import { isLocked } from '../../accounting/lock';
 import { addDays, formatDate, todayISO } from '../../lib/format';
@@ -83,8 +83,9 @@ export function AccountModal({
         ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci`
         : null;
   const suggestedCode = editing ? editing.code : nextCode(accounts, subtype);
+  const simple = usePrefs((s) => s.mode) === 'simple';
   const title =
-    kind === 'wallet' ? (editing ? 'Ubah Dompet' : 'Dompet / Rekening Baru') : kind === 'category' ? (editing ? 'Ubah Kategori' : 'Kategori Baru') : editing ? 'Ubah Akun' : 'Akun Baru';
+    kind === 'wallet' ? (editing ? 'Ubah Dompet' : 'Tambah Dompet') : kind === 'category' ? (editing ? 'Ubah Kategori' : 'Tambah Kategori') : editing ? 'Ubah Akun' : 'Tambah Akun';
 
   const onSubtype = (s: AccountSubtype) => {
     setSubtype(s);
@@ -158,7 +159,7 @@ export function AccountModal({
       open={open}
       onClose={onClose}
       title={title}
-      subtitle={`${SUBTYPE_META[subtype].label}, saldo normal ${['asset', 'expense'].includes(SUBTYPE_META[subtype].type) && subtype !== 'accum_depreciation' ? 'debit' : 'kredit'}`}
+      subtitle={simple ? SUBTYPE_META[subtype].label : `${SUBTYPE_META[subtype].label}, saldo normal ${['asset', 'expense'].includes(SUBTYPE_META[subtype].type) && subtype !== 'accum_depreciation' ? 'debit' : 'kredit'}`}
       icon={<IconTile icon={icon} color={color} size="lg" solid />}
       size="lg"
       headerExtra={
