@@ -79,6 +79,7 @@ export default function Debts() {
   }, [open]);
   const agingColors = ['var(--pos)', '#B8912A', '#C8792C', '#B8603C', 'var(--neg)'];
 
+  const word = kind === 'payable' ? 'hutang' : 'piutang';
   const payLabel = kind === 'payable' ? 'Bayar' : 'Terima';
   const act = (d: DebtInfo) => openTx({ type: kind === 'payable' ? 'payable_pay' : 'receivable_collect', parentId: d.tx.id, amount: d.remaining });
 
@@ -104,19 +105,9 @@ export default function Debts() {
       <PageHeader
         title="Hutang & Piutang"
         subtitle="Buku pembantu per kontak dengan jadwal jatuh tempo"
-        actions={
-          <>
-            <Button icon={HandCoins} onClick={() => openTx({ type: 'receivable_new' })}>
-              Piutang baru
-            </Button>
-            <Button variant="primary" icon={Plus} onClick={() => openTx({ type: 'payable_new' })}>
-              Hutang baru
-            </Button>
-          </>
-        }
       />
 
-      <div className="row" style={{ marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
+      <div className="debt-switch">
         <Segmented
           value={kind}
           onChange={(v) => setKind(v)}
@@ -125,6 +116,9 @@ export default function Debts() {
             { value: 'receivable', label: `Piutang (${all.filter((d) => d.kind === 'receivable' && d.status !== 'paid').length})`, icon: HandCoins },
           ]}
         />
+        <Button variant="primary" icon={Plus} collapse onClick={() => openTx({ type: kind === 'payable' ? 'payable_new' : 'receivable_new' })}>
+          {kind === 'payable' ? 'Hutang baru' : 'Piutang baru'}
+        </Button>
       </div>
 
       <div className="debt-summary">
@@ -141,29 +135,33 @@ export default function Debts() {
             )}
             {total === 0 && <span style={{ flex: 1, background: 'var(--fill-2)' }} />}
           </div>
-          <div className="aging-legend">
-            {AGING_BUCKETS.map((l, i) => (
-              <span key={l}>
-                <i style={{ background: agingColors[i] }} />
-                {l}
-              </span>
-            ))}
-          </div>
+          {total > 0 && (
+            <div className="aging-legend">
+              {AGING_BUCKETS.map((l, i) =>
+                aging[i] > 0 ? (
+                  <span key={l}>
+                    <i style={{ background: agingColors[i] }} />
+                    {l}
+                  </span>
+                ) : null,
+              )}
+            </div>
+          )}
         </div>
         <div className="card ds-kpi">
           <span className="kpi-label">Lewat jatuh tempo</span>
           <strong className={`num money-val ${overdue.length ? 'neg' : ''}`}>{formatMoney(overdue.reduce((s, d) => s + d.remaining, 0))}</strong>
-          <span className="muted">{overdue.length} catatan</span>
+          <span className="muted">{overdue.length ? `${overdue.length} ${word}` : 'Tidak ada'}</span>
         </div>
         <div className="card ds-kpi">
-          <span className="kpi-label">Jatuh tempo ≤ 30 hari</span>
+          <span className="kpi-label">Segera jatuh tempo</span>
           <strong className="num money-val">{formatMoney(soon.reduce((s, d) => s + d.remaining, 0))}</strong>
-          <span className="muted">{soon.length} catatan</span>
+          <span className="muted">{soon.length ? `${soon.length} ${word} dalam 30 hari` : 'Tidak ada dalam 30 hari'}</span>
         </div>
         <div className="card ds-kpi">
           <span className="kpi-label">{kind === 'payable' ? 'Bunga dibayar' : 'Bunga diterima'}</span>
           <strong className="num money-val">{formatMoney(interest)}</strong>
-          <span className="muted">{ofKind.filter((d) => d.status === 'paid').length} catatan telah lunas</span>
+          <span className="muted">{ofKind.length ? `Dari ${ofKind.length} ${word}` : `Belum ada ${word}`}</span>
         </div>
       </div>
 

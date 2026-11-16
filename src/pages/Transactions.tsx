@@ -398,6 +398,7 @@ export default function Transactions() {
           <div className="lt-row">
             <Segmented
               size="sm"
+              className="tx-type-seg"
               value={kind}
               onChange={setKind}
               options={[

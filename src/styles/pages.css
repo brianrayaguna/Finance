@@ -1024,7 +1024,7 @@
 }
 /* Chip filter Transaksi pasti meluap di ponsel kecil: tepi kanan memudar sebagai petunjuk geser */
 @media (max-width: 480px) {
-  .list-toolbar .seg {
+  .list-toolbar .seg.tx-type-seg {
     mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
   }
 }
@@ -1472,6 +1472,16 @@ i.ym-cell {
 :root[data-theme='dark'] .contact-av {
   color: color-mix(in srgb, var(--c) 60%, white);
   background: color-mix(in srgb, var(--c) 26%, var(--surface));
+}
+.debt-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.debt-switch .seg {
+  min-width: 0;
 }
 .debt-summary {
   display: grid;
@@ -3352,10 +3362,32 @@ button.tl-item:hover {
   /* Hutang & Piutang: tiga angka ringkas jadi baris label–nilai, tanpa kartu yatim */
   .debt-summary {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 0;
   }
   .ds-main {
     grid-column: auto;
+    margin-bottom: 10px;
+  }
+  /* Tiga angka ringkas digabung jadi satu kartu bergaris, bukan tiga kartu bertumpuk */
+  .ds-kpi.ds-kpi {
+    border-radius: 0;
+  }
+  .ds-main + .ds-kpi.ds-kpi {
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .ds-kpi.ds-kpi:last-child {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+  .ds-kpi + .ds-kpi::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .debt-switch .btn {
+    flex: none;
   }
   .ds-kpi {
     display: grid;
