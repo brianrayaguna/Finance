@@ -13,3 +13,6 @@ dist-ssr
 !.vscode/extensions.json
 # konfigurasi lokal alat bantu (pratinjau Claude Code)
 .claude/
+
+# APK hasil build lokal
+apk/
