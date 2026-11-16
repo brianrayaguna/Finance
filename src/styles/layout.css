@@ -1291,12 +1291,43 @@
     padding: 0;
   }
   /* Anggaran & Kalender: kontrol mengisi baris — tanpa geser & pudar */
-  .page-head .page-actions:has(.ms-stretch, .cal-controls) {
+  .page-head .page-actions:has(.ms-stretch, .cal-controls, .pa-fill) {
     width: 100%;
     margin: 0;
     padding: 2px 0;
     overflow: visible;
     mask-image: none;
+  }
+  /* Filter periode/tanggal mengisi baris; tombol ekspor & tambah tinggal ikon di kanannya. */
+  .page-actions .pa-fill {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
+  .pa-fill > *,
+  .pa-fill .select-trigger {
+    width: 100%;
+    max-width: none;
+  }
+  /* Tab halaman (Jurnal umum|penutup, Kategori|Bagan akun) selebar layar, tiap tab sama lebar. */
+  .tabs-fill {
+    display: flex;
+    width: 100%;
+  }
+  .tabs-fill .seg-item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  div.acc-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .acc-toolbar .tabs-fill {
+    grid-column: 1 / -1;
+  }
+  .acc-toolbar .acc-search {
+    width: auto;
   }
   .page-actions .cal-controls {
     flex: 1 1 auto;

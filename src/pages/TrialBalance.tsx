@@ -46,10 +46,10 @@ export default function TrialBalance() {
         subtitle={`Saldo seluruh akun sebelum penutupan per ${formatDate(to, 'long')}`}
         actions={
           <>
-            <div style={{ width: 230 }}>
+            <div className="pa-fill tb-date">
               <DatePicker value={to} onChange={setTo} compact />
             </div>
-            <Button variant="primary" icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting}>
+            <Button collapse variant="primary" icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting} aria-label="Ekspor Excel">
               {exporting ? <Dots /> : 'Ekspor Excel'}
             </Button>
           </>

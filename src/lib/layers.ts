@@ -41,6 +41,14 @@ export function useLayer(active: boolean, onEscape: () => void) {
 
 export const layerCount = () => stack.length;
 
+/** Tutup lapisan paling atas (dipakai tombol back Android). Mengembalikan true bila ada yang ditutup. */
+export function closeTopLayer(): boolean {
+  const top = stack[stack.length - 1];
+  if (!top) return false;
+  top.onEscape();
+  return true;
+}
+
 export function isTypingTarget(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
   if (!el || !el.tagName) return false;

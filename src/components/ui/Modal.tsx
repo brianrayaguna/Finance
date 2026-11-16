@@ -1,26 +1,48 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { AnimatePresence, m as motion } from 'framer-motion';
-import { X } from '../../lib/glyphs';
-import { focusField, focusNoScroll } from '../../lib/focus';
-import { layerCount, useLayer } from '../../lib/layers';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
+import { X } from "../../lib/glyphs";
+import { focusField, focusNoScroll } from "../../lib/focus";
+import { layerCount, useLayer } from "../../lib/layers";
 
-export function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement | null>, initial?: string) {
+export function useFocusTrap(
+  active: boolean,
+  root: React.RefObject<HTMLElement | null>,
+  initial?: string,
+) {
   useEffect(() => {
     if (!active) return;
     const prev = document.activeElement as HTMLElement | null;
-    const raf = requestAnimationFrame(() => {
+    // Di HP, fokus ke kolom isian memunculkan keyboard dan mengubah ukuran layar. Bila terjadi di tengah
+    // animasi masuk, animasinya patah-patah — tunda sampai animasi selesai.
+    const touch =
+      typeof window !== "undefined" &&
+      window.matchMedia("(pointer: coarse)").matches;
+    let raf = 0;
+    const focusTimer = window.setTimeout(
+      () => (raf = requestAnimationFrame(focusInitial)),
+      touch ? ENTER_MS : 0,
+    );
+    function focusInitial() {
       const el = root.current;
       if (!el) return;
       const target =
         (initial && el.querySelector<HTMLElement>(initial)) ||
-        el.querySelector<HTMLElement>('[data-autofocus]') ||
-        el.querySelector<HTMLElement>('[data-field]') ||
-        el.querySelector<HTMLElement>('button:not(.close-btn), input, textarea');
+        el.querySelector<HTMLElement>("[data-autofocus]") ||
+        el.querySelector<HTMLElement>("[data-field]") ||
+        el.querySelector<HTMLElement>(
+          "button:not(.close-btn), input, textarea",
+        );
       focusField(target);
-    });
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab' || !root.current) return;
+      if (e.key !== "Tab" || !root.current) return;
       const f = Array.from(
         root.current.querySelectorAll<HTMLElement>(
           'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
@@ -37,13 +59,15 @@ export function useFocusTrap(active: boolean, root: React.RefObject<HTMLElement 
         focusNoScroll(first);
       }
     };
-    document.addEventListener('keydown', onKey);
+    document.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(focusTimer);
       cancelAnimationFrame(raf);
-      document.removeEventListener('keydown', onKey);
+      document.removeEventListener("keydown", onKey);
       if (prev && document.contains(prev)) {
         requestAnimationFrame(() => {
-          if (layerCount() === 0 && document.contains(prev)) focusNoScroll(prev);
+          if (layerCount() === 0 && document.contains(prev))
+            focusNoScroll(prev);
         });
       }
     };
@@ -59,24 +83,32 @@ export function useDialogTopLayer(open: boolean) {
     const d = dlg.current;
     if (!d || !open) return;
     if (!d.open) {
-      if (typeof d.showModal === 'function') d.showModal();
-      else d.setAttribute('open', '');
-      window.dispatchEvent(new CustomEvent('top-layer-open'));
+      if (typeof d.showModal === "function") d.showModal();
+      else d.setAttribute("open", "");
+      window.dispatchEvent(new CustomEvent("top-layer-open"));
     }
   }, [open, present]);
 
-  const finishExit = () => {
-    if (open) return;
-    const d = dlg.current;
-    if (d?.open) {
-      if (typeof d.close === 'function') d.close();
-      else d.removeAttribute('open');
-    }
-    setPresent(false);
-  };
+  // Animasi keluar memakai CSS (.is-closing); setelah durasinya, dialog ditutup & dilepas dari DOM.
+  useEffect(() => {
+    if (open || !present) return;
+    const t = window.setTimeout(() => {
+      const d = dlg.current;
+      if (d?.open) {
+        if (typeof d.close === "function") d.close();
+        else d.removeAttribute("open");
+      }
+      setPresent(false);
+    }, EXIT_MS);
+    return () => window.clearTimeout(t);
+  }, [open, present]);
 
-  return { dlg, present, finishExit };
+  return { dlg, present, closing: present && !open };
 }
+
+/** Durasi animasi masuk/keluar dialog — samakan dengan ui.css (modal-in, modal-out, sheet-up, …). */
+const ENTER_MS = 300;
+const EXIT_MS = 200;
 
 interface ModalProps {
   open: boolean;
@@ -86,21 +118,36 @@ interface ModalProps {
   icon?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
   initialFocus?: string;
   headerExtra?: ReactNode;
   className?: string;
   bodyClassName?: string;
   /** Nama dialog untuk pembaca layar bila tidak ada judul yang terlihat */
   ariaLabel?: string;
-  role?: 'dialog' | 'alertdialog';
+  role?: "dialog" | "alertdialog";
 }
 
-export function Modal({ open, onClose, title, subtitle, icon, children, footer, size = 'md', initialFocus, headerExtra, className = '', bodyClassName = '', ariaLabel, role = 'dialog' }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  icon,
+  children,
+  footer,
+  size = "md",
+  initialFocus,
+  headerExtra,
+  className = "",
+  bodyClassName = "",
+  ariaLabel,
+  role = "dialog",
+}: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const backdropDown = useRef(false);
   const titleId = useId();
-  const { dlg, present, finishExit } = useDialogTopLayer(open);
+  const { dlg, present, closing } = useDialogTopLayer(open);
   useLayer(open, onClose);
   useFocusTrap(open, ref, initialFocus);
 
@@ -111,8 +158,8 @@ export function Modal({ open, onClose, title, subtitle, icon, children, footer, 
   return createPortal(
     <dialog
       ref={dlg}
-      className="modal-dialog"
-      role={role === 'alertdialog' ? 'alertdialog' : undefined}
+      className={`modal-dialog${closing ? " is-closing" : ""}`}
+      role={role === "alertdialog" ? "alertdialog" : undefined}
       aria-modal="true"
       aria-labelledby={title ? titleId : undefined}
       aria-label={title ? undefined : ariaLabel}
@@ -124,70 +171,85 @@ export function Modal({ open, onClose, title, subtitle, icon, children, footer, 
         if (open) onClose();
       }}
     >
-      <AnimatePresence onExitComplete={finishExit}>
-        {open && (
-          <>
-            <motion.div
-              key="backdrop"
-              className="modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.18 } }}
-              transition={{ duration: 0.2 }}
-              onPointerDown={(e) => {
-                backdropDown.current = e.target === e.currentTarget;
-              }}
-              onClick={(e) => {
-                if (role !== 'alertdialog' && backdropDown.current && e.target === e.currentTarget) onClose();
-                backdropDown.current = false;
-              }}
-            />
-            <motion.div
-              key="dialog"
-              ref={ref}
-              className={`modal ${size !== 'md' ? `modal-${size}` : ''} ${className}`}
-              initial={{ opacity: 0, scale: 0.955, y: 14 }}
-              animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 420, damping: 34, mass: 0.8 } }}
-              exit={{ opacity: 0, scale: 0.97, y: 6, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
-            >
-              {hasHead ? (
-                <div className="modal-head">
-                  {icon}
-                  <div className="grow">
-                    {title && (
-                      <h2 className="modal-title" id={titleId}>
-                        {title}
-                      </h2>
-                    )}
-                    {subtitle && <div className="modal-sub">{subtitle}</div>}
-                  </div>
-                  {headerExtra}
-                  <button type="button" className="close-btn" onClick={onClose} aria-label="Tutup">
-                    <X />
-                  </button>
-                </div>
-              ) : (
-                role !== 'alertdialog' && (
-                  <button type="button" className="close-btn modal-float-close" onClick={onClose} aria-label="Tutup">
-                    <X />
-                  </button>
-                )
-              )}
-              <div className={`modal-body ${bodyClassName}`}>{children}</div>
-              {footer && <div className="modal-foot">{footer}</div>}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <>
+        <div
+          className="modal-backdrop"
+          onPointerDown={(e) => {
+            backdropDown.current = e.target === e.currentTarget;
+          }}
+          onClick={(e) => {
+            if (
+              role !== "alertdialog" &&
+              open &&
+              backdropDown.current &&
+              e.target === e.currentTarget
+            )
+              onClose();
+            backdropDown.current = false;
+          }}
+        />
+        <div
+          ref={ref}
+          className={`modal ${size !== "md" ? `modal-${size}` : ""} ${className}`}
+        >
+          {hasHead ? (
+            <div className="modal-head">
+              {icon}
+              <div className="grow">
+                {title && (
+                  <h2 className="modal-title" id={titleId}>
+                    {title}
+                  </h2>
+                )}
+                {subtitle && <div className="modal-sub">{subtitle}</div>}
+              </div>
+              {headerExtra}
+              <button
+                type="button"
+                className="close-btn"
+                onClick={onClose}
+                aria-label="Tutup"
+              >
+                <X />
+              </button>
+            </div>
+          ) : (
+            role !== "alertdialog" && (
+              <button
+                type="button"
+                className="close-btn modal-float-close"
+                onClick={onClose}
+                aria-label="Tutup"
+              >
+                <X />
+              </button>
+            )
+          )}
+          <div className={`modal-body ${bodyClassName}`}>{children}</div>
+          {footer && <div className="modal-foot">{footer}</div>}
+        </div>
+      </>
     </dialog>,
     document.body,
   );
 }
 
-export function Sheet({ open, onClose, children, width, ariaLabel }: { open: boolean; onClose: () => void; children: ReactNode; width?: number; ariaLabel?: string }) {
+export function Sheet({
+  open,
+  onClose,
+  children,
+  width,
+  ariaLabel,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  width?: number;
+  ariaLabel?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const backdropDown = useRef(false);
-  const { dlg, present, finishExit } = useDialogTopLayer(open);
+  const { dlg, present, closing } = useDialogTopLayer(open);
   useLayer(open, onClose);
   useFocusTrap(open, ref);
 
@@ -196,7 +258,7 @@ export function Sheet({ open, onClose, children, width, ariaLabel }: { open: boo
   return createPortal(
     <dialog
       ref={dlg}
-      className="sheet-dialog"
+      className={`sheet-dialog${closing ? " is-closing" : ""}`}
       aria-modal="true"
       aria-label={ariaLabel}
       onCancel={(e) => {
@@ -206,39 +268,26 @@ export function Sheet({ open, onClose, children, width, ariaLabel }: { open: boo
         if (open) onClose();
       }}
     >
-      <AnimatePresence onExitComplete={finishExit}>
-        {open && (
-          <>
-            <motion.div
-              key="backdrop"
-              className="modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onPointerDown={(e) => {
-                backdropDown.current = e.target === e.currentTarget;
-              }}
-              onClick={(e) => {
-                if (backdropDown.current && e.target === e.currentTarget) onClose();
-                backdropDown.current = false;
-              }}
-              style={{ background: 'color-mix(in srgb, var(--overlay) 55%, transparent)', backdropFilter: 'none' }}
-            />
-            <motion.div
-              key="sheet"
-              ref={ref}
-              className="sheet"
-              style={width ? { width: `min(${width}px, calc(100vw - 20px))` } : undefined}
-              initial={{ opacity: 0, x: 48 }}
-              animate={{ opacity: 1, x: 0, transition: { type: 'spring', stiffness: 380, damping: 36 } }}
-              exit={{ opacity: 0, x: 36, transition: { duration: 0.18 } }}
-            >
-              {children}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <div
+        className="modal-backdrop sheet-backdrop"
+        onPointerDown={(e) => {
+          backdropDown.current = e.target === e.currentTarget;
+        }}
+        onClick={(e) => {
+          if (open && backdropDown.current && e.target === e.currentTarget)
+            onClose();
+          backdropDown.current = false;
+        }}
+      />
+      <div
+        ref={ref}
+        className="sheet"
+        style={
+          width ? { width: `min(${width}px, calc(100vw - 20px))` } : undefined
+        }
+      >
+        {children}
+      </div>
     </dialog>,
     document.body,
   );

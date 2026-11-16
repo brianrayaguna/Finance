@@ -713,6 +713,93 @@ dialog[open] > .popover {
   inset: 0;
   background: var(--overlay);
 }
+
+/* ── Animasi dialog: CSS murni (transform + opacity di compositor) agar mulus di HP lambat.
+   Durasi disamakan dengan ENTER_MS/EXIT_MS di components/ui/Modal.tsx. ── */
+.modal-backdrop {
+  animation: dlg-fade-in 200ms ease-out both;
+}
+.is-closing .modal-backdrop {
+  animation: dlg-fade-out 180ms ease-in both;
+}
+.sheet-backdrop {
+  background: color-mix(in srgb, var(--overlay) 55%, transparent);
+}
+.palette-backdrop {
+  background: color-mix(in srgb, var(--overlay) 70%, transparent);
+}
+.modal {
+  animation: modal-in 260ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.is-closing .modal {
+  animation: modal-out 170ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+.sheet {
+  animation: sheet-in 280ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.is-closing .sheet {
+  animation: sheet-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+.palette {
+  animation: palette-in 200ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.is-closing .palette {
+  animation: dlg-fade-out 140ms ease-in both;
+}
+.is-closing :is(.modal, .sheet, .palette, .modal-backdrop) {
+  pointer-events: none;
+}
+@keyframes dlg-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dlg-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+}
+@keyframes modal-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+}
+@keyframes sheet-out {
+  to {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+}
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+}
+/* Ponsel: dialog muncul dari bawah seperti lembar (bottom sheet). */
+@keyframes modal-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes modal-down {
+  to {
+    transform: translateY(100%);
+  }
+}
 .modal {
   position: relative;
   width: min(560px, 100%);
@@ -810,6 +897,12 @@ dialog[open] > .popover {
   .modal-root {
     padding: 8px;
     place-items: end center;
+  }
+  .modal {
+    animation: modal-up 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .is-closing .modal {
+    animation: modal-down 200ms cubic-bezier(0.4, 0, 1, 1) both;
   }
   .modal,
   .modal-sm,

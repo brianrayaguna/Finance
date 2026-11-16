@@ -92,11 +92,17 @@ export default function Journal() {
         subtitle="Seluruh jurnal berpasangan yang terbentuk dari transaksi, aset, dan jurnal manual"
         actions={
           <>
-            {tab === 'general' && <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />}
-            <Button collapse icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting || tab !== 'general'}>
-              {exporting ? <Dots /> : 'Ekspor Excel'}
-            </Button>
-            <Button variant="primary" icon={Plus} onClick={() => openTx({ type: 'journal' })}>
+            {tab === 'general' && (
+              <div className="pa-fill">
+                <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
+              </div>
+            )}
+            {tab === 'general' && (
+              <Button collapse icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting} aria-label="Ekspor Excel">
+                {exporting ? <Dots /> : 'Ekspor Excel'}
+              </Button>
+            )}
+            <Button collapse variant="primary" icon={Plus} onClick={() => openTx({ type: 'journal' })} aria-label="Jurnal baru">
               Jurnal baru
             </Button>
           </>
@@ -105,6 +111,7 @@ export default function Journal() {
 
       <div className="row" style={{ marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
         <Segmented
+          className="tabs-fill"
           value={tab}
           onChange={setTab}
           options={[

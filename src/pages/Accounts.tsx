@@ -76,9 +76,6 @@ export default function Accounts() {
               </motion.button>
             );
           })}
-          <button type="button" className="cat-tile add" onClick={() => modal.openNew('category', type === 'revenue' ? 'operating_revenue' : 'operating_expense')}>
-            <Plus size={18} /> Kategori baru
-          </button>
         </div>
       </section>
     );
@@ -90,13 +87,17 @@ export default function Accounts() {
         title="Bagan Akun & Kategori"
         subtitle="Struktur akun buku besar — kategori adalah akun pendapatan dan beban"
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => (tab === 'categories' ? modal.openNew('category') : modal.openNew('account'))}>
-            {tab === 'categories' ? 'Kategori baru' : 'Akun baru'}
-          </Button>
+          // Kategori ditambah lewat tombol "Tambah" di tiap kelompok (pendapatan/beban), jadi tidak diulang di sini.
+          tab === 'coa' ? (
+            <Button variant="primary" icon={Plus} onClick={() => modal.openNew('account')}>
+              Akun baru
+            </Button>
+          ) : undefined
         }
       />
-      <div className="row" style={{ gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="acc-toolbar">
         <Segmented
+          className="tabs-fill"
           value={tab}
           onChange={setTab}
           options={[
@@ -104,11 +105,11 @@ export default function Accounts() {
             { value: 'coa', label: 'Bagan akun lengkap', icon: ListTree },
           ]}
         />
-        <div style={{ width: 280, maxWidth: '100%' }}>
+        <div className="acc-search">
           <TextInput value={q} onChange={setQ} icon={Search} placeholder="Cari nama atau kode akun…" clearable sunken />
         </div>
-        <button type="button" className="chip" aria-pressed={showArchived} onClick={() => setShowArchived((v) => !v)}>
-          <Archive /> Tampilkan arsip
+        <button type="button" className="chip" aria-pressed={showArchived} onClick={() => setShowArchived((v) => !v)} title="Tampilkan akun & kategori yang diarsipkan">
+          <Archive /> Arsip
         </button>
       </div>
 

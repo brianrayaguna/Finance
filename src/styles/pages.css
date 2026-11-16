@@ -906,6 +906,22 @@
   margin-left: 4px;
 }
 
+/* Bagan Akun: tab, pencarian, dan arsip dalam satu bilah */
+.acc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.acc-search {
+  width: 280px;
+  max-width: 100%;
+}
+.tb-date {
+  width: 230px;
+}
+
 /* ═══════════ Calendar ═══════════ */
 /* Sakelar Daftar|Kalender dan Bulan|Tahun: dua kolom sama lebar, tiap pilihan sama lebar. */
 .cal-controls {

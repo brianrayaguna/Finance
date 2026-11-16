@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation, useSearchParams, Navigate } 
 import { LazyMotion, MotionConfig } from 'framer-motion';
 import { AppShell } from './components/layout/AppShell';
 import { TransactionModalHost } from './components/forms/TransactionModal';
+import { NativeBack } from './app/NativeBack';
 import { CommandPalette } from './components/CommandPalette';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
 import { ConfirmHost } from './components/ui/Confirm';
@@ -98,6 +99,7 @@ export default function App() {
             <ShortcutsDialog />
             <ConfirmHost />
             <Toasts />
+            <NativeBack />
           </BrowserRouter>
           <Intro />
         </ErrorBoundary>

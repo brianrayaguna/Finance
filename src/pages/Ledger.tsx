@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Download, Search, BookOpenText } from '../lib/glyphs';
+import { Download, Search, BookOpenText, FileSpreadsheet, Layers } from '../lib/glyphs';
+import { Menu } from '../components/ui/Popover';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, toast } from '../store/ui';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';
@@ -79,13 +80,23 @@ export default function Ledger() {
         subtitle="Mutasi dan saldo berjalan setiap akun"
         actions={
           <>
-            <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-            <Button collapse icon={Download} onClick={exportAll} disabled={exporting} aria-label="Ekspor semua akun">
-              Semua akun
-            </Button>
-            <Button variant="primary" icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting || !sel}>
-              {exporting ? <Dots /> : 'Ekspor akun ini'}
-            </Button>
+            <div className="pa-fill">
+              <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
+            </div>
+            <Menu
+              placement="bottom-end"
+              minWidth={230}
+              ariaLabel="Ekspor buku besar"
+              items={[
+                { label: `${b.accounts.find((a) => a.id === sel)?.name ?? 'Akun terpilih'} (.xlsx)`, icon: FileSpreadsheet, onSelect: doExport, disabled: !sel },
+                { label: 'Semua akun (.xlsx)', icon: Layers, onSelect: exportAll },
+              ]}
+              trigger={(p) => (
+                <Button collapse variant="primary" icon={exporting ? undefined : Download} ref={p.ref} onClick={p.onClick} aria-expanded={p["aria-expanded"]} aria-haspopup={p["aria-haspopup"]} aria-label="Ekspor" disabled={exporting}>
+                  {exporting ? <Dots /> : 'Ekspor'}
+                </Button>
+              )}
+            />
           </>
         }
       />

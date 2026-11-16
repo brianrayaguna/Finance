@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, m as motion } from 'framer-motion';
 import {
   Search,
   ArrowUpRight,
@@ -67,7 +66,7 @@ export function CommandPalette() {
   const close = () => setOpen(false);
   const ref = useRef<HTMLDivElement>(null);
   const backdropDown = useRef(false);
-  const { dlg, present, finishExit } = useDialogTopLayer(open);
+  const { dlg, present, closing } = useDialogTopLayer(open);
   useLayer(open, close);
   useFocusTrap(open, ref, 'input');
 
@@ -76,7 +75,7 @@ export function CommandPalette() {
   return createPortal(
     <dialog
       ref={dlg}
-      className="palette-dialog"
+      className={`palette-dialog${closing ? ' is-closing' : ''}`}
       aria-modal="true"
       aria-label="Cari transaksi, akun, atau perintah"
       onCancel={(e) => {
@@ -87,38 +86,19 @@ export function CommandPalette() {
         if (open) close();
       }}
     >
-      <AnimatePresence onExitComplete={finishExit}>
-        {open && (
-          <>
-            <motion.div
-              key="backdrop"
-              className="modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.16 }}
-              onPointerDown={(e) => {
-                backdropDown.current = e.target === e.currentTarget;
-              }}
-              onClick={(e) => {
-                if (backdropDown.current && e.target === e.currentTarget) close();
-                backdropDown.current = false;
-              }}
-              style={{ background: 'color-mix(in srgb, var(--overlay) 70%, transparent)' }}
-            />
-            <motion.div
-              key="palette"
-              ref={ref}
-              className="palette"
-              initial={{ opacity: 0, scale: 0.97, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 480, damping: 34 } }}
-              exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.12 } }}
-            >
-              <PaletteBody onClose={close} />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <div
+        className="modal-backdrop palette-backdrop"
+        onPointerDown={(e) => {
+          backdropDown.current = e.target === e.currentTarget;
+        }}
+        onClick={(e) => {
+          if (open && backdropDown.current && e.target === e.currentTarget) close();
+          backdropDown.current = false;
+        }}
+      />
+      <div ref={ref} className="palette">
+        <PaletteBody onClose={close} />
+      </div>
     </dialog>,
     document.body,
   );
