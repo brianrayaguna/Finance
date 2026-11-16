@@ -1266,6 +1266,14 @@
     color: var(--text-3);
     font-variant-numeric: tabular-nums;
   }
+  /* Dialog terbuka: halaman di belakang dibekukan agar keyboard tidak memicu tata letak ulang tiap frame
+     (lihat useFreezeBackground di components/ui/Modal.tsx). `auto` mengingat ukuran terakhir → gulir tetap. */
+  .main {
+    contain-intrinsic-size: auto 100vw auto 100vh;
+  }
+  :root[data-freeze] .main {
+    content-visibility: hidden;
+  }
   /* Aksi halaman: satu baris yang bisa digeser, bukan menumpuk 2–3 baris */
   .page-head .page-actions {
     order: 2;

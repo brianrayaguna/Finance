@@ -89,6 +89,8 @@ export function useDialogTopLayer(open: boolean) {
     }
   }, [open, present]);
 
+  useFreezeBackground(open);
+
   // Animasi keluar memakai CSS (.is-closing); setelah durasinya, dialog ditutup & dilepas dari DOM.
   useEffect(() => {
     if (open || !present) return;
@@ -104,6 +106,29 @@ export function useDialogTopLayer(open: boolean) {
   }, [open, present]);
 
   return { dlg, present, closing: present && !open };
+}
+
+/**
+ * Ponsel: selama dialog terbuka, halaman di belakangnya dibekukan (`data-freeze` → content-visibility: hidden
+ * di layout.css). Saat keyboard muncul, Android memperkecil WebView bertahap; tanpa ini seluruh dasbor/grafik
+ * dihitung ulang di tiap frame sehingga animasi dialog & keyboard patah-patah. Ukuran halaman diingat
+ * (contain-intrinsic-size: auto) sehingga posisi gulir tidak berubah.
+ */
+let frozen = 0;
+function useFreezeBackground(open: boolean) {
+  useEffect(() => {
+    if (!open || !window.matchMedia('(max-width: 760px)').matches) return;
+    let on = false;
+    // Setelah animasi masuk: dialog sudah menutupi layar, jadi pembekuan tidak terlihat.
+    const t = window.setTimeout(() => {
+      on = true;
+      if (frozen++ === 0) document.documentElement.dataset.freeze = '';
+    }, ENTER_MS);
+    return () => {
+      window.clearTimeout(t);
+      if (on && --frozen === 0) delete document.documentElement.dataset.freeze;
+    };
+  }, [open]);
 }
 
 /** Durasi animasi masuk/keluar dialog — samakan dengan ui.css (modal-in, modal-out, sheet-up, …). */
