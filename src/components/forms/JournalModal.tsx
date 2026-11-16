@@ -271,7 +271,7 @@ export function JournalModal({
                     invalid={tried && !l.accountId && !!(l.debit || l.credit)}
                   />
                 </div>
-                <TextInput value={l.memo ?? ''} onChange={(v) => update(l.key, { memo: v })} placeholder="—" aria-label="Memo baris" data-field />
+                <TextInput wrapClassName="jl-memo" value={l.memo ?? ''} onChange={(v) => update(l.key, { memo: v })} placeholder="Memo" aria-label="Memo baris" data-field />
                 <div className="jl-debit">
                   <AmountInput variant="inline" value={l.debit || null} onChange={(v) => update(l.key, { debit: v ?? 0 })} ariaLabel="Debit" />
                 </div>
@@ -301,16 +301,16 @@ export function JournalModal({
                 </Button>
               )}
             </div>
-            <span className="r num strong">{formatMoney(totals.d, { symbol: false })}</span>
-            <span className="r num strong">{formatMoney(totals.c, { symbol: false })}</span>
-            <span />
+            <span className="r num strong jl-tot-d">{formatMoney(totals.d, { symbol: false })}</span>
+            <span className="r num strong jl-tot-c">{formatMoney(totals.c, { symbol: false })}</span>
+            <span className="jl-foot-pad" />
           </div>
         </div>
 
         <div className={`jm-status ${balanced ? 'ok' : 'bad'}`}>
           {balanced ? <CircleCheck size={16} /> : <Scale size={16} />}
           <span className="grow">
-            {balanced ? 'Debit dan kredit seimbang' : `Selisih ${formatMoney(Math.abs(totals.diff))} di sisi ${totals.diff > 0 ? 'kredit' : 'debit'}`}
+            {balanced ? 'Debit dan kredit seimbang' : totals.d === 0 && totals.c === 0 ? 'Isi nominal debit dan kredit pada baris jurnal' : `Selisih ${formatMoney(Math.abs(totals.diff))} di sisi ${totals.diff > 0 ? 'kredit' : 'debit'}`}
           </span>
           {tried && error && (
             <Badge tone="neg" icon={CircleAlert}>

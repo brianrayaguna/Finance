@@ -465,14 +465,84 @@
   .jl-head {
     display: none;
   }
+  /* Ponsel: tiap baris jadi kartu kecil — akun + hapus, lalu Debit | Kredit berlabel, lalu memo. */
   .jl-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
+    grid-template-areas:
+      'acc acc del'
+      'debit credit .'
+      'memo memo .';
+    row-gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .jl-row > * {
+    min-width: 0;
   }
   .jl-row .jl-acc {
-    grid-column: span 2;
+    grid-area: acc;
   }
+  .jl-row .jl-acc.indent {
+    padding-left: 0;
+  }
+  .jl-acc .select-trigger {
+    width: 100%;
+  }
+  .jl-row .jl-debit {
+    grid-area: debit;
+  }
+  .jl-row .jl-credit {
+    grid-area: credit;
+  }
+  .jl-row .jl-memo {
+    grid-area: memo;
+  }
+  .jl-row .jl-del {
+    grid-area: del;
+    justify-self: end;
+  }
+  .jl-debit::before,
+  .jl-credit::before {
+    display: block;
+    margin: 0 0 4px 2px;
+    font-size: var(--fs-xs);
+    font-weight: 650;
+    color: var(--text-3);
+  }
+  .jl-debit::before {
+    content: 'Debit';
+  }
+  .jl-credit::before {
+    content: 'Kredit';
+  }
+  /* Kaki: tombol di baris pertama, total debit & kredit berlabel di bawahnya. */
   .jl-foot {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    height: auto;
+    row-gap: 6px;
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+  .jl-foot > .row {
+    grid-column: 1 / -1;
+  }
+  .jl-foot .r {
+    text-align: left;
+    padding: 0 2px;
+  }
+  .jl-tot-d::before {
+    content: 'Total debit ';
+  }
+  .jl-tot-c::before {
+    content: 'Total kredit ';
+  }
+  .jl-tot-d::before,
+  .jl-tot-c::before {
+    font-weight: 560;
+    color: var(--text-3);
+  }
+  .jl-foot-pad {
+    display: none;
   }
 }
 
