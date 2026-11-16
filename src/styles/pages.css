@@ -1770,6 +1770,33 @@ button.tl-item:hover {
   font-size: 19px;
   font-weight: 620;
 }
+@media (max-width: 760px) {
+  /* Kartu ringkasan: ring kecil di kiri, angka di kanan, rincian jadi baris di bawah */
+  .budget-hero {
+    gap: 16px 18px;
+    padding: 18px;
+    flex-wrap: wrap;
+  }
+  .bh-main {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .bh-val {
+    font-size: 26px;
+  }
+  .bh-side {
+    flex: 1 0 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 14px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .bh-side strong {
+    font-size: 17px;
+  }
+}
 .budget-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));

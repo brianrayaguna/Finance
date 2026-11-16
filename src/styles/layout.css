@@ -1290,6 +1290,22 @@
     width: var(--ctl-h);
     padding: 0;
   }
+  /* Anggaran: pemilih bulan mengisi baris, tombol tambah ringkas di kanan — tanpa geser & pudar */
+  .page-head .page-actions:has(.ms-stretch) {
+    width: 100%;
+    margin: 0;
+    padding: 2px 0;
+    overflow: visible;
+    mask-image: none;
+  }
+  .page-actions .ms-stretch {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .ms-stretch .ms-label {
+    flex: 1;
+    min-width: 0;
+  }
   .btn-collapse .btn-label {
     position: absolute;
     width: 1px;

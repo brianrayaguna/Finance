@@ -1075,8 +1075,15 @@ a.ins:hover {
 }
 
 /* Target tabungan di halaman Anggaran */
-.goals-section .section-head .spacer {
-  flex: 1;
+/* Judul + keterangan bertumpuk di kiri, tombol di kanan: keterangan tidak terjepit di ponsel */
+.goals-section .sh-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.goals-section .section-head .btn {
+  flex: none;
 }
 .goal-cards {
   display: grid;

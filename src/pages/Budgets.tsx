@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { m as motion } from 'framer-motion';
 import { Plus, Target, Pencil, Trash2, Ellipsis, History, TriangleAlert, CircleCheck, Flame, Flag } from '../lib/glyphs';
-import { useBooks, useToday } from '../hooks/useApp';
+import { useBooks, useMediaQuery, useToday } from '../hooks/useApp';
 import { upsertBudget, deleteBudget, useData } from '../store/data';
 import { notify } from '../store/history';
 import { activity, budgetVsActual, type BudgetLine } from '../accounting/reports';
@@ -27,6 +27,7 @@ export default function Budgets() {
   const [edit, setEdit] = useState<{ categoryId?: string; amount?: number } | null>(null);
   const goals = useData((s) => s.data.goals);
   const goalModal = useGoalModal();
+  const phone = useMediaQuery('(max-width: 760px)');
   const goalList = useMemo(() => goals.map((g) => goalProgress(b, g, today)), [b, goals, today]);
 
   const from = month + '-01';
@@ -65,11 +66,12 @@ export default function Budgets() {
     <div>
       <PageHeader
         title="Anggaran"
-        subtitle={`Batas beban per kategori dan target tabungan untuk ${formatMonth(month)}`}
+        subtitle={`Batas pengeluaran per kategori dan target tabungan, ${formatMonth(month)}`}
         actions={
           <>
-            <MonthSwitcher value={month} onChange={setMonth} />
-            <Button variant="primary" icon={Plus} onClick={() => setEdit({})}>
+            {/* Ponsel: pemilih bulan mengisi lebar, tombol tambah jadi ikon (tidak meluap/terpotong) */}
+            <MonthSwitcher value={month} onChange={setMonth} className="ms-stretch" />
+            <Button variant="primary" icon={Plus} collapse onClick={() => setEdit({})}>
               Tambah anggaran
             </Button>
           </>
@@ -81,10 +83,10 @@ export default function Budgets() {
           <EmptyState
             icon={Target}
             title="Belum ada anggaran"
-            text="Tetapkan batas pengeluaran bulanan per kategori untuk memantau disiplin belanja Anda."
+            text="Tetapkan batas pengeluaran bulanan per kategori, lalu pantau sisanya di sini."
             action={
               <Button variant="primary" icon={Plus} onClick={() => setEdit({})}>
-                Buat anggaran pertama
+                Tambah anggaran
               </Button>
             }
           />
@@ -92,20 +94,20 @@ export default function Budgets() {
       ) : (
         <>
           <div className="card budget-hero">
-            <Ring value={totalBudget ? totalActual / totalBudget : 0} size={132} stroke={12} color={ringColor}>
-              <strong className="num figure" style={{ fontSize: 26 }}>{formatPercent(totalBudget ? totalActual / totalBudget : 0, 0)}</strong>
+            <Ring value={totalBudget ? totalActual / totalBudget : 0} size={phone ? 96 : 132} stroke={phone ? 10 : 12} color={ringColor}>
+              <strong className="num figure" style={{ fontSize: phone ? 20 : 26 }}>{formatPercent(totalBudget ? totalActual / totalBudget : 0, 0)}</strong>
               <span className="muted" style={{ fontSize: 12 }}>terpakai</span>
             </Ring>
             <div className="bh-main">
               <span className="kpi-label">{remaining >= 0 ? 'Sisa anggaran' : 'Melebihi anggaran'}</span>
               <strong className={`bh-val num money-val ${remaining < 0 ? 'neg' : ''}`}>{formatMoney(Math.abs(remaining))}</strong>
               <span className="muted">
-                Realisasi <span className="money-val">{formatMoney(totalActual)}</span> dari <span className="money-val">{formatMoney(totalBudget)}</span>
+                Terpakai <span className="money-val">{formatMoney(totalActual)}</span> dari <span className="money-val">{formatMoney(totalBudget)}</span>
               </span>
               <div className="bh-pace">
                 <Progress value={totalBudget ? totalActual / totalBudget : 0} color={ringColor} marker={pace} label="Total anggaran terpakai" />
                 <span className="muted" style={{ fontSize: 12 }}>
-                  Garis penanda = porsi waktu berjalan ({formatPercent(pace, 0)})
+                  Garis penanda, waktu berjalan {formatPercent(pace, 0)}
                 </span>
               </div>
             </div>
@@ -204,10 +206,11 @@ export default function Budgets() {
 
       <section id="target" className="goals-section">
         <div className="section-head">
-          <h2>Target tabungan</h2>
-          <span className="muted">{goalList.length ? `${goalList.filter((p) => p.status === 'done').length} dari ${goalList.length} tercapai` : 'Kemajuan dari saldo dompet yang ditautkan'}</span>
-          <span className="spacer" />
-          <Button size="sm" icon={Plus} onClick={goalModal.openNew}>
+          <div className="sh-text">
+            <h2>Target tabungan</h2>
+            <span className="muted">{goalList.length ? `${goalList.filter((p) => p.status === 'done').length} dari ${goalList.length} tercapai` : 'Dihitung dari saldo dompet yang ditautkan'}</span>
+          </div>
+          <Button size="sm" icon={Plus} collapse onClick={goalModal.openNew}>
             Tambah target
           </Button>
         </div>
@@ -221,7 +224,7 @@ export default function Budgets() {
               text="Tetapkan tujuan seperti dana darurat atau liburan, lalu tautkan ke dompet tabungannya. Menabung cukup dengan transfer ke dompet itu."
               action={
                 <Button variant="primary" size="sm" icon={Plus} onClick={goalModal.openNew}>
-                  Buat target
+                  Tambah target
                 </Button>
               }
             />
@@ -240,7 +243,7 @@ export default function Budgets() {
       {unbudgeted.length > 0 && (
         <section>
           <div className="section-head">
-            <h2>Beban tanpa anggaran</h2>
+            <h2>Pengeluaran tanpa anggaran</h2>
             <span className="muted num money-val">{formatMoney(unbudgeted.reduce((s, x) => s + x.v, 0))}</span>
           </div>
           <div className="card list-body" style={{ padding: 6 }}>
@@ -297,7 +300,7 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
       onClose={onClose}
       size="sm"
       title={existing ? 'Ubah anggaran' : 'Anggaran baru'}
-      subtitle="Berlaku untuk setiap bulan"
+      subtitle="Berlaku setiap bulan"
       footer={
         <>
           <span className="spacer" />
@@ -318,7 +321,7 @@ function BudgetModal({ initial, onClose, month }: { initial: { categoryId?: stri
           }
         }}
       >
-        <Field label="Kategori beban" error={tried && !cat && 'Pilih kategori'}>
+        <Field label="Kategori pengeluaran" error={tried && !cat && 'Pilih kategori'}>
           <Select value={cat} onChange={setCat} options={cats} placeholder="Pilih kategori…" searchable advance invalid={tried && !cat} />
         </Field>
         <Field label="Batas per bulan" error={tried && !amount && 'Masukkan nominal'}>

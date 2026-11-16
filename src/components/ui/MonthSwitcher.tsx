@@ -3,11 +3,11 @@ import { addMonths, formatMonth } from '../../lib/format';
 import { useToday } from '../../hooks/useApp';
 import { Tooltip } from './Tooltip';
 
-export function MonthSwitcher({ value, onChange, compact }: { value: string; onChange: (v: string) => void; compact?: boolean }) {
+export function MonthSwitcher({ value, onChange, compact, className }: { value: string; onChange: (v: string) => void; compact?: boolean; className?: string }) {
   const cur = useToday().slice(0, 7);
   const shift = (n: number) => onChange(addMonths(value + '-01', n).slice(0, 7));
   return (
-    <div className={compact ? 'month-switch compact' : 'month-switch'}>
+    <div className={['month-switch', compact && 'compact', className].filter(Boolean).join(' ')}>
       <Tooltip label="Bulan sebelumnya">
         <button type="button" className="ms-btn" onClick={() => shift(-1)} aria-label="Bulan sebelumnya">
           <ChevronLeft />
