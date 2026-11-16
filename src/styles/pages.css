@@ -1071,10 +1071,29 @@
     letter-spacing: -0.03em;
   }
 }
-/* Chip filter Transaksi pasti meluap di ponsel kecil: tepi kanan memudar sebagai petunjuk geser */
-@media (max-width: 480px) {
+/* Filter jenis Transaksi di ponsel: ikon saja, enam tombol sama lebar — muat tanpa digeser. */
+@media (max-width: 760px) {
   .list-toolbar .seg.tx-type-seg {
-    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    display: flex;
+    width: 100%;
+    overflow: visible;
+    mask-image: none;
+  }
+  .tx-type-seg .seg-item {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+  }
+  .tx-type-seg .seg-item .fi {
+    font-size: 17px;
+  }
+  .tx-type-seg .seg-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }
 .cc-vals > span {

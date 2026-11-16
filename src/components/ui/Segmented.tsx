@@ -64,7 +64,7 @@ export function Segmented<T extends string>({
               <SlidePill group={`seg-${id}`} className="seg-thumb" />
             )}
             {o.icon && <o.icon />}
-            {o.label}
+            <span className="seg-label">{o.label}</span>
           </button>
         );
       })}

@@ -13,6 +13,11 @@ import {
   Inbox,
   FilterX,
   NotebookPen,
+  LayoutGrid,
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowLeftRight,
+  Handshake,
 } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, confirm } from '../store/ui';
@@ -380,12 +385,13 @@ export default function Transactions() {
               value={kind}
               onChange={setKind}
               options={[
-                { value: 'all', label: 'Semua' },
-                { value: 'in', label: 'Masuk' },
-                { value: 'out', label: 'Keluar' },
-                { value: 'transfer', label: 'Transfer' },
-                { value: 'debt', label: 'Hutang/Piutang' },
-                { value: 'journal', label: 'Jurnal' },
+                // Di ponsel hanya ikon (label tetap terbaca pembaca layar & muncul sebagai tooltip).
+                { value: 'all', label: 'Semua', icon: LayoutGrid, title: 'Semua' },
+                { value: 'in', label: 'Masuk', icon: ArrowDownLeft, title: 'Pemasukan' },
+                { value: 'out', label: 'Keluar', icon: ArrowUpRight, title: 'Pengeluaran' },
+                { value: 'transfer', label: 'Transfer', icon: ArrowLeftRight, title: 'Transfer' },
+                { value: 'debt', label: 'Hutang/Piutang', icon: Handshake, title: 'Hutang & piutang' },
+                { value: 'journal', label: 'Jurnal', icon: NotebookPen, title: 'Jurnal' },
               ]}
             />
             <div className="lt-filters">
