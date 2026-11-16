@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, Grid3x3, Inbox } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { usePrefs, useUI } from '../store/ui';

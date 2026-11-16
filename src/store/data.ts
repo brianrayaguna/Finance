@@ -17,6 +17,7 @@ import { lockViolations } from '../accounting/lock';
 import { formatDate, round2, todayISO, uid } from '../lib/format';
 import { remapColor, remapIcon } from '../lib/icons';
 import { toast } from './ui';
+import { deferStorage } from './deferred';
 
 export function emptyData(): AppData {
   return {
@@ -316,6 +317,20 @@ const safeStorage = {
   removeItem: (...args: Parameters<typeof jsonStorage.removeItem>) => jsonStorage.removeItem(...args),
 };
 
+/** Penulisan ditunda & digabung agar mengetik/undo cepat tidak membekukan HP lambat. */
+const dataStorage = deferStorage(safeStorage);
+
+/** Tulis perubahan tertunda ke localStorage sekarang (mis. sebelum membaca langsung untuk cadangan). */
+export const flushDataStorage = () => dataStorage.flush();
+
+if (typeof window !== 'undefined') {
+  // Aplikasi bisa ditutup kapan saja (APK di latar belakang): simpan saat halaman disembunyikan.
+  window.addEventListener('pagehide', flushDataStorage);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushDataStorage();
+  });
+}
+
 export const useData = create<DataState>()(
   persist(
     (set, get) => ({
@@ -378,7 +393,7 @@ export const useData = create<DataState>()(
       // Nama kunci 'neraca.*' dipertahankan agar data tersimpan tetap terbaca.
       name: 'neraca.data',
       version: 1,
-      storage: safeStorage,
+      storage: dataStorage,
       partialize: (s) => ({ data: s.data }) as unknown as DataState,
       merge: (persisted, current) => {
         try {

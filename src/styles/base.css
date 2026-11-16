@@ -234,6 +234,18 @@ textarea:focus-visible {
   flex: 1;
 }
 
+/* Transisi halaman: CSS murni (compositor), tanpa JS per frame. Tanpa fill-mode agar
+   tidak ada transform yang tertinggal (transform membuat containing block untuk position:fixed). */
+.route {
+  animation: route-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 :root[data-motion='reduce'] *,
 :root[data-motion='reduce'] *::before,
 :root[data-motion='reduce'] *::after {
@@ -337,4 +349,24 @@ textarea:focus-visible {
   100% {
     transform: scaleX(1);
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Mode hemat (data-perf="lite"): diaktifkan otomatis di perangkat ber-RAM/CPU rendah
+   atau lewat Pengaturan › Tampilan. Efek kaca (backdrop-filter) dihitung ulang setiap
+   frame saat menggulir — diganti latar solid; bayangan besar disederhanakan.
+   ───────────────────────────────────────────────────────────── */
+:root[data-perf='lite'] *,
+:root[data-perf='lite'] *::before,
+:root[data-perf='lite'] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+:root[data-perf='lite'] {
+  --glass: var(--canvas);
+  --dur-2: 160ms;
+  --dur-3: 220ms;
+}
+:root[data-perf='lite'] .tabbar {
+  background: var(--surface) !important;
 }

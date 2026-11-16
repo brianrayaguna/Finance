@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import { Check, ChevronRight, type Glyph } from '../../lib/glyphs';
 import { focusNoScroll } from '../../lib/focus';
 import { useLayer } from '../../lib/layers';

@@ -415,7 +415,8 @@ export function AnimatedMoney({ value, duration = 900, ...opts }: { value: numbe
   const from = useRef(value);
   const raf = useRef(0);
   useEffect(() => {
-    const reduce = document.documentElement.dataset.motion === 'reduce' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Mode hemat: angka langsung tampil (hitung-naik me-render ulang React tiap frame).
+    const reduce = document.documentElement.dataset.motion === 'reduce' || document.documentElement.dataset.perf === 'lite' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const start = performance.now();
     const a = from.current;
     const b = value;

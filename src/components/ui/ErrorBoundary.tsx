@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Download, RotateCcw, TriangleAlert } from '../../lib/glyphs';
 import { Button, IconTile } from './primitives';
+import { flushDataStorage } from '../../store/data';
 
 function todayStamp() {
   const d = new Date();
@@ -10,6 +11,12 @@ function todayStamp() {
 /** Mengunduh cadangan langsung dari localStorage agar tetap berfungsi walau store/UI sedang bermasalah. */
 function exportEmergencyBackup() {
   try {
+    // Perubahan terakhir mungkin masih tertunda (penulisan ditunda); tulis dulu sebelum dibaca.
+    try {
+      flushDataStorage();
+    } catch {
+      /* tetap lanjut dengan isi localStorage yang ada */
+    }
     const rawData = localStorage.getItem('neraca.data');
     const rawPrefs = localStorage.getItem('neraca.prefs');
     const parsedData = rawData ? JSON.parse(rawData) : null;

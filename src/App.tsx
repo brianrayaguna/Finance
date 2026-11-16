@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useSearchParams, Navigate } from 'react-router-dom';
-import { motion, MotionConfig } from 'framer-motion';
+import { LazyMotion, MotionConfig } from 'framer-motion';
 import { AppShell } from './components/layout/AppShell';
 import { TransactionModalHost } from './components/forms/TransactionModal';
 import { CommandPalette } from './components/CommandPalette';
@@ -13,6 +13,9 @@ import { Intro } from './components/brand/Intro';
 import { useThemeSync } from './hooks/useApp';
 import { usePrefs } from './store/ui';
 import Dashboard from './pages/Dashboard';
+
+/** Fitur animasi framer-motion (±100 KB) dimuat setelah tampilan pertama, bukan di bundel awal. */
+const motionFeatures = () => import('./lib/motionFeatures').then((m) => m.default);
 
 const Transactions = lazy(() => import('./pages/Transactions'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
@@ -49,14 +52,11 @@ function KalenderRedirect() {
 
 function AnimatedRoutes() {
   const loc = useLocation();
+  // Kunci per halaman induk (/pengaturan/profil → /pengaturan) agar pindah sub-bagian tidak
+  // me-remount & menganimasikan ulang seluruh halaman.
+  const section = '/' + (loc.pathname.split('/')[1] ?? '');
   return (
-    <motion.div
-      key={loc.pathname}
-      className="route"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <div key={section} className="route">
       <ErrorBoundary resetKey={loc.pathname}>
         <Suspense fallback={<PageFallback />}>
           <Routes location={loc}>
@@ -78,7 +78,7 @@ function AnimatedRoutes() {
           </Routes>
         </Suspense>
       </ErrorBoundary>
-    </motion.div>
+    </div>
   );
 }
 
@@ -86,20 +86,22 @@ export default function App() {
   useThemeSync();
   const reduceMotion = usePrefs((s) => s.reduceMotion);
   return (
-    <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
-      <ErrorBoundary variant="root">
-        <BrowserRouter>
-          <AppShell>
-            <AnimatedRoutes />
-          </AppShell>
-          <TransactionModalHost />
-          <CommandPalette />
-          <ShortcutsDialog />
-          <ConfirmHost />
-          <Toasts />
-        </BrowserRouter>
-        <Intro />
-      </ErrorBoundary>
-    </MotionConfig>
+    <LazyMotion features={motionFeatures}>
+      <MotionConfig reducedMotion={reduceMotion ? 'always' : 'user'}>
+        <ErrorBoundary variant="root">
+          <BrowserRouter>
+            <AppShell>
+              <AnimatedRoutes />
+            </AppShell>
+            <TransactionModalHost />
+            <CommandPalette />
+            <ShortcutsDialog />
+            <ConfirmHost />
+            <Toasts />
+          </BrowserRouter>
+          <Intro />
+        </ErrorBoundary>
+      </MotionConfig>
+    </LazyMotion>
   );
 }

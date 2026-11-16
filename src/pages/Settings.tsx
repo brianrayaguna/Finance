@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { SlidePill } from '../components/ui/SlidePill';
+import { isLowEndDevice } from '../lib/perf';
 import {
   Download,
   Upload,
@@ -366,10 +367,10 @@ export default function Settings() {
       <PageHeader title={isPhone ? current.label : 'Pengaturan'} subtitle={isPhone ? current.desc : 'Profil buku, tampilan, menu, dan pengelolaan data'} />
 
       <div className="settings-layout">
-        <nav className="settings-nav" aria-label="Bagian pengaturan">
+        <nav className="settings-nav" data-pill-root aria-label="Bagian pengaturan">
           {SECTIONS.map((s) => (
             <NavLink key={s.id} to={`/pengaturan/${s.id}`} replace className={`sn-item${active === s.id ? ' active' : ''}`} aria-current={active === s.id ? 'page' : undefined}>
-              {active === s.id && <motion.span layoutId="sn-pill" className="sn-pill" transition={{ type: 'spring', stiffness: 520, damping: 42 }} />}
+              {active === s.id && <SlidePill group="sn-pill" className="sn-pill" />}
               <s.icon />
               {s.label}
             </NavLink>
@@ -501,6 +502,21 @@ export default function Settings() {
               </Row>
               <Row title="Kurangi animasi" desc="Mematikan transisi dan gerakan antarmuka">
                 <Switch checked={prefs.reduceMotion} onChange={(v) => prefs.set({ reduceMotion: v })} label="Kurangi animasi" />
+              </Row>
+              <Row
+                title="Mode hemat"
+                desc={`Tanpa efek kaca dan animasi grafik agar tetap lancar di HP spek rendah. Otomatis: ${isLowEndDevice() ? 'aktif di perangkat ini' : 'tidak aktif di perangkat ini'}`}
+              >
+                <Segmented
+                  size="sm"
+                  value={prefs.perfMode}
+                  onChange={(v) => prefs.set({ perfMode: v })}
+                  options={[
+                    { value: 'auto', label: 'Otomatis' },
+                    { value: 'on', label: 'Aktif' },
+                    { value: 'off', label: 'Mati' },
+                  ]}
+                />
               </Row>
               <Row title="Sembunyikan nominal" desc="Mengaburkan angka — arahkan kursor untuk melihat. Pintasan: H">
                 <Switch checked={prefs.hideAmounts} onChange={(v) => prefs.set({ hideAmounts: v })} label="Sembunyikan nominal" />

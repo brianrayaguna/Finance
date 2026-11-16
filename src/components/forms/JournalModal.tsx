@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import { Plus, Trash2, Scale, CircleCheck, CircleAlert, Wand2, X, Lock } from '../../lib/glyphs';
 import type { JournalLineInput, Transaction } from '../../accounting/types';
 import { isLocked } from '../../accounting/lock';

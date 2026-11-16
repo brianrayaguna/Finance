@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup, m as motion } from 'framer-motion';
 import { LayoutDashboard, Plus, RotateCcw } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useData } from '../store/data';

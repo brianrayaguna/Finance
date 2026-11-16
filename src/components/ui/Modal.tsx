@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import { X } from '../../lib/glyphs';
 import { focusField, focusNoScroll } from '../../lib/focus';
 import { layerCount, useLayer } from '../../lib/layers';

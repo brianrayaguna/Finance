@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import { CircleCheck, CircleAlert, Info, X } from '../../lib/glyphs';
 import { useToasts, type Toast } from '../../store/ui';
 

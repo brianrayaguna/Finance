@@ -3,7 +3,7 @@
  * bilah mode sunting; serta galeri widget & tata letak siap pakai.
  */
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { m as motion } from 'framer-motion';
 import { Check, ChevronDown, EyeOff, GripVertical, LayoutDashboard, Plus, RotateCcw, SlidersHorizontal, X } from '../../lib/glyphs';
 import {
   ALL_KPI,

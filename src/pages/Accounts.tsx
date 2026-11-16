@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { m as motion } from 'framer-motion';
 import { Plus, Search, Tags, ListTree, Lock, Archive, TrendingUp, TrendingDown } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';

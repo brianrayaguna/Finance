@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
+import { SlidePill } from '../components/ui/SlidePill';
 import {
   FileSpreadsheet,
   Printer,
@@ -162,10 +163,10 @@ export default function Reports() {
       />
 
       <div className="reports-layout">
-        <nav className="card report-nav no-print">
+        <nav className="card report-nav no-print" data-pill-root>
           {REPORTS.map((r) => (
             <button key={r.key} type="button" className={`rn-item${r.key === key ? ' active' : ''}`} onClick={() => select(r.key)}>
-              {r.key === key && <motion.span layoutId="rn-pill" className="rn-pill" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
+              {r.key === key && <SlidePill group="rn-pill" className="rn-pill" />}
               <r.icon />
               <span className="col" style={{ minWidth: 0 }}>
                 <span className="rn-label">{r.label}</span>

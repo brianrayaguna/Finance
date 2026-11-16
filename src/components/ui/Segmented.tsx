@@ -1,5 +1,5 @@
 import { useId, useRef, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { SlidePill } from './SlidePill';
 import type { Glyph } from '../../lib/glyphs';
 
 export interface SegOption<T extends string> {
@@ -39,6 +39,7 @@ export function Segmented<T extends string>({
   return (
     <div
       role="tablist"
+      data-pill-root
       aria-label={ariaLabel}
       className={['seg', size === 'sm' && 'seg-sm', block && 'seg-block', className].filter(Boolean).join(' ')}
       onKeyDown={onKey}
@@ -60,11 +61,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
           >
             {sel && (
-              <motion.span
-                layoutId={`seg-${id}`}
-                className="seg-thumb"
-                transition={{ type: 'spring', stiffness: 560, damping: 38, mass: 0.8 }}
-              />
+              <SlidePill group={`seg-${id}`} className="seg-thumb" />
             )}
             {o.icon && <o.icon />}
             {o.label}

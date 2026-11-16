@@ -8,6 +8,7 @@ import type { PresetKey } from '../components/ui/PeriodPicker';
 import type { WeekStart } from '../lib/week';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
+export type PerfMode = 'auto' | 'on' | 'off';
 export type Accent = 'forest' | 'ocean' | 'plum' | 'clay' | 'graphite';
 
 export const ACCENTS: { key: Accent; name: string; color: string; dark: string }[] = [
@@ -28,6 +29,8 @@ export interface PrefsState {
   sidebarCollapsed: boolean;
   density: 'comfortable' | 'compact';
   reduceMotion: boolean;
+  /** Mode hemat: tanpa efek kaca/blur & animasi grafik. 'auto' = aktif di perangkat ber-RAM/CPU rendah */
+  perfMode: PerfMode;
   hideAmounts: boolean;
   /** Tata letak dasbor yang dapat disesuaikan */
   dashboard: DashLayout;
@@ -57,7 +60,7 @@ interface Prefs extends PrefsState {
 
 /** Kunci preferensi yang ikut disimpan di berkas cadangan */
 export const BACKUP_PREF_KEYS: (keyof PrefsState)[] = [
-  'theme', 'accent', 'density', 'reduceMotion', 'dashboard', 'nav', 'mode', 'weekStart', 'landing', 'reportPreset', 'compactNumbers',
+  'theme', 'accent', 'density', 'reduceMotion', 'perfMode', 'dashboard', 'nav', 'mode', 'weekStart', 'landing', 'reportPreset', 'compactNumbers',
 ];
 
 const LANDINGS = ['/', '/transaksi', '/dompet', '/anggaran', '/hutang-piutang', '/laporan'];
@@ -71,6 +74,7 @@ export function sanitizePrefs(raw: Record<string, unknown>): Partial<PrefsState>
   if (typeof raw.sidebarCollapsed === 'boolean') p.sidebarCollapsed = raw.sidebarCollapsed;
   if (raw.density === 'comfortable' || raw.density === 'compact') p.density = raw.density;
   if (typeof raw.reduceMotion === 'boolean') p.reduceMotion = raw.reduceMotion;
+  if (raw.perfMode === 'auto' || raw.perfMode === 'on' || raw.perfMode === 'off') p.perfMode = raw.perfMode;
   if (typeof raw.hideAmounts === 'boolean') p.hideAmounts = raw.hideAmounts;
   if (raw.dashboard !== undefined) p.dashboard = sanitizeLayout(raw.dashboard);
   if (raw.nav !== undefined) p.nav = sanitizeNavPrefs(raw.nav);
@@ -98,6 +102,7 @@ export const usePrefs = create<Prefs>()(
       sidebarCollapsed: false,
       density: 'comfortable',
       reduceMotion: false,
+      perfMode: 'auto',
       hideAmounts: false,
       dashboard: defaultLayout(),
       nav: defaultNavPrefs(),

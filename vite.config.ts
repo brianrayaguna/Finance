@@ -48,7 +48,16 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // exceljs (±1 MB) hanya untuk ekspor; diambil saat dibutuhkan, bukan saat instal pertama.
+        globIgnores: ['**/excel-*.js'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/excel-.*\.js$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'keuanganku-excel', expiration: { maxEntries: 2 } },
+          },
+        ],
       },
     }),
   ],
@@ -62,8 +71,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
-          if (id.includes('/recharts/') || id.includes('/d3-') || id.includes('/victory-vendor/')) return 'vendor-charts';
-          if (id.includes('/framer-motion/') || id.includes('/motion-dom/') || id.includes('/motion-utils/')) return 'vendor-motion';
+          // recharts sengaja tidak dipaksa ke chunk sendiri: chunk manual ikut menampung helper bersama
+          // sehingga terunduh & di-parse saat start. Biarkan ikut chunk lazy RechartsCharts.
+          // framer-motion juga tidak dipaksa: fiturnya (domMax) dimuat lazy lewat <LazyMotion>.
           if (id.includes('/react-router')) return 'vendor-router';
           if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) return 'vendor-react';
         },

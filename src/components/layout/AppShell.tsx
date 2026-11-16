@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import { LayoutGrid, ArrowLeftRight, Wallet, FileChartColumn, Plus } from '../../lib/glyphs';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';

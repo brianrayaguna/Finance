@@ -5,7 +5,7 @@
  */
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m as motion } from 'framer-motion';
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -34,11 +34,11 @@ import { useBooks, useNarrow, useToday } from '../../hooks/useApp';
 import { walletBalances } from '../../accounting/reports';
 import { formatMoney, initials } from '../../lib/format';
 import { Tooltip } from '../ui/Tooltip';
+import { SlidePill } from '../ui/SlidePill';
 import { Menu, type MenuItem } from '../ui/Popover';
 import { LogoMark } from '../brand/Logo';
 import { recordMenuItems } from '../tx/recordMenu';
 
-const SPRING = { type: 'spring', stiffness: 560, damping: 44, mass: 0.7 } as const;
 
 function NavRow({
   it,
@@ -77,7 +77,7 @@ function NavRow({
           aria-current={active ? 'page' : undefined}
           aria-label={collapsedAriaLabel}
         >
-          {active && <motion.span layoutId="sb-pill" className="sb-pill" transition={SPRING} />}
+          {active && <SlidePill group="sb-pill" className="sb-pill" duration={300} />}
           <span className="sb-ico" aria-hidden>
             <Icon solid={active} />
           </span>
@@ -450,7 +450,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="sb-nav" ref={navRef as React.RefObject<HTMLElement>} aria-label="Utama">
+      <nav className="sb-nav" data-pill-root ref={navRef as React.RefObject<HTMLElement>} aria-label="Utama">
         {primaryItems.length > 0 && (
           <div className="sb-section sb-primary-group">
             <ul className="sb-list">

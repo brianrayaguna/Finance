@@ -388,6 +388,12 @@
 .recharts-surface {
   overflow: visible;
 }
+/* Tempat grafik selagi modul recharts dimuat (ukuran sama → tanpa geser tata letak). */
+.chart-placeholder {
+  border-radius: var(--radius-md);
+  background: var(--fill);
+  opacity: 0.5;
+}
 .chart-empty {
   display: grid;
   place-items: center;
@@ -747,10 +753,15 @@
   height: 36px;
   padding: 0 16px;
   font-size: var(--fs-sm);
-  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* Latar solid: blur di header sticky dihitung ulang tiap frame saat menggulir (mahal di HP lambat)
+     padahal latar 94% opak membuatnya hampir tak terlihat. */
+  background: var(--surface-2);
   border-bottom: 1px solid var(--line);
+}
+/* Grup tanggal di luar layar tidak di-layout/di-paint sampai mendekati viewport. */
+.tx-day {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
 }
 .tx-day:not(:first-of-type) .tx-day-head {
   border-top: 1px solid var(--line);

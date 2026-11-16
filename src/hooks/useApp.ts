@@ -3,6 +3,7 @@ import { useData } from '../store/data';
 import { usePrefs } from '../store/ui';
 import { getBooks } from '../accounting/reports';
 import { todayISO } from '../lib/format';
+import { resolveLite } from '../lib/perf';
 
 export function useBooks() {
   const data = useData((s) => s.data);
@@ -28,6 +29,12 @@ export function useThemeSync() {
   const density = usePrefs((s) => s.density);
   const reduceMotion = usePrefs((s) => s.reduceMotion);
   const hideAmounts = usePrefs((s) => s.hideAmounts);
+  const perfMode = usePrefs((s) => s.perfMode);
+  useEffect(() => {
+    const r = document.documentElement;
+    if (resolveLite(perfMode)) r.dataset.perf = 'lite';
+    else delete r.dataset.perf;
+  }, [perfMode]);
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
