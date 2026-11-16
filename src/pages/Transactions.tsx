@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Plus,
   Search,
-  Download,
   Trash2,
   Copy,
   Pencil,
@@ -32,8 +31,6 @@ import { TxRow } from '../components/tx/TxRow';
 import { cashDelta, txFlow } from '../components/tx/txDisplay';
 import { TxViewSwitch } from '../components/tx/TxViewSwitch';
 import { useCategoryOptions, useWalletOptions } from '../components/forms/options';
-import { toast } from '../store/ui';
-import { Dots } from '../components/ui/primitives';
 
 type Kind = 'all' | 'in' | 'out' | 'transfer' | 'debt' | 'journal';
 
@@ -75,7 +72,6 @@ export default function Transactions() {
   // Ponsel: kotak centang baris disembunyikan sampai pengguna menekan "Pilih".
   const [selectMode, setSelectMode] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
   const anchorIdx = useRef<number | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -321,21 +317,6 @@ export default function Transactions() {
     }
   }, [focusId]);
 
-  const doExport = async (ids?: Set<string>) => {
-    setExporting(true);
-    try {
-      const { exportTransactions } = await import('../export/excel');
-      const rows = ids ? filtered.filter((t) => ids.has(t.id)) : filtered;
-      await exportTransactions(b, rows, period);
-      toast(`${rows.length} transaksi diekspor ke Excel`, { tone: 'success' });
-    } catch (err) {
-      console.error(err);
-      toast('Ekspor gagal', { tone: 'danger' });
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const selTotal = useMemo(() => [...selected].reduce((s, id) => s + (txById.get(id)?.amount ?? 0), 0), [selected, txById]);
   const allSel = visible.length > 0 && visible.every((t) => selected.has(t.id));
   const someSel = selected.size > 0 && !allSel;
@@ -352,9 +333,6 @@ export default function Transactions() {
           <>
             <TxViewSwitch value="daftar" />
             <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-            <Button collapse icon={exporting ? undefined : Download} onClick={() => doExport()} disabled={!filtered.length || exporting}>
-              {exporting ? <Dots /> : 'Ekspor Excel'}
-            </Button>
           </>
         }
       />
@@ -525,9 +503,6 @@ export default function Transactions() {
             <span className="bb-count">{selected.size} dipilih</span>
             <span className="bb-total num money-val">{formatMoney(selTotal)}</span>
             <span className="tb-sep" />
-            <Button size="sm" variant="ghost" icon={Download} onClick={() => doExport(selected)}>
-              Ekspor
-            </Button>
             <Button size="sm" variant="danger-ghost" icon={Trash2} onClick={() => removeIds([...selected])}>
               Hapus
             </Button>

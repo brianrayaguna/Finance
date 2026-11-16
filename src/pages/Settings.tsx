@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Download,
@@ -7,24 +7,18 @@ import {
   FlaskConical,
   RotateCcw,
   Keyboard,
-  User,
-  Palette,
-  Database,
   Check,
   HardDrive,
-  Info,
   ShieldCheck,
   ShieldAlert,
-  SlidersHorizontal,
   LayoutDashboard,
-  ListTree,
   Star,
   Eye,
   EyeOff,
   ArrowUp,
   ArrowDown,
   Lock,
-  type Glyph,
+  ChevronRight,
 } from '../lib/glyphs';
 import { checkIntegrity } from '../accounting/integrity';
 import type { AppData } from '../accounting/types';
@@ -43,6 +37,7 @@ import {
   type PrefsState,
   type ThemeMode,
 } from '../store/ui';
+import { SETTINGS_SECTIONS } from '../app/settings';
 import { NAV, SIMPLE_HIDDEN, defaultNavPrefs, navLabel, orderedItems, type NavSection } from '../app/nav';
 import { APP_VERSION, downloadBackup } from '../app/backup';
 import { describePeriod } from '../components/ui/PeriodPicker';
@@ -55,17 +50,11 @@ import { Button, Field, Switch, TextInput } from '../components/ui/primitives';
 import { Select } from '../components/ui/Select';
 import { Segmented } from '../components/ui/Segmented';
 import { LogoMark } from '../components/brand/Logo';
-import { useIsDark } from '../hooks/useApp';
+import { useIsDark, useMediaQuery } from '../hooks/useApp';
 import { isImeComposing, modKey } from '../lib/layers';
 
-const SECTIONS: { id: string; label: string; icon: Glyph }[] = [
-  { id: 'profil', label: 'Profil & buku', icon: User },
-  { id: 'tampilan', label: 'Tampilan & mode', icon: Palette },
-  { id: 'preferensi', label: 'Preferensi', icon: SlidersHorizontal },
-  { id: 'navigasi', label: 'Menu & navigasi', icon: ListTree },
-  { id: 'data', label: 'Data & cadangan', icon: Database },
-  { id: 'tentang', label: 'Tentang', icon: Info },
-];
+const SECTIONS = SETTINGS_SECTIONS;
+const SECTION_IDS = new Set(SECTIONS.map((s) => s.id));
 
 /** Atur menu sidebar: sematkan ke Favorit, sembunyikan, dan ubah urutan per kelompok. */
 function NavSettings() {
@@ -251,7 +240,10 @@ export default function Settings() {
   const isDark = useIsDark();
   const [name, setName] = useState(profile.name);
   const [entity, setEntity] = useState(profile.entityName);
-  const [active, setActive] = useState(SECTIONS[0].id);
+  const { bagian } = useParams();
+  const { hash } = useLocation();
+  const isPhone = useMediaQuery('(max-width: 760px)');
+  const active = bagian ?? SECTIONS[0].id;
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Sinkronkan isian bila profil berubah dari luar (simpan, urungkan, pulihkan cadangan).
@@ -262,28 +254,6 @@ export default function Settings() {
 
   const size = useMemo(() => new Blob([JSON.stringify(data)]).size, [data]);
   const dirty = name !== profile.name || entity !== profile.entityName;
-
-  // Menandai bagian yang sedang terlihat pada navigasi samping
-  useEffect(() => {
-    const onScroll = () => {
-      const offset = 200;
-      let cur = SECTIONS[0].id;
-      for (const s of SECTIONS) {
-        const el = document.getElementById(`set-${s.id}`);
-        if (el && el.getBoundingClientRect().top - offset <= 0) cur = s.id;
-      }
-      if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 4) cur = SECTIONS[SECTIONS.length - 1].id;
-      setActive(cur);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  const jump = (id: string) => {
-    setActive(id);
-    document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const saveProfile = () => {
     notify('Profil disimpan', updateProfile({ name: name.trim(), entityName: entity.trim() }));
@@ -359,22 +329,55 @@ export default function Settings() {
     }
   };
 
+  // Tautan lama (/pengaturan#data, #integritas) diarahkan ke halaman bagiannya.
+  if (!bagian && hash) {
+    const h = hash.slice(1);
+    if (h === 'integritas') return <Navigate to="/pengaturan/data#integritas" replace />;
+    if (SECTION_IDS.has(h)) return <Navigate to={`/pengaturan/${h}`} replace />;
+  }
+  if (bagian && !SECTION_IDS.has(bagian)) return <Navigate to="/pengaturan" replace />;
+
+  const current = SECTIONS.find((x) => x.id === active) ?? SECTIONS[0];
+
+  // Ponsel: /pengaturan berupa daftar menu, setiap bagian di halaman sendiri.
+  if (isPhone && !bagian)
+    return (
+      <div>
+        <PageHeader title="Pengaturan" subtitle="Profil buku, tampilan, menu, dan pengelolaan data" />
+        <nav className="card settings-index" aria-label="Bagian pengaturan">
+          {SECTIONS.map((s) => (
+            <Link key={s.id} to={`/pengaturan/${s.id}`} className="si-row">
+              <span className="si-ico" aria-hidden>
+                <s.icon />
+              </span>
+              <span className="si-text">
+                <span className="si-label">{s.label}</span>
+                <span className="si-desc">{s.desc}</span>
+              </span>
+              <ChevronRight className="si-chev" aria-hidden />
+            </Link>
+          ))}
+        </nav>
+      </div>
+    );
+
   return (
     <div>
-      <PageHeader title="Pengaturan" subtitle="Profil buku, tampilan, menu, dan pengelolaan data" />
+      <PageHeader title={isPhone ? current.label : 'Pengaturan'} subtitle={isPhone ? current.desc : 'Profil buku, tampilan, menu, dan pengelolaan data'} />
 
       <div className="settings-layout">
         <nav className="settings-nav" aria-label="Bagian pengaturan">
           {SECTIONS.map((s) => (
-            <button key={s.id} type="button" className={`sn-item${active === s.id ? ' active' : ''}`} onClick={() => jump(s.id)} aria-current={active === s.id ? 'true' : undefined}>
+            <NavLink key={s.id} to={`/pengaturan/${s.id}`} replace className={`sn-item${active === s.id ? ' active' : ''}`} aria-current={active === s.id ? 'page' : undefined}>
               {active === s.id && <motion.span layoutId="sn-pill" className="sn-pill" transition={{ type: 'spring', stiffness: 520, damping: 42 }} />}
               <s.icon />
               {s.label}
-            </button>
+            </NavLink>
           ))}
         </nav>
 
         <div className="settings-main">
+          {active === 'profil' && (
           <section id="set-profil" className="card set-card">
             <SectionHead title="Profil & buku" desc="Nama tampil di bilah sisi; nama buku tampil di kop setiap laporan." />
             <div className="set-body grid-3" data-form>
@@ -438,7 +441,9 @@ export default function Settings() {
               </Row>
             </div>
           </section>
+          )}
 
+          {active === 'tampilan' && (
           <section id="set-tampilan" className="card set-card">
             <SectionHead title="Tampilan & mode" desc="Tema, warna utama, tingkat detail pembukuan, dan kenyamanan membaca." />
             <div className="set-body">
@@ -513,7 +518,9 @@ export default function Settings() {
               </Row>
             </div>
           </section>
+          )}
 
+          {active === 'preferensi' && (
           <section id="set-preferensi" className="card set-card">
             <SectionHead title="Preferensi" desc="Kalender, halaman pembuka, dan periode bawaan laporan." />
             <div className="set-body">
@@ -558,14 +565,18 @@ export default function Settings() {
               </Row>
             </div>
           </section>
+          )}
 
+          {active === 'navigasi' && (
           <section id="set-navigasi" className="card set-card">
             <SectionHead title="Menu & navigasi" desc="Sematkan halaman yang sering dibuka ke Favorit, sembunyikan yang jarang dipakai, dan atur urutannya." />
             <div className="set-body">
               <NavSettings />
             </div>
           </section>
+          )}
 
+          {active === 'data' && (
           <section id="set-data" className="card set-card">
             <SectionHead title="Data & cadangan" desc="Data tersimpan di peramban ini. Cadangkan secara berkala." />
             <div className="set-body">
@@ -610,7 +621,9 @@ export default function Settings() {
               </Row>
             </div>
           </section>
+          )}
 
+          {active === 'tentang' && (
           <section id="set-tentang" className="card set-card">
             <div className="set-body" style={{ paddingTop: 20 }}>
               <div className="about">
@@ -627,6 +640,7 @@ export default function Settings() {
               </div>
             </div>
           </section>
+          )}
         </div>
       </div>
     </div>

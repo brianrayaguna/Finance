@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FileSpreadsheet,
   Printer,
   Download,
+  ChevronDown,
+  List,
   CircleCheck,
   Package,
   TriangleAlert,
@@ -27,6 +29,8 @@ import type { Report } from '../accounting/types';
 import { formatDate, formatRatio, periodLabel } from '../lib/format';
 import { PageHeader } from '../components/layout/Topbar';
 import { Badge, Button, Dots, Switch, Checkbox } from '../components/ui/primitives';
+import { Menu } from '../components/ui/Popover';
+import { modKey } from '../lib/layers';
 import { PeriodPicker, resolvePreset, type PeriodValue, describePeriod } from '../components/ui/PeriodPicker';
 import { Segmented } from '../components/ui/Segmented';
 import { Modal } from '../components/ui/Modal';
@@ -90,6 +94,16 @@ export default function Reports() {
 
   const select = (k: ReportKey) => setParams({ r: k }, { replace: true });
 
+  // Tab aktif digeser ke tengah saat daftar tab bergulir mendatar (ponsel/tablet).
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>('.report-nav .rn-item.active');
+    const nav = el?.parentElement;
+    if (!el || !nav || nav.scrollWidth <= nav.clientWidth) return;
+    const r = el.getBoundingClientRect();
+    const n = nav.getBoundingClientRect();
+    nav.scrollTo({ left: nav.scrollLeft + r.left - n.left - (n.width - r.width) / 2, behavior: 'smooth' });
+  }, [key]);
+
   const exportOne = async () => {
     setExporting(true);
     try {
@@ -105,23 +119,45 @@ export default function Reports() {
     }
   };
 
+  /** Daftar transaksi periode terpilih (sebelumnya diunduh dari halaman Transaksi). */
+  const exportTx = async () => {
+    setExporting(true);
+    try {
+      const { exportTransactions } = await import('../export/excel');
+      const rows = b.data.transactions.filter((t) => t.date >= from && t.date <= asOf).sort((x, y) => y.date.localeCompare(x.date));
+      await exportTransactions(b, rows, { from, to: asOf });
+      toast(`${rows.length.toLocaleString('id-ID')} transaksi diekspor ke Excel`, { tone: 'success' });
+    } catch (e) {
+      console.error(e);
+      toast('Ekspor gagal', { tone: 'danger' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="reports-page">
       <PageHeader
         title="Laporan Keuangan"
         subtitle={`${b.data.profile.entityName || 'Buku keuangan'}, ${periodLabel(from, asOf)}`}
         actions={
-          <>
-            <Button collapse icon={Printer} onClick={() => window.print()}>
-              Cetak
-            </Button>
-            <Button collapse icon={exporting ? undefined : Download} onClick={exportOne} disabled={exporting}>
-              {exporting ? <Dots /> : 'Ekspor laporan ini'}
-            </Button>
-            <Button variant="primary" icon={FileSpreadsheet} onClick={() => setPack(true)}>
-              Paket laporan Excel
-            </Button>
-          </>
+          <Menu
+            placement="bottom-end"
+            minWidth={250}
+            ariaLabel="Unduh laporan"
+            items={[
+              { label: `${meta.label} (.xlsx)`, icon: FileSpreadsheet, onSelect: exportOne },
+              { label: 'Daftar transaksi (.xlsx)', icon: List, onSelect: exportTx },
+              { label: 'Paket laporan lengkap…', icon: Package, onSelect: () => setPack(true) },
+              { separator: true },
+              { label: 'Cetak', icon: Printer, kbd: modKey('P'), onSelect: () => window.print() },
+            ]}
+            trigger={(p) => (
+              <Button variant="primary" icon={exporting ? undefined : Download} iconRight={exporting ? undefined : ChevronDown} ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']} disabled={exporting}>
+                {exporting ? <Dots /> : 'Unduh'}
+              </Button>
+            )}
+          />
         }
       />
 
@@ -155,9 +191,11 @@ export default function Reports() {
                   Semua uji keseimbangan lolos
                 </Badge>
               ) : (
-                <Badge tone="neg" icon={TriangleAlert}>
-                  {report.checks.filter((c) => !c.ok).length} uji keseimbangan gagal — periksa Pengaturan › Integritas buku
-                </Badge>
+                <Link to="/pengaturan/data#integritas" className="badge-link">
+                  <Badge tone="neg" icon={TriangleAlert}>
+                    {report.checks.filter((c) => !c.ok).length} uji keseimbangan gagal. Periksa integritas buku di Pengaturan.
+                  </Badge>
+                </Link>
               )
             ) : null}
           </div>
@@ -275,7 +313,7 @@ function PackModal({ onClose, initialPeriod }: { onClose: () => void; initialPer
       onClose={onClose}
       size="lg"
       title="Paket Laporan Keuangan"
-      subtitle="Satu buku kerja Excel siap presentasi: sampul, daftar isi, dan setiap laporan dengan rumus aktif"
+      subtitle="Satu berkas Excel berisi sampul, daftar isi, dan laporan dengan rumus aktif"
       icon={<span className="xls-badge"><FileSpreadsheet /></span>}
       footer={
         <>

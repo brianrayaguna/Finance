@@ -103,7 +103,7 @@ export function computeReminders(data: AppData, today: string): Omit<Reminders, 
       icon: 'scale',
       title: `${errors.length} masalah integritas buku`,
       detail: 'Ada transaksi yang tidak masuk buku besar',
-      to: '/pengaturan#integritas',
+      to: '/pengaturan/data#integritas',
     });
   return { items, dueCount: debts.length, budgetOver: over.length };
 }

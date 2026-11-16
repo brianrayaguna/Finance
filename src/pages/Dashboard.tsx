@@ -14,7 +14,6 @@ import { MonthSwitcher } from '../components/ui/MonthSwitcher';
 import { DashCtx, type DashData } from '../components/dashboard/common';
 import { WIDGETS, widgetSettings } from '../components/dashboard/registry';
 import { EditBar, GallerySheet, WidgetFrame, useWidgetDrag } from '../components/dashboard/Customize';
-import { Onboarding } from '../components/dashboard/Onboarding';
 import { AttentionStrip } from '../components/dashboard/Focus';
 import { useGoalModal } from '../components/goals/GoalModal';
 
@@ -47,7 +46,6 @@ export default function Dashboard() {
   const saved = usePrefs((s) => s.dashboard);
   const setLayout = usePrefs((s) => s.setLayout);
   const compact = usePrefs((s) => s.compactNumbers);
-  const onboardingDismissed = usePrefs((s) => s.onboardingDismissed);
   const dashMonth = useUI((s) => s.dashMonth);
   const setDashMonth = useUI((s) => s.setDashMonth);
   const month = dashMonth ?? today.slice(0, 7);
@@ -183,8 +181,6 @@ export default function Dashboard() {
 
   const entity = profile.entityName?.trim() || 'Keuangan pribadi';
   const dirty = !!draft && !sameLayout(draft, saved);
-  // Pengguna baru: buku masih kosong → tampilkan sambutan saja, bukan belasan widget "Belum ada…".
-  const firstRun = !editing && !onboardingDismissed && b.data.transactions.length === 0;
 
   return (
     <div className={`dash${editing ? ' editing' : ''}`} ref={dashRef}>
@@ -197,12 +193,10 @@ export default function Dashboard() {
 
       <AnimatePresence>{editing && <EditBar dirty={dirty} onGallery={() => setGallery(true)} onCancel={cancel} onDone={done} />}</AnimatePresence>
 
-      {!editing && !firstRun && <AttentionStrip />}
-
-      {!editing && <Onboarding onGoal={goalModal.openNew} first={firstRun} />}
+      {!editing && <AttentionStrip />}
 
       <DashCtx.Provider value={ctx}>
-        {firstRun ? null : layout.order.length === 0 ? (
+        {layout.order.length === 0 ? (
           <div className="card">
             <EmptyState
               icon={LayoutDashboard}

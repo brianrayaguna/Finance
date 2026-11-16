@@ -9,6 +9,7 @@ import { ConfirmHost } from './components/ui/Confirm';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { Dots } from './components/ui/primitives';
 import { Toasts } from './components/ui/Toasts';
+import { Intro } from './components/brand/Intro';
 import { useThemeSync } from './hooks/useApp';
 import { usePrefs } from './store/ui';
 import Dashboard from './pages/Dashboard';
@@ -72,6 +73,7 @@ function AnimatedRoutes() {
             <Route path="/akun" element={<Accounts />} />
             <Route path="/laporan" element={<Reports />} />
             <Route path="/pengaturan" element={<Settings />} />
+            <Route path="/pengaturan/:bagian" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -96,6 +98,7 @@ export default function App() {
           <ConfirmHost />
           <Toasts />
         </BrowserRouter>
+        <Intro />
       </ErrorBoundary>
     </MotionConfig>
   );

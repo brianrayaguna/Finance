@@ -3,6 +3,7 @@ import { TableWrap } from '../ui/primitives';
 import type { Report, ReportColumn, ReportRow } from '../../accounting/types';
 import { formatAccounting, formatDate, todayISO } from '../../lib/format';
 import { rowAction } from '../../lib/focus';
+import { usePrefs } from '../../store/ui';
 
 export function fmtCell(v: number | null | undefined, col: ReportColumn | undefined, row: ReportRow): string {
   if (v === null || v === undefined) return '';
@@ -33,6 +34,8 @@ export function ReportView({
   compact?: boolean;
 }) {
   const valueCols = report.columns;
+  // Mode Sederhana: kode akun tidak bermakna bagi pengguna, baris laporan cukup nama akun.
+  const showCodes = usePrefs((s) => s.mode) !== 'simple';
   const multiHeader = report.columns.some((c) => c.sub) && report.id === 'worksheet';
   const period = report.subtitle;
 
@@ -93,7 +96,7 @@ export function ReportView({
               return (
                 <tr key={r.key} className={`k-${r.kind}${clickable ? ' clickable' : ''}${r.italic ? ' italic' : ''}`} {...rowAction(clickable ? () => onAccount!(r.accountId!) : undefined)}>
                   <td className="st-label" style={{ paddingLeft: 12 + r.indent * 18 }}>
-                    {r.code && (r.kind === 'account' || report.id === 'aging-ar' || report.id === 'aging-ap') && <span className="st-code">{r.code}</span>}
+                    {r.code && ((showCodes && r.kind === 'account') || report.id === 'aging-ar' || report.id === 'aging-ap') && <span className="st-code">{r.code}</span>}
                     {r.label}
                   </td>
                   {valueCols.map((c, i) => {

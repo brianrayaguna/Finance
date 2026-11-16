@@ -2493,6 +2493,9 @@ button.tl-item:hover {
     flex-direction: row;
     overflow-x: auto;
     scrollbar-width: none;
+    padding-right: 32px;
+    /* Tab laporan meluap: tepi kanan memudar sebagai petunjuk geser */
+    mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
   }
   .rn-item {
     flex: none;
@@ -2910,6 +2913,75 @@ button.tl-item:hover {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+/* Ponsel: setiap bagian di halaman sendiri, /pengaturan berupa daftar menu */
+@media (max-width: 760px) {
+  .settings-nav {
+    display: none;
+  }
+  /* Judul bagian sudah tampil di bilah atas */
+  .set-card .set-head h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.settings-index {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+.si-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 12px 16px;
+  color: var(--text);
+  text-decoration: none;
+  transition: background-color var(--dur-1);
+}
+.si-row + .si-row {
+  border-top: 1px solid var(--line);
+}
+.si-row:hover,
+.si-row:active {
+  background: var(--nav-hover);
+}
+.si-ico {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--nav-soft);
+  color: var(--accent-ink);
+  font-size: var(--icon-sm);
+}
+.si-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.si-label {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+.si-desc {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
+.si-chev {
+  flex: none;
+  color: var(--text-3);
+  font-size: var(--icon-sm);
 }
 
 .amount-inline input {
@@ -3420,4 +3492,23 @@ button.tl-item:hover {
   .debt-switch .btn {
     display: none;
   }
+}
+
+/* Badge uji keseimbangan gagal: tautan ke Pengaturan › Data & cadangan */
+.badge-link {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+}
+.badge-link .badge {
+  height: auto;
+  min-height: 22px;
+  padding-block: 3px;
+  white-space: normal;
+  text-align: left;
+  cursor: pointer;
+}
+.badge-link:hover .badge {
+  filter: brightness(1.08);
 }

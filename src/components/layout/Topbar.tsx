@@ -1,9 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight, Eye, EyeOff } from '../../lib/glyphs';
+import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight, ChevronLeft, Eye, EyeOff } from '../../lib/glyphs';
 import { ALL_NAV, navLabel, navSection } from '../../app/nav';
 import { REPORTS } from '../../app/reports';
+import { SETTINGS_SECTIONS } from '../../app/settings';
 import { markReminderRead, usePrefs, useUI } from '../../store/ui';
 import { useData } from '../../store/data';
 import { undo, redo } from '../../store/history';
@@ -120,6 +121,8 @@ function Breadcrumb() {
   let extra: string | undefined;
   if (pathname.startsWith('/laporan')) extra = REPORTS.find((r) => r.key === params.get('r'))?.label ?? REPORTS[0].label;
   if (pathname.startsWith('/buku-besar')) extra = accounts.find((a) => a.id === params.get('akun'))?.name;
+  const isSub = pathname.startsWith('/pengaturan/');
+  if (isSub) extra = SETTINGS_SECTIONS.find((x) => pathname === `/pengaturan/${x.id}`)?.label;
   const pageRoot = ALL_NAV.find((n) => n.label === page)?.to ?? '/';
   const today = useToday();
   const dashMonth = useUI((s) => s.dashMonth);
@@ -134,11 +137,18 @@ function Breadcrumb() {
           <MonthSwitcher compact value={dashMonth ?? cur} onChange={(m) => setDashMonth(m === cur ? null : m)} />
         </span>
       )}
-      <nav className={`crumbs${isHome ? ' crumbs-home' : ''}${pathname.startsWith('/laporan') ? ' crumbs-report' : ''}`} aria-label="Lokasi halaman">
+      <nav className={`crumbs${isHome ? ' crumbs-home' : ''}${pathname.startsWith('/laporan') ? ' crumbs-report' : ''}${isSub ? ' crumbs-sub' : ''}`} aria-label="Lokasi halaman">
         <ol>
           {section && <li className="crumb-sec">{section}</li>}
           <li className={extra ? 'crumb-page' : 'crumb-page current'} aria-current={extra ? undefined : 'page'}>
-            {extra ? <Link to={pageRoot}>{page}</Link> : page}
+            {extra ? (
+              <Link to={pageRoot} aria-label={isSub ? `Kembali ke ${page}` : undefined}>
+                {isSub && <ChevronLeft className="crumb-back" aria-hidden />}
+                <span className="crumb-label">{page}</span>
+              </Link>
+            ) : (
+              page
+            )}
           </li>
           {extra && (
             <li className="crumb-extra current" aria-current="page">

@@ -62,7 +62,7 @@ export default function TrialBalance() {
           <span className="grow">
             {rejected} transaksi tidak masuk buku karena datanya tidak valid (mis. jurnal tidak seimbang atau akun terhapus).
           </span>
-          <Button size="sm" variant="ghost" onClick={() => nav('/pengaturan#integritas')}>
+          <Button size="sm" variant="ghost" onClick={() => nav('/pengaturan/data#integritas')}>
             Periksa
           </Button>
         </div>

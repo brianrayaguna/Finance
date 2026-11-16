@@ -442,7 +442,7 @@ export function IntegrityWidget() {
   const ok = balanced && errors.length === 0;
   return (
     <WCard>
-      <CardHead title="Integritas buku" sub={`${entries.toLocaleString('id-ID')} jurnal, ${b.data.transactions.length.toLocaleString('id-ID')} transaksi`} to="/pengaturan#integritas" link="Periksa" />
+      <CardHead title="Integritas buku" sub={`${entries.toLocaleString('id-ID')} jurnal, ${b.data.transactions.length.toLocaleString('id-ID')} transaksi`} to="/pengaturan/data#integritas" link="Periksa" />
       <div className="card-body">
         <div className={`integ-status ${ok ? (warns.length ? 'warn' : 'ok') : 'bad'}`}>
           {ok ? <ShieldCheck aria-hidden /> : <TriangleAlert aria-hidden />}

@@ -274,14 +274,14 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
         { label: 'Mode Sederhana', checked: mode === 'simple', onSelect: () => setPrefs({ mode: 'simple' }) },
         { label: 'Mode Akuntan', checked: mode === 'accountant', onSelect: () => setPrefs({ mode: 'accountant' }) },
         { separator: true },
-        { label: 'Warna & kepadatan…', onSelect: () => go('/pengaturan#tampilan') },
+        { label: 'Warna & kepadatan…', onSelect: () => go('/pengaturan/tampilan') },
       ],
     },
     { separator: true },
     { label: hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', icon: hideAmounts ? Eye : EyeOff, onSelect: () => setPrefs({ hideAmounts: !hideAmounts }) },
     { label: 'Cadangkan data', icon: Download, onSelect: downloadBackup },
     { separator: true },
-    { label: 'Tentang Keuanganku', icon: Info, onSelect: () => go('/pengaturan#tentang') },
+    { label: 'Tentang Keuanganku', icon: Info, onSelect: () => go('/pengaturan/tentang') },
   ];
 
   return (
