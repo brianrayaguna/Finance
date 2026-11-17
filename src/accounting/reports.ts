@@ -1190,6 +1190,9 @@ export interface Ratio {
   status: 'good' | 'warn' | 'bad' | 'na';
 }
 
+/** Akun beban pajak bawaan; ditambahkan kembali ke laba saat menghitung EBIT. */
+const TAX_ACCOUNT_ID = 'acc-tax';
+
 export function ratios(b: Books, p: Period): Ratio[] {
   const pos = positionAt(b, p.to);
   const act = activity(b, p.from, p.to);
@@ -1199,6 +1202,7 @@ export function ratios(b: Books, p: Period): Ratio[] {
   let opExpense = 0;
   let cashOpExpense = 0;
   let interest = 0;
+  let tax = 0;
   // Beban non-kas tidak ikut menghitung kebutuhan dana darurat bulanan.
   const nonCash = new Set<string>([SYS.depreciationExpense, SYS.badDebt, SYS.lossDisposal]);
   for (const a of b.accounts) {
@@ -1215,6 +1219,7 @@ export function ratios(b: Books, p: Period): Ratio[] {
         if (!nonCash.has(a.id)) cashOpExpense += x.d - x.c;
       }
       if (a.id === SYS.interestExpense) interest += x.d - x.c;
+      if (a.id === TAX_ACCOUNT_ID) tax += x.d - x.c;
     }
   }
   const ni = revenue - expense;
@@ -1224,25 +1229,23 @@ export function ratios(b: Books, p: Period): Ratio[] {
   const annual = 365 / days;
   const avgMonthlyExp = cashOpExpense / (days / (365 / 12));
 
-  // debt service = pokok + bunga yang dibayar dalam periode (payable_pay, cicilan ke rekening pinjaman, atau pembayaran hutang/bunga lewat jurnal manual)
+  // Debt service = pokok + bunga yang DIBAYAR dari kas dalam periode. Dihitung dari jurnal (bukan jenis
+  // transaksi) agar semua jalurnya ikut: pembayaran hutang, cicilan ke rekening pinjaman jangka pendek
+  // maupun panjang (mis. KPR), bunga yang dicatat sebagai pengeluaran, dan jurnal manual.
+  // Per jurnal: min(kas keluar, debit ke akun hutang/beban bunga) — biaya admin transfer tidak ikut.
+  // Tagihan kartu kredit tidak dihitung: belanjanya sudah tercatat sebagai beban, bukan cicilan pinjaman.
   let debtService = 0;
   const debtSubtypes = new Set<AccountSubtype>(['payable', 'loan', 'long_term_liability']);
-  for (const t of b.data.transactions) {
-    if (t.date < p.from || t.date > p.to) continue;
-    if (t.type === 'payable_pay') {
-      debtService += t.amount + (t.interest || 0);
-    } else if (t.type === 'transfer' && b.cashIds.has(t.accountId ?? '') && b.acc.get(t.toAccountId ?? '')?.subtype === 'loan') {
-      debtService += t.amount;
-    } else if (t.type === 'journal' && t.lines?.length) {
-      let cashOut = 0;
-      let debtPaid = 0;
-      for (const l of t.lines) {
-        if (b.cashIds.has(l.accountId)) cashOut += l.credit || 0;
-        const acc = b.acc.get(l.accountId);
-        if (acc && (debtSubtypes.has(acc.subtype) || acc.id === SYS.interestExpense)) debtPaid += l.debit || 0;
-      }
-      if (cashOut > 0 && debtPaid > 0) debtService += Math.min(cashOut, debtPaid);
+  for (const e of b.entries) {
+    if (e.date < p.from || e.date > p.to) continue;
+    let cashOut = 0;
+    let debtPaid = 0;
+    for (const l of e.lines) {
+      if (b.cashIds.has(l.accountId)) cashOut += l.credit - l.debit;
+      const acc = b.acc.get(l.accountId);
+      if (acc && (debtSubtypes.has(acc.subtype) || acc.id === SYS.interestExpense)) debtPaid += l.debit;
     }
+    if (cashOut > 0 && debtPaid > 0) debtService += Math.min(cashOut, debtPaid);
   }
 
   const div = (a: number, c: number) => (Math.abs(c) < 0.005 ? null : a / c);
@@ -1258,7 +1261,8 @@ export function ratios(b: Books, p: Period): Ratio[] {
   const opm = div(opRevenue - opExpense, opRevenue);
   const roa = div(ni * annual, pos.assets);
   const roe = pos.equity > 0 ? div(ni * annual, pos.equity) : null;
-  const tie = interest > 0.005 ? div(ni + interest, interest) : null;
+  // EBIT = laba bersih + bunga + pajak; memakai laba bersih saja berarti bunga & pajak terpotong dua kali.
+  const tie = interest > 0.005 ? div(ni + interest + tax, interest) : null;
   const saving = div(ni, revenue);
   const emergency = div(pos.cash, avgMonthlyExp);
   const dsr = div(debtService, revenue);
@@ -1270,7 +1274,7 @@ export function ratios(b: Books, p: Period): Ratio[] {
     { group: 'Likuiditas', name: 'Rasio Kas', value: cashR, unit: 'x', formula: 'Kas & Setara Kas ÷ Liabilitas Jangka Pendek', benchmark: '≥ 0,5x', status: st(cashR, (x) => x >= 0.5, (x) => x >= 0.2) },
     { group: 'Solvabilitas', name: 'Rasio Hutang terhadap Aset', value: dar, unit: '%', formula: 'Total Liabilitas ÷ Total Aset', benchmark: '≤ 40%', status: st(dar, (x) => x <= 0.4, (x) => x <= 0.6) },
     { group: 'Solvabilitas', name: 'Rasio Hutang terhadap Ekuitas', value: der, unit: 'x', formula: 'Total Liabilitas ÷ Total Ekuitas', benchmark: '≤ 1x', status: st(der, (x) => x >= 0 && x <= 1, (x) => x >= 0 && x <= 2) },
-    { group: 'Solvabilitas', name: 'Cakupan Bunga (TIE)', value: tie, unit: 'x', formula: '(Laba Bersih + Beban Bunga) ÷ Beban Bunga', benchmark: '≥ 3x', status: st(tie, (x) => x >= 3, (x) => x >= 1.5) },
+    { group: 'Solvabilitas', name: 'Cakupan Bunga (TIE)', value: tie, unit: 'x', formula: 'EBIT (Laba Bersih + Bunga + Pajak) ÷ Beban Bunga', benchmark: '≥ 3x', status: st(tie, (x) => x >= 3, (x) => x >= 1.5) },
     { group: 'Solvabilitas', name: 'Rasio Pembayaran Hutang (DSR)', value: dsr, unit: '%', formula: '(Pokok + Bunga Dibayar) ÷ Total Pendapatan', benchmark: '≤ 30%', status: st(dsr, (x) => x <= 0.3, (x) => x <= 0.4) },
     { group: 'Profitabilitas', name: 'Margin Laba Bersih', value: npm, unit: '%', formula: 'Laba Bersih ÷ Total Pendapatan', benchmark: '≥ 20%', status: st(npm, (x) => x >= 0.2, (x) => x >= 0.05) },
     { group: 'Profitabilitas', name: 'Margin Operasional', value: opm, unit: '%', formula: '(Pendapatan Utama − Beban Operasional) ÷ Pendapatan Utama', benchmark: '≥ 20%', status: st(opm, (x) => x >= 0.2, (x) => x >= 0.05) },

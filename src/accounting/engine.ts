@@ -257,9 +257,11 @@ export interface DepRow {
 /**
  * Jadwal penyusutan bulanan, dimulai akhir bulan setelah bulan perolehan.
  * - Garis lurus: (harga − residu) ÷ umur, bulan terakhir menyerap selisih pembulatan.
- * - Saldo menurun ganda: tarif 2 ÷ umur atas nilai buku, dan beralih ke garis lurus atas
- *   sisa nilai tersusutkan begitu garis lurus menghasilkan beban lebih besar (praktik standar),
- *   sehingga aset habis tersusut tepat di akhir umurnya tanpa lonjakan di bulan terakhir.
+ * - Saldo menurun ganda: tarif TAHUNAN 2 ÷ umur (tahun) atas nilai buku awal tiap tahun
+ *   manfaat; beban bulanan = beban tahun itu ÷ 12 (PSAK 16, praktik buku teks). Tarif tidak
+ *   dimajemukkan per bulan — itu membuat beban tahun pertama jauh di bawah 2× garis lurus.
+ *   Beralih ke garis lurus atas sisa nilai tersusutkan begitu garis lurus lebih besar, dan
+ *   berhenti di nilai sisa (bisa sebelum akhir umur bila nilai sisanya besar).
  */
 export function depreciationSchedule(asset: FixedAsset): DepRow[] {
   const rows: DepRow[] = [];
@@ -273,12 +275,19 @@ export function depreciationSchedule(asset: FixedAsset): DepRow[] {
   let book = cost;
   let acc = 0;
   const monthlySL = base / life;
+  // Saldo menurun ganda: tarif tahunan 2 ÷ umur (tahun), diterapkan pada nilai buku awal tahun manfaat.
+  const annualRate = 2 / (life / 12);
+  let yearStartBook = book;
   for (let k = 1; k <= life; k++) {
     const date = endOfMonth(addMonths(asset.acquisitionDate.slice(0, 7) + '-01', k));
     const left = life - k + 1;
     let dep: number;
     if (asset.method === 'declining_balance') {
-      const ddb = book * (2 / life);
+      if ((k - 1) % 12 === 0) yearStartBook = book;
+      // Beban tahunan dibagi 12 secara kumulatif agar total setahun tepat (tanpa sisa pembulatan).
+      const annual = yearStartBook * annualRate;
+      const m = ((k - 1) % 12) + 1;
+      const ddb = round2((annual * m) / 12) - round2((annual * (m - 1)) / 12);
       const sl = (book - residual) / left;
       dep = k === life ? book - residual : Math.max(ddb, sl);
       if (book - dep < residual) dep = book - residual;

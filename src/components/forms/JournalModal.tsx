@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, m as motion } from 'framer-motion';
 import { useTransformFrom } from '../../lib/motion';
 import { Plus, Trash2, Scale, CircleCheck, CircleAlert, Wand2, X, Lock } from '../../lib/glyphs';
-import type { JournalLineInput, Transaction } from '../../accounting/types';
+import type { Account, JournalLineInput, Transaction } from '../../accounting/types';
 import { isLocked } from '../../accounting/lock';
 import { addTransaction, deleteTransactions, updateTransaction, useData } from '../../store/data';
 import { confirm } from '../../store/ui';
@@ -16,6 +16,13 @@ import { DatePicker } from '../ui/DatePicker';
 import { AmountInput } from '../ui/AmountInput';
 import { Badge, Button, Field, Switch, TextInput } from '../ui/primitives';
 import { useAccountOptions } from './options';
+
+/**
+ * Ikhtisar Laba Rugi hanya dipakai jurnal penutup, yang dibuat otomatis (virtual) oleh laporan.
+ * Bila pengguna menutup buku sendiri lewat jurnal umum, pendapatan & beban tahun itu menjadi nol di
+ * Laporan Laba Rugi — jadi akun ini tidak ditawarkan (tetap tampil bila jurnal lama sudah memakainya).
+ */
+const notClosingAccount = (a: Account) => a.subtype !== 'income_summary';
 
 interface Line extends JournalLineInput {
   key: string;
@@ -43,7 +50,7 @@ export function JournalModal({
     src?.lines?.length ? src.lines.map((l) => ({ ...l, key: uid('l') })) : [blank(), blank()],
   );
   const [tried, setTried] = useState(false);
-  const accountOptions = useAccountOptions(undefined, editing?.lines?.map((l) => l.accountId));
+  const accountOptions = useAccountOptions(notClosingAccount, editing?.lines?.map((l) => l.accountId));
   const bodyRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(open);
   const prevEdit = useRef(editing);

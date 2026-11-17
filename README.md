@@ -147,8 +147,10 @@ Menambah ikon: tambahkan satu baris di `src/lib/glyphs.tsx` (cek nama dengan daf
 - Pembulatan 2 desimal simetris (*half away from zero*); nilai non-numerik dianggap 0.
 - Laba tahun-tahun lalu digabung ke satu akun Saldo Laba (kode terkecil) pada neraca saldo & neraca lajur.
 - Jurnal penutup menutup setiap akun prive sebesar saldonya sendiri.
-- Saldo menurun ganda beralih ke garis lurus saat lebih besar, sehingga aset habis tersusut tepat di nilai sisa tanpa lonjakan di bulan terakhir; nomor bukti penyusutan unik per aset.
-- ROA/ROE disetahunkan untuk periode pendek; dana darurat memakai beban operasional **tunai** (tanpa penyusutan/piutang tak tertagih); tersedia rasio Cakupan Bunga (TIE).
+- Saldo menurun ganda memakai tarif **tahunan** 2 ÷ umur (tahun) atas nilai buku awal tiap tahun manfaat, dibagi 12 per bulan (umur 4 tahun: 50% di tahun pertama); beralih ke garis lurus saat lebih besar dan berhenti tepat di nilai sisa; nomor bukti penyusutan unik per aset.
+- ROA/ROE disetahunkan untuk periode pendek; dana darurat memakai beban operasional **tunai** (tanpa penyusutan/piutang tak tertagih); Cakupan Bunga (TIE) = EBIT (laba bersih + bunga + pajak) ÷ beban bunga.
+- DSR = pokok + bunga yang dibayar dari kas ÷ pendapatan, dihitung dari jurnal: pembayaran hutang, cicilan pinjaman jangka pendek maupun panjang (mis. KPR), bunga yang dicatat sebagai pengeluaran, dan jurnal manual. Pelunasan tagihan kartu kredit tidak termasuk.
+- Jurnal penutup dibuat otomatis (virtual) oleh laporan. Akun Ikhtisar Laba Rugi tidak ditawarkan di jurnal manual, dan jurnal manual yang memindahkan pendapatan/beban ke Ikhtisar L/R atau Saldo Laba ditandai di pemeriksaan integritas.
 - Data cadangan yang dipulihkan dibersihkan dahulu (jenis akun tak dikenal, nominal non-angka, tanggal tidak valid, duplikat, nomor bukti hilang).
 - Semua perubahan data melewati satu pintu (*commit*) yang menolak perubahan di periode terkunci; pulihkan cadangan dan atur ulang data tetap diizinkan.
 - Pelepasan aset bertanggal mendatang ikut memosting penyusutan sampai tanggal pelepasan, sehingga akumulasi penyusutan dan nilai aset habis tepat nol; pelepasan yang akun penerimaannya sudah dihapus tidak dijurnal dan dilaporkan di pemeriksaan integritas.

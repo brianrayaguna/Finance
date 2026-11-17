@@ -106,6 +106,24 @@ function computeIntegrity(data: AppData): IntegrityIssue[] {
       });
   }
 
+  // 2a. Jurnal penutup manual: aplikasi menutup buku secara otomatis (virtual) di setiap laporan.
+  // Jurnal umum yang memindahkan pendapatan/beban ke Ikhtisar L/R atau Saldo Laba membuat Laporan
+  // Laba Rugi periode itu nol dan laba tahun berjalan pindah ke saldo laba.
+  for (const t of data.transactions) {
+    if (t.type !== 'journal' || !t.lines?.length) continue;
+    const subs = t.lines.filter((l) => (l.debit || 0) || (l.credit || 0)).map((l) => ctx.acc.get(l.accountId)).filter(Boolean);
+    const touchesSummary = subs.some((a) => a!.subtype === 'income_summary');
+    const plToRetained = subs.some((a) => a!.type === 'revenue' || a!.type === 'expense') && subs.some((a) => a!.subtype === 'retained_earnings');
+    if (touchesSummary || plToRetained)
+      issues.push({
+        level: 'warn',
+        code: 'manual-closing',
+        txId: t.id,
+        ref: t.ref,
+        message: `Jurnal ${t.ref} (${formatDate(t.date)}) tampak seperti jurnal penutup. Buku sudah ditutup otomatis di laporan; jurnal ini membuat laba rugi periode itu menjadi nol — sebaiknya dihapus.`,
+      });
+  }
+
   // 3. Nomor bukti ganda
   const byRef = new Map<string, number>();
   for (const t of data.transactions) if (t.ref) byRef.set(t.ref, (byRef.get(t.ref) ?? 0) + 1);

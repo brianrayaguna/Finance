@@ -163,15 +163,14 @@ describe('aset tetap', () => {
     ...p,
   });
 
-  it('saldo menurun ganda beralih ke garis lurus dan habis tepat di nilai sisa', () => {
+  it('saldo menurun ganda berhenti tepat di nilai sisa', () => {
     const a = asset({ method: 'declining_balance', residualValue: 2_000_000, usefulLifeMonths: 36 });
     const rows = depreciationSchedule(a);
-    expect(rows).toHaveLength(36);
+    // nilai sisa besar: tarif 2/3 per tahun sudah mencapai nilai sisa sebelum akhir umur (praktik buku teks)
+    expect(rows.length).toBeLessThanOrEqual(36);
     expect(rows[rows.length - 1].book).toBe(2_000_000);
     expect(round2(rows.reduce((s, r) => s + r.amount, 0))).toBe(22_000_000);
     for (let i = 1; i < rows.length; i++) expect(rows[i].amount).toBeLessThanOrEqual(rows[i - 1].amount + 0.01);
-    // tanpa lonjakan: bulan terakhir tidak lebih besar dari bulan sebelumnya
-    expect(rows[35].amount).toBeLessThanOrEqual(rows[34].amount + 0.01);
   });
 
   it('nomor bukti penyusutan unik antar-aset', () => {
