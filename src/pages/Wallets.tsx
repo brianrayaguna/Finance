@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { m as motion } from 'framer-motion';
+import { enter } from '../lib/motion';
 import {
   Plus,
   Ellipsis,
@@ -71,12 +71,10 @@ export default function Wallets() {
     const series = accountBalanceSeries(b, a.id, 30, today).map((v) => (liab ? -v : v));
     const trend = series.length > 1 ? series[series.length - 1] - series[0] : 0;
     return (
-      <motion.div
+      <div
         key={a.id}
         className={`card wallet-card${a.archived ? ' archived' : ''}`}
-        style={{ '--c': a.color } as React.CSSProperties}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03, type: 'spring', stiffness: 300, damping: 28 } }}
+        {...enter(i, { '--c': a.color } as React.CSSProperties)}
       >
         <div className="wc-top">
           <IconTile icon={a.icon} color={a.color} solid />
@@ -150,7 +148,7 @@ export default function Wallets() {
           </span>
           <Sparkline values={series} color={a.color} width={110} height={34} />
         </div>
-      </motion.div>
+      </div>
     );
   };
 

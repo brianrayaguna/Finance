@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../../lib/motion';
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -164,6 +165,7 @@ function TransactionModal({
   editing?: Transaction;
   defaults?: Partial<Transaction>;
 }) {
+  const tf = useTransformFrom();
   const data = useData((s) => s.data);
   const uiMode = usePrefs((s) => s.mode);
   const [d, setD] = useState<Draft>(() => initDraft(editing, defaults));
@@ -569,7 +571,7 @@ function TransactionModal({
               : 'Dibayar dari';
 
   const debtCard = debt && (
-    <motion.div className="debt-mini" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div className="debt-mini" initial={{ opacity: 0, transform: tf('translateY(-4px)', 'translateY(0px)') }} animate={{ opacity: 1, transform: 'translateY(0px)' }}>
       <IconTile icon={debt.kind === 'payable' ? 'handshake' : 'hand-coins'} color={debt.status === 'overdue' ? 'var(--neg)' : debt.kind === 'payable' ? 'var(--tone-payable)' : 'var(--tone-receivable)'} size="sm" />
       <div className="grow" style={{ minWidth: 0 }}>
         <div className="row" style={{ gap: 6 }}>
@@ -647,9 +649,11 @@ function TransactionModal({
           </div>
         )}
 
-        <AnimatePresence initial={false} mode="popLayout">
+        {/* Bagian yang muncul/hilang tidak menganimasikan tinggi (reflow tiap frame); isinya hanya memudar
+            & bergeser lewat transform. Hilang seketika (tanpa exit) agar tidak ada lompatan tata letak. */}
+        <AnimatePresence initial={false}>
           {(d.mode === 'payable' || d.mode === 'receivable') && !lockedType && (
-            <motion.div key={d.mode} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden' }}>
+            <motion.div key={d.mode} initial={{ opacity: 0, transform: tf('translateY(-4px)', 'translateY(0px)') }} animate={{ opacity: 1, transform: 'translateY(0px)' }}>
               <div style={{ paddingTop: 10 }}>
                 {d.mode === 'payable' ? (
                   <Segmented
@@ -937,7 +941,7 @@ function TransactionModal({
           </button>
           <AnimatePresence initial={false}>
             {showJournal && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+              <motion.div initial={{ opacity: 0, transform: tf('translateY(-4px)', 'translateY(0px)') }} animate={{ opacity: 1, transform: 'translateY(0px)' }}>
                 <div className="jp-body">
                   {preview ? (
                     <table className="jp-table">

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../../lib/motion';
 import { Plus, Trash2, Scale, CircleCheck, CircleAlert, Wand2, X, Lock } from '../../lib/glyphs';
 import type { JournalLineInput, Transaction } from '../../accounting/types';
 import { isLocked } from '../../accounting/lock';
@@ -33,6 +34,7 @@ export function JournalModal({
   editing?: Transaction;
   defaults?: Partial<Transaction>;
 }) {
+  const tf = useTransformFrom();
   const src = editing ?? defaults;
   const [date, setDate] = useState(src?.date ?? todayISO());
   const [description, setDescription] = useState(src?.description ?? '');
@@ -254,10 +256,8 @@ export function JournalModal({
               <motion.div
                 key={l.key}
                 className="jl-row"
-                layout
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0, transition: { duration: 0.15 } }}
+                initial={{ opacity: 0, transform: tf('translateY(-6px)', 'translateY(0px)') }}
+                animate={{ opacity: 1, transform: 'translateY(0px)' }}
               >
                 <div className={l.credit ? 'jl-acc indent' : 'jl-acc'}>
                   <Select

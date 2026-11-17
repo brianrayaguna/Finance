@@ -4,6 +4,7 @@ import type { Glyph } from '../../lib/glyphs';
 import { ensureInModalViewport, focusNoScroll } from '../../lib/focus';
 import { formatMoney, type MoneyOpts } from '../../lib/format';
 import { getIcon } from '../../lib/icons';
+import { lessMotionNow } from '../charts/motion';
 
 /* ───────── Button ───────── */
 
@@ -415,8 +416,9 @@ export function AnimatedMoney({ value, duration = 900, ...opts }: { value: numbe
   const from = useRef(value);
   const raf = useRef(0);
   useEffect(() => {
-    // Mode hemat: angka langsung tampil (hitung-naik me-render ulang React tiap frame).
-    const reduce = document.documentElement.dataset.motion === 'reduce' || document.documentElement.dataset.perf === 'lite' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Gerak dikurangi, mode hemat, atau layar sentuh: angka langsung tampil (hitung-naik me-render
+    // ulang React tiap frame dan membuat animasi lain di layar patah-patah).
+    const reduce = lessMotionNow() || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const start = performance.now();
     const a = from.current;
     const b = value;

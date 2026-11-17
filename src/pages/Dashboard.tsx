@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AnimatePresence, LayoutGroup, m as motion } from 'framer-motion';
+import { AnimatePresence, LayoutGroup } from 'framer-motion';
 import { LayoutDashboard, Plus, RotateCcw } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useData } from '../store/data';
@@ -16,11 +16,6 @@ import { WIDGETS, widgetSettings } from '../components/dashboard/registry';
 import { EditBar, GallerySheet, WidgetFrame, useWidgetDrag } from '../components/dashboard/Customize';
 import { AttentionStrip } from '../components/dashboard/Focus';
 import { useGoalModal } from '../components/goals/GoalModal';
-
-const stagger = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05, delayChildren: 0.02 } },
-};
 
 const sameLayout = (a: DashLayout, b: DashLayout) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -223,7 +218,8 @@ export default function Dashboard() {
           </div>
         ) : (
           <LayoutGroup>
-            <motion.div className="dash-grid" variants={stagger} initial="hidden" animate="show" key={month}>
+            {/* Widget masuk bergiliran lewat CSS ([data-enter] di WidgetFrame), bukan variants framer. */}
+            <div className="dash-grid" key={month}>
               {layout.order.map((id, i) => {
                 const W = WIDGETS[id]?.Component;
                 if (!W) return null;
@@ -246,7 +242,7 @@ export default function Dashboard() {
                   </WidgetFrame>
                 );
               })}
-            </motion.div>
+            </div>
           </LayoutGroup>
         )}
       </DashCtx.Provider>

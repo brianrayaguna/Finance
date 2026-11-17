@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../lib/motion';
 import { ChevronLeft, ChevronRight, Plus, CalendarMonth, CalendarYear, Inbox } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { usePrefs, useUI } from '../store/ui';
@@ -41,6 +42,7 @@ interface DayAgg {
 }
 
 export default function CalendarPage() {
+  const tf = useTransformFrom();
   const b = useBooks();
   const today = useToday();
   const openTx = useUI((s) => s.openTx);
@@ -226,9 +228,9 @@ export default function CalendarPage() {
                 key={month}
                 className="cal-grid"
                 custom={dir}
-                initial={{ opacity: 0, x: dir * 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: dir * -30 }}
+                initial={{ opacity: 0, transform: tf(`translateX(${dir * 30}px)`, 'translateX(0px)') }}
+                animate={{ opacity: 1, transform: 'translateX(0px)' }}
+                exit={{ opacity: 0, transform: tf(`translateX(${dir * -30}px)`, 'translateX(0px)') }}
                 transition={{ duration: 0.24, ease: [0.2, 0.8, 0.2, 1] }}
               >
                 {days.map((d) => {
@@ -290,7 +292,7 @@ export default function CalendarPage() {
 
           <aside className="card cal-side">
             <AnimatePresence mode="wait">
-              <motion.div key={sel} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}>
+              <motion.div key={sel} initial={{ opacity: 0, transform: tf('translateY(6px)', 'translateY(0px)') }} animate={{ opacity: 1, transform: 'translateY(0px)' }} exit={{ opacity: 0 }} transition={{ duration: 0.16 }}>
                 <div className="cs-head">
                   <div className="cs-daybig">{Number(sel.slice(8))}</div>
                   <div className="grow">

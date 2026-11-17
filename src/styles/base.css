@@ -237,14 +237,30 @@ textarea:focus-visible {
 /* Transisi halaman: CSS murni (compositor), tanpa JS per frame. Tanpa fill-mode agar
    tidak ada transform yang tertinggal (transform membuat containing block untuk position:fixed). */
 .route {
-  animation: route-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: route-in 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+/* Halaman hanya memudar; kartu/widget di dalamnya yang naik ([data-enter]). Bila halaman ikut
+   bergeser, dua gerakan dengan kurva berbeda bertumpuk dan terasa goyang. */
 @keyframes route-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
 }
+
+/* Animasi masuk item (kartu, widget, baris) — lihat src/lib/motion.ts `enter()`.
+   CSS murni: transform + opacity dijalankan compositor, tetap mulus walau main thread sibuk merender.
+   Fill `backwards` saja: menahan keadaan awal selama jeda, tanpa transform yang tertinggal sesudahnya. */
+[data-enter] {
+  animation: enter-rise 260ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+}
+@keyframes enter-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 
 :root[data-motion='reduce'] *,
 :root[data-motion='reduce'] *::before,
@@ -320,4 +336,22 @@ textarea:focus-visible {
 }
 :root[data-perf='lite'] .tabbar {
   background: var(--surface) !important;
+}
+
+/* Ponsel & layar sentuh: tanpa efek kaca, apa pun mode hematnya. Tab bar (fixed) dan topbar (sticky)
+   ber-backdrop-filter dihitung ulang setiap frame saat menggulir — sumber utama gulir patah-patah di
+   WebView Android. Latar diganti solid; elemen lain sudah ≥ 90% opak sehingga tampilannya nyaris sama. */
+@media (pointer: coarse), (max-width: 960px) {
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .topbar::before {
+    background: var(--canvas);
+  }
+  .tabbar {
+    background: var(--surface) !important;
+  }
 }

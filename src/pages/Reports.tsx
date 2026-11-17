@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../lib/motion';
 import { SlidePill } from '../components/ui/SlidePill';
 import {
   FileSpreadsheet,
@@ -66,6 +67,7 @@ export function buildReport(b: ReturnType<typeof useBooks>, key: ReportKey, from
 }
 
 export default function Reports() {
+  const tf = useTransformFrom();
   const b = useBooks();
   const today = useToday();
   const nav = useNavigate();
@@ -200,7 +202,7 @@ export default function Reports() {
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.div key={key + from + asOf + compare} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <motion.div key={key + from + asOf + compare} initial={{ opacity: 0, transform: tf('translateY(8px)', 'translateY(0px)') }} animate={{ opacity: 1, transform: 'translateY(0px)' }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
               {key === 'rasio' ? (
                 <RatiosView list={ratioList} from={from} to={asOf} entity={b.data.profile.entityName} />
               ) : report ? (

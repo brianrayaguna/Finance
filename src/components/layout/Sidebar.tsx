@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../../lib/motion';
 import {
   PanelLeftClose,
   PanelLeftOpen,
@@ -168,23 +169,27 @@ function SectionLabel({
   );
 }
 
-const Fold = ({ open, id, children }: { open: boolean; id: string; children: ReactNode }) => (
-  <AnimatePresence initial={false}>
-    {open && (
-      <motion.div
-        key="items"
-        id={`sb-sec-${id}`}
-        className="sb-items"
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: 'auto', opacity: 1 }}
-        exit={{ height: 0, opacity: 0 }}
-        transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-      >
-        <ul className="sb-list">{children}</ul>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
+/** Isi grup menu. Membuka/menutup tidak menganimasikan tinggi (reflow seluruh sidebar tiap frame);
+ *  saat dibuka, isinya memudar & turun sedikit lewat transform. */
+function Fold({ open, id, children }: { open: boolean; id: string; children: ReactNode }) {
+  const tf = useTransformFrom();
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <motion.div
+          key="items"
+          id={`sb-sec-${id}`}
+          className="sb-items"
+          initial={{ opacity: 0, transform: tf('translateY(-4px)', 'translateY(0px)') }}
+          animate={{ opacity: 1, transform: 'translateY(0px)' }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <ul className="sb-list">{children}</ul>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 /** Saldo tiap dompet. */
 function WalletList({ folded, onToggle, collapsed, onNavigate }: { folded: boolean; onToggle: () => void; collapsed: boolean; onNavigate: () => void }) {

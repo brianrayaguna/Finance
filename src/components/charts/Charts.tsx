@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useId, useMemo, useState, type ComponentProps } from 'react';
+import { Suspense, lazy, startTransition, useEffect, useId, useMemo, useState, type ComponentProps } from 'react';
 import { useLessMotion } from './motion';
 
 /*
@@ -24,33 +24,55 @@ function Placeholder({ width = '100%', height }: { width?: number | string; heig
   return <div className="chart-placeholder" style={{ width, height }} aria-hidden />;
 }
 
+/**
+ * Grafik recharts dirender setelah animasi masuk halaman & widget selesai (lihat [data-enter] di
+ * base.css), lalu sebagai transition yang dapat disela. Merender SVG grafik di frame yang sama dengan
+ * animasi masuk membuat animasinya tersendat; placeholder berukuran sama menjaga tata letak tetap.
+ */
+const DEFER_MS = 320;
+function useDeferredChart() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => startTransition(() => setReady(true)), DEFER_MS);
+    return () => window.clearTimeout(t);
+  }, []);
+  return ready;
+}
+
 export function CashflowChart(props: ComponentProps<HeavyModule['CashflowChart']>) {
+  const ready = useDeferredChart();
+  const fallback = <Placeholder height={props.height ?? 260} />;
+  if (!ready) return fallback;
   return (
-    <Suspense fallback={<Placeholder height={props.height ?? 260} />}>
+    <Suspense fallback={fallback}>
       <Heavy.CashflowChart {...props} />
     </Suspense>
   );
 }
 
 export function TrendArea(props: ComponentProps<HeavyModule['TrendArea']>) {
+  const ready = useDeferredChart();
+  const fallback = <Placeholder height={props.height ?? 120} />;
+  if (!ready) return fallback;
   return (
-    <Suspense fallback={<Placeholder height={props.height ?? 120} />}>
+    <Suspense fallback={fallback}>
       <Heavy.TrendArea {...props} />
     </Suspense>
   );
 }
 
 export function Donut(props: ComponentProps<HeavyModule['Donut']>) {
+  const ready = useDeferredChart();
   const size = props.size ?? 188;
+  const fallback = (
+    <div className="donut" style={{ width: size, height: size }}>
+      <Placeholder width={size} height={size} />
+      {props.center && <div className="donut-center">{props.center}</div>}
+    </div>
+  );
+  if (!ready) return fallback;
   return (
-    <Suspense
-      fallback={
-        <div className="donut" style={{ width: size, height: size }}>
-          <Placeholder width={size} height={size} />
-          {props.center && <div className="donut-center">{props.center}</div>}
-        </div>
-      }
-    >
+    <Suspense fallback={fallback}>
       <Heavy.Donut {...props} />
     </Suspense>
   );

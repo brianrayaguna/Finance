@@ -36,9 +36,8 @@ function ToastItem({ t }: { t: Toast }) {
       role={t.tone === 'danger' ? 'alert' : 'status'}
       aria-live={t.tone === 'danger' ? 'assertive' : 'polite'}
       aria-atomic="true"
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 460, damping: 32 } }}
-      exit={{ opacity: 0, y: 12, scale: 0.97, transition: { duration: 0.16 } }}
+      // Masuk: CSS `toast-in` (compositor). framer hanya untuk geser tumpukan (layout) & memudar keluar.
+      exit={{ opacity: 0, transition: { duration: 0.16 } }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}

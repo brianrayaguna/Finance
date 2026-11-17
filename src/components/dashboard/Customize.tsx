@@ -4,6 +4,7 @@
  */
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { m as motion } from 'framer-motion';
+import { enter, useTransformFrom } from '../../lib/motion';
 import { Check, ChevronDown, EyeOff, GripVertical, LayoutDashboard, Plus, RotateCcw, SlidersHorizontal, X } from '../../lib/glyphs';
 import {
   ALL_KPI,
@@ -105,11 +106,6 @@ export function useWidgetDrag(onMove: (id: WidgetId, target: WidgetId, after: bo
 
 /* ───────── Bingkai widget ───────── */
 
-export const itemVariants = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 30 } },
-};
-
 export function WidgetFrame({
   id,
   layout,
@@ -144,11 +140,10 @@ export function WidgetFrame({
   return (
     <motion.div
       layout="position"
-      variants={itemVariants}
       transition={{ layout: { type: 'spring', stiffness: 520, damping: 44 } }}
       data-widget={id}
       className={`w w-${id} w-${size}${editing ? ' is-editing' : ''}${dragging ? ' is-dragging' : ''}`}
-      style={{ '--span': span } as CSSProperties}
+      {...enter(index, { '--span': span } as CSSProperties)}
     >
       {editing && (
         <div className="w-edit" role="toolbar" aria-label={`Atur ${meta.title}`}>
@@ -285,14 +280,15 @@ export function WidgetSettings({ id, layout, update }: { id: WidgetId; layout: D
 /* ───────── Bilah mode sunting ───────── */
 
 export function EditBar({ onGallery, onCancel, onDone, dirty }: { onGallery: () => void; onCancel: () => void; onDone: () => void; dirty: boolean }) {
+  const tf = useTransformFrom();
   return (
     <motion.div
       className="dash-editbar"
       role="region"
       aria-label="Menyesuaikan dasbor"
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
+      initial={{ opacity: 0, transform: tf('translateY(-8px)', 'translateY(0px)') }}
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
+      exit={{ opacity: 0, transform: tf('translateY(-8px)', 'translateY(0px)') }}
       transition={{ duration: 0.18 }}
     >
       <span className="deb-ico" aria-hidden>

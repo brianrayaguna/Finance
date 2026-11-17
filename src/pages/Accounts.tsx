@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { m as motion } from 'framer-motion';
+import { enter } from '../lib/motion';
 import { Plus, Search, Tags, ListTree, Lock, Archive, TrendingUp, TrendingDown } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';
@@ -52,13 +52,12 @@ export default function Accounts() {
             const x = monthAct.get(a.id);
             const v = x ? (type === 'revenue' ? x.c - x.d : x.d - x.c) : 0;
             return (
-              <motion.button
+              <button
                 key={a.id}
                 type="button"
                 className={`card cat-tile${a.archived ? ' archived' : ''}`}
                 onClick={() => modal.openEdit('category', a)}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1, transition: { delay: Math.min(i, 20) * 0.015 } }}
+                {...enter(i)}
               >
                 <IconTile icon={a.icon} color={a.color} />
                 <span className="col grow" style={{ minWidth: 0, alignItems: 'flex-start' }}>
@@ -73,7 +72,7 @@ export default function Accounts() {
                 <span className="col ct-right" title="Realisasi bulan ini">
                   <span className={`num money-val ct-val${v ? '' : ' muted'}`}>{v ? formatMoney(v, { compact: true }) : '–'}</span>
                 </span>
-              </motion.button>
+              </button>
             );
           })}
         </div>

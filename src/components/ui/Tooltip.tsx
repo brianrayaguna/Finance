@@ -1,6 +1,7 @@
 import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../../lib/motion';
 
 export function Tooltip({
   label,
@@ -17,6 +18,7 @@ export function Tooltip({
   disabled?: boolean;
   children: ReactNode;
 }) {
+  const tf = useTransformFrom();
   const id = useId();
   const wrap = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -130,8 +132,8 @@ export function Tooltip({
                 top: coords?.top ?? -9999,
                 visibility: coords ? 'visible' : 'hidden',
               }}
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1, transition: { duration: 0.14, ease: [0.2, 0.8, 0.2, 1] } }}
+              initial={{ opacity: 0, transform: tf('scale(0.94)', 'scale(1)') }}
+              animate={{ opacity: 1, transform: 'scale(1)', transition: { duration: 0.14, ease: [0.2, 0.8, 0.2, 1] } }}
               exit={{ opacity: 0, transition: { duration: 0.08 } }}
             >
               <span>{label}</span>

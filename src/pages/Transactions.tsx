@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../lib/motion';
 import {
   Plus,
   Search,
@@ -51,6 +52,7 @@ const KIND_TYPES: Record<Kind, TxType[] | null> = {
 const PAGE = 120;
 
 export default function Transactions() {
+  const tf = useTransformFrom();
   const b = useBooks();
   const today = useToday();
   const [params, setParams] = useSearchParams();
@@ -502,9 +504,9 @@ export default function Transactions() {
         {selected.size > 0 && (
           <motion.div
             className="bulk-bar"
-            initial={{ opacity: 0, y: 24, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%', transition: { type: 'spring', stiffness: 420, damping: 32 } }}
-            exit={{ opacity: 0, y: 16, x: '-50%' }}
+            initial={{ opacity: 0, transform: tf('translate(-50%, 24px)', 'translate(-50%, 0px)') }}
+            animate={{ opacity: 1, transform: 'translate(-50%, 0px)', transition: { type: 'spring', stiffness: 420, damping: 32 } }}
+            exit={{ opacity: 0, transform: tf('translate(-50%, 16px)', 'translate(-50%, 0px)') }}
           >
             <span className="bb-count">{selected.size} dipilih</span>
             <span className="bb-total num money-val">{formatMoney(selTotal)}</span>

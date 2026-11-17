@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../../lib/motion';
 import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight, ChevronLeft, Eye, EyeOff } from '../../lib/glyphs';
 import { ALL_NAV, navLabel, navSection } from '../../app/nav';
 import { REPORTS } from '../../app/reports';
@@ -18,6 +19,7 @@ import { LogoMark } from '../brand/Logo';
 import { recordMenuItems } from '../tx/recordMenu';
 
 export function Topbar() {
+  const tf = useTransformFrom();
   const scrolled = useScrolled(8);
   const setPalette = useUI((s) => s.setPalette);
   const mobileNav = useUI((s) => s.mobileNav);
@@ -61,9 +63,9 @@ export function Topbar() {
           {(canUndo || canRedo) && (
             <motion.div
               className="tb-cluster tb-undo-group"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
+              initial={{ opacity: 0, transform: tf('scale(0.92)', 'scale(1)') }}
+              animate={{ opacity: 1, transform: 'scale(1)' }}
+              exit={{ opacity: 0, transform: tf('scale(0.92)', 'scale(1)') }}
               transition={{ duration: 0.16 }}
             >
               <Tooltip label={canUndo ? `Urungkan: ${nextLabel}` : 'Urungkan'}>

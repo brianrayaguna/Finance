@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { m as motion } from 'framer-motion';
+import { enter } from '../lib/motion';
 import { Plus, Target, Pencil, Trash2, Ellipsis, History, TriangleAlert, CircleCheck, Flame, Flag } from '../lib/glyphs';
 import { useBooks, useMediaQuery, useToday } from '../hooks/useApp';
 import { upsertBudget, deleteBudget, useData } from '../store/data';
@@ -128,12 +128,7 @@ export default function Budgets() {
             {lines.map((l, i) => {
               const s = status(l);
               return (
-                <motion.div
-                  key={l.account.id}
-                  className="card budget-card"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0, transition: { delay: i * 0.03 } }}
-                >
+                <div key={l.account.id} className="card budget-card" {...enter(i)}>
                   <div className="row">
                     <IconTile icon={l.account.icon} color={l.account.color} />
                     <div className="grow" style={{ minWidth: 0 }}>
@@ -197,7 +192,7 @@ export default function Budgets() {
                     </span>
                     <span className="muted num">{formatPercent(l.used, 0)}</span>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>

@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
+import { useTransformFrom } from '../../lib/motion';
+
+/** Posisi diam popover — daftar fungsi transform harus sama dengan nilai awal/keluar (lihat lib/motion.ts). */
+const REST = 'translateY(0px) scale(1)';
 import { Check, ChevronRight, type Glyph } from '../../lib/glyphs';
 import { focusNoScroll } from '../../lib/focus';
 import { useLayer } from '../../lib/layers';
@@ -68,6 +72,7 @@ export function Popover({
   autoFocus = false,
   returnFocus = true,
 }: PopoverProps) {
+  const tf = useTransformFrom();
   const ref = useRef<HTMLDivElement>(null);
   const popId = useId();
   const parentId = useContext(ParentPopoverCtx);
@@ -343,9 +348,9 @@ export function Popover({
             alignSelf: 'start',
             ...style,
           }}
-          initial={{ opacity: 0, scale: 0.96, y: -4 }}
-          animate={{ opacity: 1, scale: 1, y: 0, transition: { type: 'spring', stiffness: 520, damping: 34, mass: 0.7 } }}
-          exit={{ opacity: 0, scale: 0.98, pointerEvents: 'none', transition: { duration: 0.12 } }}
+          initial={{ opacity: 0, transform: tf('translateY(-4px) scale(0.96)', REST) }}
+          animate={{ opacity: 1, transform: REST, transition: { type: 'spring', stiffness: 520, damping: 34, mass: 0.7 } }}
+          exit={{ opacity: 0, transform: tf('translateY(0px) scale(0.98)', REST), pointerEvents: 'none', transition: { duration: 0.12 } }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <ParentPopoverCtx.Provider value={popId}>{children}</ParentPopoverCtx.Provider>
