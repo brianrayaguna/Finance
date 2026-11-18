@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { budgetVsActual, debtInfos, getBooks } from '../accounting/reports';
 import { checkIntegrity } from '../accounting/integrity';
+import { batchesExpiringSoon, computeStock, lowStockItems } from '../accounting/stock';
 import type { AppData } from '../accounting/types';
 import { useData } from '../store/data';
 import { pruneReadReminders, usePrefs } from '../store/ui';
@@ -104,6 +105,30 @@ export function computeReminders(data: AppData, today: string): Omit<Reminders, 
       title: `${errors.length} masalah integritas buku`,
       detail: 'Ada transaksi yang tidak masuk buku besar',
       to: '/pengaturan/data#integritas',
+    });
+  const snap = computeStock(data.stockMoves ?? []);
+  const low = lowStockItems(data.stockItems ?? [], snap);
+  if (low.length)
+    items.push({
+      id: 'stock-low',
+      tone: 'warn',
+      icon: 'package',
+      title: `${low.length} barang di bawah stok minimum`,
+      detail: low
+        .slice(0, 3)
+        .map((it) => it.name)
+        .join(', '),
+      to: '/persediaan',
+    });
+  const expiring = batchesExpiringSoon(data.stockBatches ?? [], 30, today);
+  if (expiring.length)
+    items.push({
+      id: 'stock-expiry',
+      tone: 'warn',
+      icon: 'package',
+      title: `${expiring.length} batch mendekati kadaluarsa`,
+      detail: 'Dalam 30 hari ke depan',
+      to: '/persediaan',
     });
   return { items, dueCount: debts.length, budgetOver: over.length };
 }

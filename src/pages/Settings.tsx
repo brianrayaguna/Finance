@@ -17,8 +17,7 @@ import {
   Star,
   Eye,
   EyeOff,
-  ArrowUp,
-  ArrowDown,
+  GripVertical,
   Lock,
   ChevronRight,
   Folder,
@@ -42,7 +41,20 @@ import {
   type ThemeMode,
 } from '../store/ui';
 import { SETTINGS_SECTIONS } from '../app/settings';
-import { NAV, SIMPLE_HIDDEN, defaultNavPrefs, navLabel, orderedItems, type NavSection } from '../app/nav';
+import {
+  APP_MODULES,
+  DEFAULT_TAB_BAR,
+  NAV,
+  SIMPLE_HIDDEN,
+  TAB_BAR_CANDIDATES,
+  TAB_SHORT_LABEL,
+  defaultNavPrefs,
+  disabledRoutes,
+  navLabel,
+  orderedItems,
+  type AppModule,
+  type TabBarRoute,
+} from '../app/nav';
 import { APP_VERSION, downloadBackup } from '../app/backup';
 import { describePeriod } from '../components/ui/PeriodPicker';
 import { DatePicker } from '../components/ui/DatePicker';
@@ -60,42 +72,182 @@ import { isImeComposing, modKey } from '../lib/layers';
 const SECTIONS = SETTINGS_SECTIONS;
 const SECTION_IDS = new Set(SECTIONS.map((s) => s.id));
 
-/** Atur menu sidebar: sematkan ke Favorit, sembunyikan, dan ubah urutan per kelompok. */
+/** Seret baris menu untuk mengubah urutan dalam satu kelompok. */
+function useNavRowDrag(onMove: (secId: string, from: string, to: string, after: boolean) => boolean) {
+  const [dragId, setDragId] = useState<string | null>(null);
+  const stopRef = useRef<(() => void) | null>(null);
+  const moveRef = useRef(onMove);
+  moveRef.current = onMove;
+
+  useEffect(() => () => stopRef.current?.(), []);
+
+  const start = (secId: string, route: string, e: React.PointerEvent<HTMLElement>) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    stopRef.current?.();
+    let lock = 0;
+    const onMovePtr = (ev: PointerEvent) => {
+      if (performance.now() < lock) return;
+      const hit = document
+        .elementsFromPoint(ev.clientX, ev.clientY)
+        .find(
+          (el): el is HTMLElement =>
+            el instanceof HTMLElement && !!el.dataset.navRoute && el.dataset.navSec === secId && el.dataset.navRoute !== route,
+        );
+      if (!hit?.dataset.navRoute) return;
+      const r = hit.getBoundingClientRect();
+      const after = ev.clientY > r.top + r.height / 2;
+      if (moveRef.current(secId, route, hit.dataset.navRoute, after)) lock = performance.now() + 160;
+    };
+    const stop = () => {
+      window.removeEventListener('pointermove', onMovePtr);
+      window.removeEventListener('pointerup', stop);
+      window.removeEventListener('pointercancel', stop);
+      document.body.classList.remove('dragging-nav');
+      stopRef.current = null;
+      setDragId(null);
+    };
+    window.addEventListener('pointermove', onMovePtr);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    document.body.classList.add('dragging-nav');
+    stopRef.current = stop;
+    setDragId(route);
+  };
+
+  return { dragId, start };
+}
+
+/** Atur tab bawah, modul, dan menu sidebar. */
 function NavSettings() {
   const nav = usePrefs((s) => s.nav);
   const mode = usePrefs((s) => s.mode);
   const setNav = usePrefs((s) => s.setNav);
+  const landing = usePrefs((s) => s.landing);
+  const setPrefs = usePrefs((s) => s.set);
   const hidden = new Set(nav.hidden);
   const pinned = new Set(nav.pinned);
+  const modOff = disabledRoutes(nav.disabledModules ?? []);
+  const tabBar = nav.tabBar?.length === 4 ? nav.tabBar : DEFAULT_TAB_BAR;
+  const disabled = new Set(nav.disabledModules ?? []);
   const toggle = (key: 'hidden' | 'pinned', to: string) =>
     setNav((n) => ({ ...n, [key]: n[key].includes(to) ? n[key].filter((x) => x !== to) : [...n[key], to] }));
-  const move = (sec: NavSection, to: string, dir: -1 | 1) =>
+  const reorder = (secId: string, from: string, to: string, after: boolean) => {
+    let changed = false;
     setNav((n) => {
-      const list = orderedItems(sec, n).map((i) => i.to);
-      const i = list.indexOf(to);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= list.length) return n;
-      [list[i], list[j]] = [list[j], list[i]];
-      return { ...n, order: { ...n.order, [sec.id]: list } };
+      const sec = NAV.find((s) => s.id === secId);
+      if (!sec) return n;
+      const prev = orderedItems(sec, n).map((i) => i.to);
+      const fromI = prev.indexOf(from);
+      const toI0 = prev.indexOf(to);
+      if (fromI < 0 || toI0 < 0 || from === to) return n;
+      const list = [...prev];
+      list.splice(fromI, 1);
+      const toI = list.indexOf(to);
+      if (toI < 0) return n;
+      list.splice(after ? toI + 1 : toI, 0, from);
+      if (list.every((x, i) => x === prev[i])) return n;
+      changed = true;
+      return { ...n, order: { ...n.order, [secId]: list } };
     });
-  const custom = nav.hidden.length > 0 || nav.pinned.length > 0 || Object.keys(nav.order).length > 0;
+    return changed;
+  };
+  const { dragId, start } = useNavRowDrag(reorder);
+  const setTab = (idx: number, to: TabBarRoute) =>
+    setNav((n) => {
+      const next = [...(n.tabBar?.length === 4 ? n.tabBar : DEFAULT_TAB_BAR)] as [TabBarRoute, TabBarRoute, TabBarRoute, TabBarRoute];
+      next[idx] = to;
+      return { ...n, tabBar: next };
+    });
+  const toggleModule = (id: AppModule, on: boolean) => {
+    setNav((n) => {
+      const cur = n.disabledModules ?? [];
+      const disabledModules = on ? cur.filter((x) => x !== id) : cur.includes(id) ? cur : [...cur, id];
+      return { ...n, disabledModules };
+    });
+    if (!on) {
+      const routes = APP_MODULES.find((m) => m.id === id)?.routes ?? [];
+      if (routes.includes(landing)) setPrefs({ landing: '/' });
+    }
+  };
+  const tabOptions = TAB_BAR_CANDIDATES.filter((to) => !modOff.has(to)).map((to) => ({
+    value: to,
+    label: TAB_SHORT_LABEL[to] ?? navLabel(to),
+  }));
+  const custom =
+    nav.hidden.length > 0 ||
+    nav.pinned.length > 0 ||
+    Object.keys(nav.order).length > 0 ||
+    (nav.disabledModules?.length ?? 0) > 0 ||
+    tabBar.some((t, i) => t !== DEFAULT_TAB_BAR[i]);
   return (
     <div className="navset">
+      <div className="navset-group" role="group" aria-label="Tab bawah">
+        <div className="label-caps">Tab bawah</div>
+        <div className="tabbar-edit">
+          {(['Kiri 1', 'Kiri 2', 'Kanan 1', 'Kanan 2'] as const).map((slot, i) => (
+            <div key={slot} className="tabbar-edit-slot">
+              <span className="muted">{slot}</span>
+              <Select
+                compact
+                value={tabBar[i]}
+                onChange={(v) => setTab(i, v as TabBarRoute)}
+                options={tabOptions}
+                ariaLabel={slot}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="tabbar-preview" aria-hidden>
+          {tabBar.slice(0, 2).map((t, i) => (
+            <span key={i}>{TAB_SHORT_LABEL[t] ?? t}</span>
+          ))}
+          <span className="tabbar-preview-fab">+</span>
+          {tabBar.slice(2, 4).map((t, i) => (
+            <span key={i}>{TAB_SHORT_LABEL[t] ?? t}</span>
+          ))}
+        </div>
+      </div>
+
+      <div className="navset-group" role="group" aria-label="Modul">
+        <div className="label-caps">Modul</div>
+        {APP_MODULES.map((m) => (
+          <div key={m.id} className="navset-row">
+            <span className="grow navset-label">{m.label}</span>
+            <Switch checked={!disabled.has(m.id)} onChange={(on) => toggleModule(m.id, on)} label={m.label} />
+          </div>
+        ))}
+      </div>
+
       {NAV.map((sec) => {
-        const items = orderedItems(sec, nav);
+        const items = orderedItems(sec, nav).filter((it) => !modOff.has(it.to));
+        if (items.length === 0) return null;
         return (
           <div key={sec.id} className="navset-group" role="group" aria-label={sec.section}>
             <div className="label-caps">{sec.section}</div>
-            {items.map((it, i) => {
+            {items.map((it) => {
               const isHidden = hidden.has(it.to);
               const bySimple = mode === 'simple' && SIMPLE_HIDDEN.includes(it.to);
               const isPinned = pinned.has(it.to);
               return (
-                <div key={it.to} className={`navset-row${isHidden || bySimple ? ' off' : ''}`}>
+                <div
+                  key={it.to}
+                  data-nav-sec={sec.id}
+                  data-nav-route={it.to}
+                  className={`navset-row${isHidden || bySimple ? ' off' : ''}${dragId === it.to ? ' dragging' : ''}`}
+                >
+                  <button
+                    type="button"
+                    className="navset-btn navset-grip"
+                    aria-label={`Seret untuk mengubah urutan ${it.label}`}
+                    onPointerDown={(e) => start(sec.id, it.to, e)}
+                  >
+                    <GripVertical aria-hidden />
+                  </button>
                   <it.icon className="navset-ico" aria-hidden />
                   <span className="grow navset-label">
                     {it.label}
-                    {bySimple && <span className="navset-note">disembunyikan mode Sederhana</span>}
+                    {bySimple && <span className="navset-note">Mode Sederhana</span>}
                   </span>
                   <Tooltip label={isPinned ? 'Lepas dari Favorit' : 'Sematkan ke Favorit'}>
                     <button type="button" className={`navset-btn star${isPinned ? ' on' : ''}`} aria-pressed={isPinned} aria-label={`Favorit: ${it.label}`} onClick={() => toggle('pinned', it.to)}>
@@ -114,12 +266,6 @@ function NavSettings() {
                       {isHidden ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
                     </button>
                   </Tooltip>
-                  <button type="button" className="navset-btn" onClick={() => move(sec, it.to, -1)} disabled={i === 0} aria-label={`Naikkan ${it.label}`}>
-                    <ArrowUp aria-hidden />
-                  </button>
-                  <button type="button" className="navset-btn" onClick={() => move(sec, it.to, 1)} disabled={i === items.length - 1} aria-label={`Turunkan ${it.label}`}>
-                    <ArrowDown aria-hidden />
-                  </button>
                 </div>
               );
             })}
@@ -595,7 +741,10 @@ export default function Settings() {
                     compact
                     value={prefs.landing}
                     onChange={(v) => prefs.set({ landing: v })}
-                    options={LANDING_OPTIONS.map((to) => ({ value: to, label: navLabel(to) }))}
+                    options={LANDING_OPTIONS.filter((to) => !disabledRoutes(prefs.nav.disabledModules ?? []).has(to)).map((to) => ({
+                      value: to,
+                      label: navLabel(to),
+                    }))}
                     ariaLabel="Halaman pembuka"
                   />
                 </div>
@@ -622,7 +771,7 @@ export default function Settings() {
 
           {active === 'navigasi' && (
           <section id="set-navigasi" className="card set-card">
-            <SectionHead title="Menu & navigasi" desc="Sematkan halaman yang sering dibuka ke Favorit, sembunyikan yang jarang dipakai, dan atur urutannya." />
+            <SectionHead title="Menu & navigasi" desc="Tab bawah, modul, Favorit, dan urutan menu di bilah sisi." />
             <div className="set-body">
               <NavSettings />
             </div>

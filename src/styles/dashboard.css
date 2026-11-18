@@ -1097,6 +1097,28 @@ a.ins:hover {
 .integ-issues li.warn::marker {
   color: var(--warn);
 }
+.integ-issues li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.stock-dash-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.stock-dash-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.stock-dash-list li:last-child {
+  border-bottom: 0;
+}
 
 @container dash (max-width: 640px) {
   .dash-editbar {

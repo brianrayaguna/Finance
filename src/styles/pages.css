@@ -3403,6 +3403,26 @@ button.tl-item:hover {
 .navset-btn.star.on {
   color: var(--warn);
 }
+.navset-grip {
+  cursor: grab;
+  touch-action: none;
+  color: var(--text-3);
+}
+.navset-grip:active,
+.navset-row.dragging .navset-grip {
+  cursor: grabbing;
+}
+.navset-row.dragging {
+  opacity: 0.55;
+  background: var(--fill);
+}
+body.dragging-nav {
+  cursor: grabbing;
+  user-select: none;
+}
+body.dragging-nav .navset-row {
+  transition: transform 120ms var(--ease-out), background var(--dur-1);
+}
 .navset-foot {
   display: flex;
   align-items: center;
@@ -3412,6 +3432,40 @@ button.tl-item:hover {
   padding-top: 12px;
   border-top: 1px solid var(--line);
   font-size: var(--fs-sm);
+}
+.tabbar-edit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.tabbar-edit-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--fs-xs);
+}
+.tabbar-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--fill);
+  font-size: var(--fs-xs);
+  font-weight: 560;
+  color: var(--text-2);
+}
+.tabbar-preview-fab {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink, #0e0f0c);
+  font-weight: 700;
 }
 
 /* ═══════════ Ponsel: Dompet, Jurnal, Hutang lebih ringkas ═══════════ */
@@ -3593,6 +3647,146 @@ button.tl-item:hover {
 @media (max-width: 760px) {
   .debt-switch .btn {
     display: none;
+  }
+}
+
+/* Persediaan: tabel → kartu di layar sempit (responsive-table / form-factor-adaptation) */
+.table-responsive-cards {
+  container-type: inline-size;
+  container-name: stock-table;
+}
+@container stock-table (max-width: 640px) {
+  .table-responsive-cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .table-responsive-cards tbody,
+  .table-responsive-cards tr,
+  .table-responsive-cards td {
+    display: block;
+    width: 100%;
+  }
+  .table-responsive-cards tr {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .table-responsive-cards td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+    border: 0;
+    text-align: right;
+  }
+  .table-responsive-cards td::before {
+    content: attr(data-label);
+    color: var(--text-3);
+    font-size: 12px;
+    text-align: left;
+    flex: none;
+    max-width: 40%;
+  }
+  .table-responsive-cards td.r {
+    text-align: right;
+  }
+}
+
+.sum-strip > [role='button'] {
+  cursor: pointer;
+}
+.sum-strip > .stock-kpi-on {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.stock-cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.stock-cat-chips .chip {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 560;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.stock-cat-chips .chip.on {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink, #0e0f0c);
+}
+.stock-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+  margin: 0;
+}
+.stock-detail-grid dt {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.stock-detail-grid dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+.stock-detail-desc {
+  margin: 12px 0 0;
+  font-size: var(--fs-sm);
+}
+.stock-loc-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.stock-loc-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+.stock-po-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) minmax(0, 0.9fr) auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+@media screen and (max-width: 560px) {
+  .stock-po-line {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stock-po-line .tb-btn {
+    grid-column: 2;
+    justify-self: end;
+  }
+}
+
+/* Daftar panjang: defer render di luar viewport (CWV / mobile APK) */
+.tx-list > *,
+.table tbody tr {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
+
+@media (pointer: coarse) {
+  .page-header .btn,
+  .sum-strip {
+    min-block-size: 44px;
+  }
+  .tb-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

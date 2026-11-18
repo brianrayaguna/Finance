@@ -16,13 +16,14 @@ import {
   Flag,
   ChartLine,
   Lightbulb,
+  Package,
   ShieldCheck,
   type Glyph,
 } from '../../lib/glyphs';
 import type { SettingValue, WidgetId } from '../../app/dashboardLayout';
 import type { SettingDef, WidgetProps } from './types';
 import { BudgetsWidget, CashflowWidget, CompositionWidget, DebtsWidget, HealthWidget, HeroWidget, KpiWidget, RecentWidget, WalletsWidget } from './core';
-import { FinanceWidget, FlowWidget } from './combo';
+import { FinanceWidget, FlowWidget, StockComboWidget } from './combo';
 import { DailyCashWidget, FavoritesWidget, GoalsWidget, HeatmapWidget, InsightsWidget, IntegrityWidget, TopCatsWidget, UpcomingWidget } from './extra';
 
 export interface WidgetMeta {
@@ -319,6 +320,26 @@ export const WIDGETS: Record<WidgetId, WidgetMeta> = {
     icon: ShieldCheck,
     group: 'Pembukuan',
     Component: IntegrityWidget,
+  },
+  stock: {
+    title: 'Persediaan',
+    desc: 'Mutasi terbaru, stok rendah, dan ringkasan nilai dalam satu kartu bertab',
+    icon: Package,
+    group: 'Perencanaan',
+    settings: [
+      {
+        key: 'count',
+        label: 'Jumlah mutasi',
+        type: 'choice',
+        options: [
+          { value: '3', label: '3' },
+          { value: '5', label: '5' },
+          { value: '8', label: '8' },
+        ],
+        def: '5',
+      },
+    ],
+    Component: StockComboWidget,
   },
 };
 

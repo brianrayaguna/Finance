@@ -6,6 +6,7 @@ import {
   HandCoins,
   Target,
   Building2,
+  Package,
   NotebookPen,
   BookOpenText,
   Scale,
@@ -47,6 +48,7 @@ export const NAV: NavSection[] = [
       { to: '/anggaran', label: 'Anggaran', icon: Target, hotkey: '5', desc: 'Batas beban bulanan' },
       { to: '/hutang-piutang', label: 'Hutang & Piutang', icon: HandCoins, hotkey: '6', desc: 'Jadwal & jatuh tempo' },
       { to: '/aset', label: 'Aset Tetap', icon: Building2, desc: 'Register & penyusutan' },
+      { to: '/persediaan', label: 'Persediaan', icon: Package, desc: 'Stok barang & HPP' },
     ],
   },
   {
@@ -91,6 +93,33 @@ export const ALL_NAV = [...NAV.flatMap((s) => s.items), ...NAV_FOOT, ...NAV_ALIA
 
 export type UiMode = 'simple' | 'accountant';
 
+export type AppModule = 'stock' | 'assets' | 'budgets' | 'debts' | 'accounting';
+
+export const APP_MODULES: { id: AppModule; label: string; routes: string[] }[] = [
+  { id: 'stock', label: 'Persediaan', routes: ['/persediaan'] },
+  { id: 'assets', label: 'Aset Tetap', routes: ['/aset'] },
+  { id: 'budgets', label: 'Anggaran', routes: ['/anggaran'] },
+  { id: 'debts', label: 'Hutang & Piutang', routes: ['/hutang-piutang'] },
+  { id: 'accounting', label: 'Pembukuan teknis', routes: ['/jurnal', '/buku-besar', '/neraca-saldo'] },
+];
+
+/** Rute yang boleh dipilih di 4 slot tab bawah (di samping FAB). */
+export const TAB_BAR_CANDIDATES = ['/', '/transaksi', '/dompet', '/laporan', '/persediaan', '/anggaran', '/hutang-piutang', '/aset'] as const;
+export type TabBarRoute = (typeof TAB_BAR_CANDIDATES)[number];
+export const DEFAULT_TAB_BAR: [TabBarRoute, TabBarRoute, TabBarRoute, TabBarRoute] = ['/', '/transaksi', '/dompet', '/laporan'];
+
+/** Label pendek untuk tab bawah */
+export const TAB_SHORT_LABEL: Record<string, string> = {
+  '/': 'Ringkasan',
+  '/transaksi': 'Transaksi',
+  '/dompet': 'Dompet',
+  '/laporan': 'Laporan',
+  '/persediaan': 'Stok',
+  '/anggaran': 'Anggaran',
+  '/hutang-piutang': 'Hutang',
+  '/aset': 'Aset',
+};
+
 export interface NavPrefs {
   /** Rute yang disembunyikan dari sidebar (tetap bisa dibuka lewat pencarian) */
   hidden: string[];
@@ -100,10 +129,21 @@ export interface NavPrefs {
   order: Record<string, string[]>;
   /** Kelompok yang sedang dilipat */
   folded: string[];
+  /** Empat slot tab bawah ponsel (kiri–kanan, FAB di tengah) */
+  tabBar: [TabBarRoute, TabBarRoute, TabBarRoute, TabBarRoute];
+  /** Modul yang dinonaktifkan (hilang dari sidebar/tab/landing; tetap bisa lewat Cari) */
+  disabledModules: AppModule[];
 }
 
 // Daftar saldo rekening di sidebar dilipat sejak awal (rinciannya ada di Dompet) agar sidebar tidak ikut bergulir.
-export const defaultNavPrefs = (): NavPrefs => ({ hidden: [], pinned: [], order: {}, folded: ['rekening'] });
+export const defaultNavPrefs = (): NavPrefs => ({
+  hidden: [],
+  pinned: [],
+  order: {},
+  folded: ['rekening'],
+  tabBar: [...DEFAULT_TAB_BAR],
+  disabledModules: [],
+});
 
 /** Halaman pembukuan teknis yang disembunyikan pada Mode Sederhana */
 export const SIMPLE_HIDDEN = ['/jurnal', '/buku-besar', '/neraca-saldo'];
@@ -112,6 +152,15 @@ export const SIMPLE_HIDDEN = ['/jurnal', '/buku-besar', '/neraca-saldo'];
 export const SIDEBAR_GROUPS = ['favorit', 'rekening'];
 
 const NAV_ROUTES = new Set(NAV.flatMap((s) => s.items.map((i) => i.to)));
+const TAB_SET = new Set<string>(TAB_BAR_CANDIDATES);
+const MODULE_IDS = new Set<AppModule>(APP_MODULES.map((m) => m.id));
+
+/** Rute yang tertutup karena modul dinonaktifkan. */
+export function disabledRoutes(modules: AppModule[]): Set<string> {
+  const out = new Set<string>();
+  for (const m of APP_MODULES) if (modules.includes(m.id)) for (const r of m.routes) out.add(r);
+  return out;
+}
 
 export function sanitizeNavPrefs(raw: unknown): NavPrefs {
   const d = defaultNavPrefs();
@@ -129,7 +178,18 @@ export function sanitizeNavPrefs(raw: unknown): NavPrefs {
   const folded = Array.isArray(r.folded)
     ? [...new Set(r.folded.filter((x): x is string => SIDEBAR_GROUPS.includes(x) || NAV.some((s) => s.id === x)))]
     : [];
-  return { hidden: routes(r.hidden), pinned: routes(r.pinned), order, folded };
+  const tabBar = sanitizeTabBar(r.tabBar);
+  const disabledModules = Array.isArray(r.disabledModules)
+    ? [...new Set(r.disabledModules.filter((x): x is AppModule => typeof x === 'string' && MODULE_IDS.has(x as AppModule)))]
+    : [];
+  return { hidden: routes(r.hidden), pinned: routes(r.pinned), order, folded, tabBar, disabledModules };
+}
+
+function sanitizeTabBar(raw: unknown): [TabBarRoute, TabBarRoute, TabBarRoute, TabBarRoute] {
+  const fallback = [...DEFAULT_TAB_BAR] as [TabBarRoute, TabBarRoute, TabBarRoute, TabBarRoute];
+  if (!Array.isArray(raw) || raw.length < 4) return fallback;
+  const slots = raw.slice(0, 4).map((x, i) => (typeof x === 'string' && TAB_SET.has(x) ? (x as TabBarRoute) : fallback[i]));
+  return [slots[0], slots[1], slots[2], slots[3]];
 }
 
 /** Urutan item sebuah kelompok setelah penyesuaian pengguna. */
@@ -142,9 +202,10 @@ export function orderedItems(sec: NavSection, prefs: NavPrefs): NavItem[] {
   return [...sec.items].sort((a, b) => rank(a.to) - rank(b.to));
 }
 
-/** Model sidebar: favorit + kelompok, dengan item tersembunyi/mode sederhana sudah disaring. */
+/** Model sidebar: favorit + kelompok, dengan item tersembunyi/mode/modul sudah disaring. */
 export function buildNav(prefs: NavPrefs, mode: UiMode) {
-  const hidden = new Set([...prefs.hidden, ...(mode === 'simple' ? SIMPLE_HIDDEN : [])]);
+  const modOff = disabledRoutes(prefs.disabledModules ?? []);
+  const hidden = new Set([...prefs.hidden, ...(mode === 'simple' ? SIMPLE_HIDDEN : []), ...modOff]);
   const pinned = prefs.pinned.filter((to) => !hidden.has(to));
   const pinnedSet = new Set(pinned);
   const byRoute = new Map(NAV.flatMap((s) => s.items.map((i) => [i.to, i] as const)));
@@ -155,6 +216,32 @@ export function buildNav(prefs: NavPrefs, mode: UiMode) {
       items: orderedItems(sec, prefs).filter((i) => !hidden.has(i.to) && !pinnedSet.has(i.to)),
     })).filter((sec) => sec.items.length > 0),
   };
+}
+
+/** Widget dasbor yang terkait modul (disembunyikan saat modul off). */
+export const MODULE_WIDGETS: Partial<Record<AppModule, string[]>> = {
+  stock: ['stock'],
+  budgets: ['budgets'],
+  debts: ['debts'],
+};
+
+export function disabledWidgetIds(modules: AppModule[]): Set<string> {
+  const out = new Set<string>();
+  for (const m of modules) for (const w of MODULE_WIDGETS[m] ?? []) out.add(w);
+  return out;
+}
+
+/** Empat item tab bawah setelah filter modul dinonaktifkan (fallback ke default bila slot kosong). */
+export function resolveTabBar(prefs: NavPrefs): NavItem[] {
+  const modOff = disabledRoutes(prefs.disabledModules ?? []);
+  const byRoute = new Map(ALL_NAV.map((i) => [i.to.split('?')[0], i] as const));
+  const slots = (prefs.tabBar?.length === 4 ? prefs.tabBar : DEFAULT_TAB_BAR).map((to, i) => {
+    const route = modOff.has(to) ? DEFAULT_TAB_BAR[i] : to;
+    const safe = modOff.has(route) ? ('/' as TabBarRoute) : route;
+    const item = byRoute.get(safe);
+    return item ? { ...item, label: TAB_SHORT_LABEL[safe] ?? item.label } : { to: '/', label: 'Ringkasan', icon: LayoutGrid };
+  });
+  return slots;
 }
 
 function find(pathname: string): NavItem | undefined {

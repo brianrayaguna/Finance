@@ -1,6 +1,7 @@
 import { defaultAccounts, SYS } from '../accounting/coa';
 import { nextRef, refPrefix } from '../accounting/engine';
 import type { Account, AppData, Budget, FixedAsset, Goal, Transaction, TxTemplate } from '../accounting/types';
+import { defaultLocations } from '../accounting/stock';
 import { addDays, addMonths, endOfMonth, parseISO, startOfMonth, todayISO, round2 } from '../lib/format';
 
 /** "HH:mm" → milidetik sejak tengah malam (bawaan 09.00). */
@@ -211,5 +212,11 @@ export function buildSampleData(profile: AppData['profile']): AppData {
     assets,
     goals,
     templates,
+    stockCategories: [],
+    stockItems: [],
+    stockLocations: defaultLocations(),
+    stockMoves: [],
+    stockBatches: [],
+    purchaseOrders: [],
   };
 }

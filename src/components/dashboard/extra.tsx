@@ -16,6 +16,7 @@ import {
   Info,
   Lightbulb,
   Plus,
+  Package,
   ShieldCheck,
   Star,
   TriangleAlert,
@@ -27,6 +28,7 @@ import { notify } from '../../store/history';
 import { cashSeries, categoryBreakdown, dailyExpense, debtInfos } from '../../accounting/reports';
 import { buildInsights, type InsightTone } from '../../accounting/insights';
 import { checkIntegrity } from '../../accounting/integrity';
+import { computeStock, inventoryValue, lowStockItems } from '../../accounting/stock';
 import { goalProgress } from '../../accounting/goals';
 import type { TxTemplate } from '../../accounting/types';
 import { addDays, addMonths, daysBetween, endOfMonth, formatDate, formatMoney, formatMonth, formatPercent, isZero, round2 } from '../../lib/format';
@@ -480,3 +482,161 @@ export function IntegrityWidget() {
     </WCard>
   );
 }
+
+/* ───────── Persediaan (panel untuk kartu bertab) ───────── */
+
+function moveLabel(type: string, adjustSign?: 1 | -1) {
+  if (type === 'in') return 'Masuk';
+  if (type === 'out') return 'Keluar';
+  if (type === 'transfer') return 'Transfer';
+  return adjustSign === -1 ? 'Opname −' : 'Opname +';
+}
+
+/** Mutasi stok terbaru — panel utama “barang yang berubah”. */
+export function StockMovesWidget({ settings }: WidgetProps) {
+  const data = useData((s) => s.data);
+  const nav = useNavigate();
+  const count = Number(settings.count) || 5;
+  const byId = useMemo(() => new Map(data.stockItems.map((it) => [it.id, it])), [data.stockItems]);
+  const recent = useMemo(
+    () =>
+      [...data.stockMoves]
+        .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.createdAt - a.createdAt))
+        .slice(0, count),
+    [data.stockMoves, count],
+  );
+  return (
+    <WCard>
+      <CardHead
+        title="Mutasi stok"
+        sub={`${data.stockMoves.length.toLocaleString('id-ID')} mutasi tercatat`}
+        to="/persediaan"
+        link="Lihat semua"
+      />
+      <div className="card-body compact-list" style={{ paddingTop: 8 }}>
+        {recent.length === 0 ? (
+          <EmptyState
+            compact
+            heading="h3"
+            icon={ArrowLeftRight}
+            title="Belum ada mutasi"
+            text="Catat masuk atau keluar stok — nilai persediaan dan HPP terjurnal otomatis."
+            action={
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => nav('/persediaan')}>
+                Buka Persediaan
+              </Button>
+            }
+          />
+        ) : (
+          <ul className="stock-dash-list">
+            {recent.map((m) => {
+              const it = byId.get(m.itemId);
+              return (
+                <li key={m.id}>
+                  <div className="col" style={{ minWidth: 0 }}>
+                    <strong className="truncate">{it?.name ?? '—'}</strong>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {formatDate(m.date)} · {moveLabel(m.type, m.adjustSign)}
+                    </span>
+                  </div>
+                  <strong className="num">
+                    {m.qty} {it?.unit ?? ''}
+                  </strong>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </WCard>
+  );
+}
+
+/** Barang di bawah stok minimum. */
+export function StockLowWidget(_p: WidgetProps) {
+  const data = useData((s) => s.data);
+  const snap = useMemo(() => computeStock(data.stockMoves), [data.stockMoves]);
+  const low = useMemo(() => lowStockItems(data.stockItems, snap), [data.stockItems, snap]);
+  return (
+    <WCard>
+      <CardHead
+        title="Stok rendah"
+        sub={low.length ? `${low.length} barang di bawah minimum` : 'Semua stok aman'}
+        to="/persediaan"
+        link="Kelola"
+      />
+      <div className="card-body compact-list" style={{ paddingTop: 8 }}>
+        {low.length === 0 ? (
+          <EmptyState
+            compact
+            heading="h3"
+            icon={Package}
+            title="Tidak ada stok rendah"
+            text="Barang yang di bawah stok minimum akan tampil di sini."
+          />
+        ) : (
+          <ul className="integ-issues">
+            {low.slice(0, 6).map((it) => {
+              const qty = snap.byItem.get(it.id)?.qty ?? 0;
+              return (
+                <li key={it.id} className="warn">
+                  <span className="grow truncate">{it.name}</span>
+                  <span className="num">
+                    {qty}/{it.minQty} {it.unit}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </WCard>
+  );
+}
+
+/** Ringkasan nilai & jumlah SKU. */
+export function StockSummaryWidget(_p: WidgetProps) {
+  const data = useData((s) => s.data);
+  const nav = useNavigate();
+  const snap = useMemo(() => computeStock(data.stockMoves), [data.stockMoves]);
+  const value = inventoryValue(snap);
+  const low = useMemo(() => lowStockItems(data.stockItems, snap), [data.stockItems, snap]);
+  const skus = data.stockItems.filter((it) => !it.archived).length;
+  return (
+    <WCard>
+      <CardHead title="Ringkasan stok" to="/persediaan" link="Kelola" />
+      {skus === 0 ? (
+        <EmptyState
+          compact
+          heading="h3"
+          icon={Package}
+          title="Belum ada barang"
+          text="Tambah barang di menu Persediaan."
+          action={
+            <Button variant="primary" size="sm" icon={Plus} onClick={() => nav('/persediaan')}>
+              Tambah barang
+            </Button>
+          }
+        />
+      ) : (
+        <div className="integ-rows">
+          <div>
+            <span>Nilai stok</span>
+            <Money value={value} />
+          </div>
+          <div>
+            <span>SKU aktif</span>
+            <strong className="num">{skus}</strong>
+          </div>
+          <div>
+            <span>Stok rendah</span>
+            <strong className={`num ${low.length ? 'neg' : ''}`}>{low.length}</strong>
+          </div>
+        </div>
+      )}
+    </WCard>
+  );
+}
+
+/** Alias untuk kompatibilitas galeri/widget lama. */
+export const StockWidget = StockSummaryWidget;

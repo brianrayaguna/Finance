@@ -29,7 +29,7 @@ export function notify(message: string, historyId: string | null | undefined, op
   toast(message, {
     tone: opts.tone ?? 'success',
     detail: opts.detail,
-    duration: 5200,
+    duration: 4200,
     action: historyId
       ? {
           label: 'Urungkan',

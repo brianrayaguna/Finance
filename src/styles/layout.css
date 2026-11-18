@@ -6,6 +6,7 @@
 .app {
   --sw: var(--sidebar-w);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 .app.collapsed {
   --sw: var(--sidebar-w-collapsed);

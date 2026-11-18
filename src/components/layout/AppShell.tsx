@@ -1,13 +1,13 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
-import { LayoutGrid, ArrowLeftRight, Wallet, FileChartColumn, Plus } from '../../lib/glyphs';
+import { Plus } from '../../lib/glyphs';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { usePrefs, useUI } from '../../store/ui';
 import { useNarrow } from '../../hooks/useApp';
 import { useGlobalHotkeys } from '../../app/hotkeys';
-import { navLabel } from '../../app/nav';
+import { navLabel, resolveTabBar } from '../../app/nav';
 import { useLayer } from '../../lib/layers';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -105,56 +105,42 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-/** Navigasi bawah untuk layar ponsel: halaman utama + tombol catat melayang */
+/** Navigasi bawah untuk layar ponsel: 4 slot dari prefs + tombol catat melayang */
 function TabBar({ inert }: { inert?: boolean }) {
   const openTx = useUI((s) => s.openTx);
+  const navPrefs = usePrefs((s) => s.nav);
+  const tabs = resolveTabBar(navPrefs);
   return (
     <nav className="tabbar no-print" aria-label="Menu bawah" inert={inert ? true : undefined}>
-      <NavLink to="/" end className="tab">
-        {({ isActive }) => (
-          <>
-            <span className="tab-ico" aria-hidden>
-              <LayoutGrid solid={isActive} />
-            </span>
-            <span>Ringkasan</span>
-          </>
-        )}
-      </NavLink>
-      <NavLink to="/transaksi" className="tab">
-        {({ isActive }) => (
-          <>
-            <span className="tab-ico" aria-hidden>
-              <ArrowLeftRight solid={isActive} />
-            </span>
-            <span>Transaksi</span>
-          </>
-        )}
-      </NavLink>
+      {tabs.slice(0, 2).map((t, i) => (
+        <NavLink key={`t${i}-${t.to}`} to={t.to} end={t.to === '/'} className="tab">
+          {({ isActive }) => (
+            <>
+              <span className="tab-ico" aria-hidden>
+                <t.icon solid={isActive} />
+              </span>
+              <span>{t.label}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
       <button type="button" className="tab tab-add" onClick={() => openTx()} aria-label="Catat transaksi">
         <span className="tab-fab" aria-hidden>
           <Plus />
         </span>
       </button>
-      <NavLink to="/dompet" className="tab">
-        {({ isActive }) => (
-          <>
-            <span className="tab-ico" aria-hidden>
-              <Wallet solid={isActive} />
-            </span>
-            <span>Dompet</span>
-          </>
-        )}
-      </NavLink>
-      <NavLink to="/laporan" className="tab">
-        {({ isActive }) => (
-          <>
-            <span className="tab-ico" aria-hidden>
-              <FileChartColumn solid={isActive} />
-            </span>
-            <span>Laporan</span>
-          </>
-        )}
-      </NavLink>
+      {tabs.slice(2, 4).map((t, i) => (
+        <NavLink key={`t${i + 2}-${t.to}`} to={t.to} end={t.to === '/'} className="tab">
+          {({ isActive }) => (
+            <>
+              <span className="tab-ico" aria-hidden>
+                <t.icon solid={isActive} />
+              </span>
+              <span>{t.label}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
     </nav>
   );
 }
