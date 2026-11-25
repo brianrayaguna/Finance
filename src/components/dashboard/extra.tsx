@@ -337,7 +337,7 @@ export function DailyCashWidget({ settings }: WidgetProps) {
   const change = last.balance - (first.balance - first.inflow + first.outflow);
   return (
     <WCard>
-      <CardHead title="Saldo kas harian" sub={`Kas, bank & e-wallet selama ${days} hari terakhir`} to="/dompet" link="Dompet" />
+      <CardHead title="Saldo kas harian" sub={`Kas, bank & dompet digital selama ${days} hari terakhir`} to="/dompet" link="Dompet" />
       <div className="card-body">
         <div className="dc-stats">
           <div>
@@ -449,7 +449,7 @@ export function IntegrityWidget() {
           <div>
             <strong>{ok ? (warns.length ? 'Seimbang, ada catatan' : 'Buku seimbang') : 'Perlu diperiksa'}</strong>
             <span>
-              {errors.length} galat, {warns.length} peringatan
+              {errors.length} masalah, {warns.length} peringatan
             </span>
           </div>
         </div>

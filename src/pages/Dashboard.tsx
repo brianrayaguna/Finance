@@ -200,7 +200,7 @@ export default function Dashboard() {
             <EmptyState
               icon={LayoutDashboard}
               title="Dasbor kosong"
-              text="Semua widget disembunyikan. Tambahkan widget yang Anda perlukan atau kembalikan tata letak bawaan."
+              text="Semua panel disembunyikan. Tambahkan panel yang Anda perlukan atau kembalikan tata letak bawaan."
               action={
                 <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
                   <Button
@@ -211,7 +211,7 @@ export default function Dashboard() {
                       setGallery(true);
                     }}
                   >
-                    Tambah widget
+                    Tambah panel
                   </Button>
                   <Button icon={RotateCcw} onClick={() => (editing ? reset() : setLayout(() => defaultLayout()))}>
                     Tata letak bawaan

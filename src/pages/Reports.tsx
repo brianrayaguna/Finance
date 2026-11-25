@@ -272,7 +272,7 @@ const PACK_ITEMS: { key: string; label: string; group: string }[] = [
   { key: 'penutup', label: 'Jurnal Penutup', group: 'Pembukuan' },
   { key: 'buku-besar', label: 'Buku Besar', group: 'Pembukuan' },
   { key: 'transaksi', label: 'Daftar Transaksi', group: 'Data' },
-  { key: 'aset', label: 'Register Aset Tetap', group: 'Data' },
+  { key: 'aset', label: 'Daftar Aset Tetap', group: 'Data' },
   { key: 'bagan-akun', label: 'Bagan Akun', group: 'Data' },
 ];
 

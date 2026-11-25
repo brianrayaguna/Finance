@@ -85,7 +85,7 @@ export function AccountModal({
   const suggestedCode = editing ? editing.code : nextCode(accounts, subtype);
   const simple = usePrefs((s) => s.mode) === 'simple';
   const title =
-    kind === 'wallet' ? (editing ? 'Ubah Dompet' : 'Tambah Dompet') : kind === 'category' ? (editing ? 'Ubah Kategori' : 'Tambah Kategori') : editing ? 'Ubah Akun' : 'Tambah Akun';
+    kind === 'wallet' ? (editing ? 'Ubah dompet' : 'Tambah dompet') : kind === 'category' ? (editing ? 'Ubah kategori' : 'Tambah kategori') : editing ? 'Ubah akun' : 'Tambah akun';
 
   const onSubtype = (s: AccountSubtype) => {
     setSubtype(s);
@@ -224,7 +224,7 @@ export function AccountModal({
               </Field>
             </>
           )}
-          <Field label="Deskripsi" optional className="span-2">
+          <Field label="Keterangan" optional className="span-2">
             <TextInput value={description} onChange={setDescription} placeholder="Catatan singkat" data-field />
           </Field>
           <Field label="Warna" className="span-2">

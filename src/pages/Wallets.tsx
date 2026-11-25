@@ -159,7 +159,7 @@ export default function Wallets() {
         subtitle="Kas, bank, dompet digital, investasi, dan kartu kredit"
         actions={
           <Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>
-            Tambah akun
+            Tambah dompet
           </Button>
         }
       />
@@ -184,7 +184,7 @@ export default function Wallets() {
 
       {active.length === 0 ? (
         <div className="card">
-          <EmptyState icon={Wallet} title="Belum ada dompet" text="Tambahkan kas, rekening bank, atau dompet digital untuk mulai mencatat." action={<Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>Tambah akun</Button>} />
+          <EmptyState icon={Wallet} title="Belum ada dompet" text="Tambahkan kas, rekening bank, atau dompet digital untuk mulai mencatat." action={<Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>Tambah dompet</Button>} />
         </div>
       ) : (
         <div className="wallet-grid">
@@ -193,7 +193,7 @@ export default function Wallets() {
             .map(card)}
           <button type="button" className="add-tile in-grid" onClick={() => modal.openNew('wallet')}>
             <Plus />
-            <span>Tambah akun</span>
+            <span>Tambah dompet</span>
           </button>
         </div>
       )}

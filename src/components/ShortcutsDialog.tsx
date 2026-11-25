@@ -23,7 +23,7 @@ const GROUPS: { title: string; rows: [string, string[]][] }[] = [
       ['Cari & perintah', [MOD, 'K']],
       ['Urungkan', [MOD, 'Z']],
       ['Ulangi', [MOD, '⇧', 'Z']],
-      ['Ciutkan / tampilkan sidebar', [MOD, 'B']],
+      ['Ciutkan / tampilkan bilah sisi', [MOD, 'B']],
       ['Buka pengaturan', [MOD, ',']],
       ['Sembunyikan nominal', ['H']],
       ['Pintasan keyboard', ['?']],
@@ -36,7 +36,7 @@ const GROUPS: { title: string; rows: [string, string[]][] }[] = [
   {
     title: 'Formulir transaksi',
     rows: [
-      ['Pindah ke field berikutnya', ['↵']],
+      ['Pindah ke kolom berikutnya', ['↵']],
       ['Simpan', [MOD, '↵']],
       ['Simpan & catat lagi', [MOD, '⇧', '↵']],
       ['Ganti jenis transaksi', [ALT, '1–5']],

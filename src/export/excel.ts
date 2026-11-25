@@ -1240,7 +1240,7 @@ export async function exportPackage(b: Books, o: { from: string; to: string; com
   }
   if (include.has('aset')) {
     writeAssets(wb, ctx, b, to);
-    add('Aset Tetap', 'Register aset, akumulasi penyusutan, dan nilai buku');
+    add('Aset Tetap', 'Daftar aset, akumulasi penyusutan, dan nilai buku');
   }
   if (include.has('bagan-akun')) {
     writeCoa(wb, ctx, b, to);

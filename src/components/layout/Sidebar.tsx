@@ -383,13 +383,13 @@ export function Sidebar() {
       <div className="sb-head">
         {/* Merek di kiri & tombol ciut/tutup di kanan; saat desktop diciutkan, tombol buka digabung di logo */}
         {collapsed ? (
-          <Tooltip label="Buka sidebar" side="right">
+          <Tooltip label="Buka bilah sisi" side="right">
             <button
               type="button"
               className="brand-toggle"
               onClick={(e) => toggleHeader(e.detail === 0)}
               aria-expanded={false}
-              aria-label="Buka sidebar"
+              aria-label="Buka bilah sisi"
             >
               <LogoMark size={26} className="brand-mark" />
               <PanelLeftOpen className="brand-open-ico" aria-hidden />
@@ -401,13 +401,13 @@ export function Sidebar() {
               <LogoMark size={26} className="brand-mark" />
               <span className="brand-name">Keuanganku</span>
             </Link>
-            <Tooltip label={narrow ? 'Tutup menu' : 'Ciutkan sidebar'} side="bottom">
+            <Tooltip label={narrow ? 'Tutup menu' : 'Ciutkan bilah sisi'} side="bottom">
               <button
                 type="button"
                 className="sb-icon sb-toggle"
                 onClick={(e) => toggleHeader(e.detail === 0)}
                 aria-expanded={narrow ? mobileNav : true}
-                aria-label={narrow ? 'Tutup menu' : 'Ciutkan sidebar'}
+                aria-label={narrow ? 'Tutup menu' : 'Ciutkan bilah sisi'}
               >
                 {narrow ? <X aria-hidden /> : <PanelLeftClose aria-hidden />}
               </button>

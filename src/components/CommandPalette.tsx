@@ -146,7 +146,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       ['a-rec', 'Catat piutang baru', HandCoins, 'var(--tone-receivable)', () => openTx({ type: 'receivable_new' })],
       ...(simple ? [] : [['a-jrn', 'Buat jurnal umum', NotebookPen, 'var(--accent-ink)', () => openTx({ type: 'journal' })] as [string, string, Glyph, string, () => void]]),
       ['a-goal', 'Tambah target tabungan', Flag, 'var(--accent-ink)', () => nav('/anggaran#target')],
-      ['a-dash', 'Sesuaikan dasbor (widget & tata letak)', LayoutDashboard, 'var(--accent-ink)', () => nav('/?sesuaikan=1')],
+      ['a-dash', 'Sesuaikan dasbor (panel & tata letak)', LayoutDashboard, 'var(--accent-ink)', () => nav('/?sesuaikan=1')],
       ['a-xls', 'Ekspor laporan keuangan (Excel)', FileSpreadsheet, 'var(--pos)', () => nav('/laporan?ekspor=1')],
       [
         'a-mode',
@@ -157,7 +157,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       ],
       ['a-theme', prefs.theme === 'dark' ? 'Beralih ke tema terang' : 'Beralih ke tema gelap', prefs.theme === 'dark' ? Sun : Moon, 'var(--text-2)', () => prefs.set({ theme: prefs.theme === 'dark' ? 'light' : 'dark' })],
       ['a-priv', prefs.hideAmounts ? 'Tampilkan nominal' : 'Sembunyikan nominal', prefs.hideAmounts ? Eye : EyeOff, 'var(--text-2)', () => prefs.set({ hideAmounts: !prefs.hideAmounts })],
-      ['a-side', prefs.sidebarCollapsed ? 'Tampilkan sidebar' : 'Ciutkan sidebar', PanelLeft, 'var(--text-2)', () => prefs.set({ sidebarCollapsed: !prefs.sidebarCollapsed })],
+      ['a-side', prefs.sidebarCollapsed ? 'Tampilkan bilah sisi' : 'Ciutkan bilah sisi', PanelLeft, 'var(--text-2)', () => prefs.set({ sidebarCollapsed: !prefs.sidebarCollapsed })],
     ];
     for (const [id, title, I, c, run] of actions) {
       const s = match(title);

@@ -102,12 +102,12 @@ function NavSettings() {
                       <Star solid={isPinned} aria-hidden />
                     </button>
                   </Tooltip>
-                  <Tooltip label={it.to === '/' ? 'Ringkasan selalu tampil' : isHidden ? 'Tampilkan di sidebar' : 'Sembunyikan dari sidebar'}>
+                  <Tooltip label={it.to === '/' ? 'Ringkasan selalu tampil' : isHidden ? 'Tampilkan di bilah sisi' : 'Sembunyikan dari bilah sisi'}>
                     <button
                       type="button"
                       className="navset-btn"
                       aria-pressed={!isHidden}
-                      aria-label={`Tampilkan ${it.label} di sidebar`}
+                      aria-label={`Tampilkan ${it.label} di bilah sisi`}
                       onClick={() => toggle('hidden', it.to)}
                       disabled={it.to === '/'}
                     >
@@ -420,7 +420,7 @@ export default function Settings() {
             <SectionHead title="Profil & buku" desc="Nama tampil di bilah sisi; nama buku tampil di kop setiap laporan." />
             <div className="set-body grid-3" data-form>
               <Field label="Nama Anda">
-                <TextInput value={name} onChange={setName} placeholder="mis. Brian" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
+                <TextInput value={name} onChange={setName} placeholder="Nama lengkap" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
               </Field>
               <Field label="Nama buku / entitas" hint="Tampil di kop setiap laporan">
                 <TextInput value={entity} onChange={setEntity} placeholder="Keuangan pribadi" data-field onKeyDown={(e) => !isImeComposing(e) && e.key === 'Enter' && dirty && saveProfile()} />
@@ -542,7 +542,7 @@ export default function Settings() {
               </Row>
               <Row
                 title="Mode hemat"
-                desc={`Tanpa efek kaca dan animasi grafik agar tetap lancar di HP spek rendah. Otomatis: ${isLowEndDevice() ? 'aktif di perangkat ini' : 'tidak aktif di perangkat ini'}`}
+                desc={`Tanpa efek kaca dan animasi grafik agar tetap lancar di perangkat dengan memori terbatas. Otomatis: ${isLowEndDevice() ? 'aktif di perangkat ini' : 'tidak aktif di perangkat ini'}`}
               >
                 <Segmented
                   size="sm"
@@ -564,7 +564,7 @@ export default function Settings() {
               <Row title="Angka ringkas" desc="Tampilkan Rp 1,25 jt alih-alih Rp 1.250.000 pada kartu dan daftar yang sempit">
                 <Switch checked={prefs.compactNumbers} onChange={(v) => prefs.set({ compactNumbers: v })} label="Angka ringkas" />
               </Row>
-              <Row title="Sesuaikan dasbor" desc="Susun, ubah ukuran, atau sembunyikan widget di halaman Ringkasan">
+              <Row title="Sesuaikan dasbor" desc="Susun, ubah ukuran, atau sembunyikan panel di halaman Ringkasan">
                 <Button icon={LayoutDashboard} onClick={() => navigate('/?sesuaikan=1')}>
                   Sesuaikan
                 </Button>
@@ -631,7 +631,7 @@ export default function Settings() {
 
           {active === 'data' && (
           <section id="set-data" className="card set-card">
-            <SectionHead title="Data & cadangan" desc="Data tersimpan di peramban ini. Cadangkan secara berkala." />
+            <SectionHead title="Data & cadangan" desc="Data tersimpan secara lokal di perangkat ini. Cadangkan secara berkala." />
             <div className="set-body">
               <div className="storage-info">
                 <HardDrive size={18} />
@@ -684,7 +684,7 @@ export default function Settings() {
                 <LogoMark size={46} />
                 <div>
                   <div className="wordmark">Keuanganku</div>
-                  <p>Versi {APP_VERSION}. Pembukuan double-entry yang berjalan sepenuhnya di peramban Anda.</p>
+                  <p>Versi {APP_VERSION}. Pembukuan berpasangan yang berjalan sepenuhnya di perangkat Anda.</p>
                   <p>
                     <a className="link" href="https://www.flaticon.com/uicons" target="_blank" rel="noopener noreferrer">
                       Uicons by Flaticon

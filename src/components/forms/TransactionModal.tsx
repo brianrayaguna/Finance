@@ -455,7 +455,7 @@ function TransactionModal({
       description: d.description.trim() || undefined,
     });
     if (!historyId) return;
-    notify(`${template.name} disimpan ke favorit`, historyId, { detail: 'Catat ulang dari tombol Catat atau widget Favorit' });
+    notify(`${template.name} disimpan ke favorit`, historyId, { detail: 'Catat ulang dari tombol Catat atau panel Favorit' });
   };
 
   const submit = (then: 'close' | 'new') => {
@@ -744,7 +744,7 @@ function TransactionModal({
           )}
           {(d.mode === 'expense' || d.mode === 'income') && (showRefund || d.refund) && (
             <Field
-              label={d.mode === 'income' ? 'Pengembalian dana (refund)' : 'Pengembalian pendapatan'}
+              label={d.mode === 'income' ? 'Pengembalian dana' : 'Pengembalian pendapatan'}
               hint={
                 d.mode === 'income'
                   ? 'Untuk uang belanja yang dikembalikan. Mengurangi beban, bukan menambah pendapatan.'

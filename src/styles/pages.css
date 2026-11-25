@@ -1170,7 +1170,7 @@
   position: sticky;
   top: calc(var(--topbar-total) + 16px);
   padding: 18px;
-  max-height: calc(100vh - var(--topbar-h) - 40px);
+  max-height: calc(100vh - var(--topbar-total) - 40px);
   overflow-y: auto;
 }
 .cs-head {

@@ -440,7 +440,7 @@ export function WalletsWidget({ settings }: WidgetProps) {
         {wallets.length <= 1 && (
           <Link to="/dompet" className="dash-empty-row">
             <span className="row" style={{ gap: 8 }}>
-              <Wallet size={15} aria-hidden /> Tambahkan rekening bank atau e-wallet
+              <Wallet size={15} aria-hidden /> Tambahkan rekening bank atau dompet digital
             </span>
             <ChevronRight size={15} aria-hidden />
           </Link>

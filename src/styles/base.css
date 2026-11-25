@@ -343,7 +343,9 @@ textarea:focus-visible {
    ber-backdrop-filter dihitung ulang setiap frame saat menggulir — sumber utama gulir patah-patah di
    WebView Android. Token --glass disamakan dengan --canvas agar latar topbar solid 100%. */
 @media (pointer: coarse), (max-width: 960px) {
-  :root {
+  :root,
+  :root[data-theme='light'],
+  :root[data-theme='dark'] {
     --glass: var(--canvas);
   }
   *,

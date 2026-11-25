@@ -302,11 +302,11 @@ export function EditBar({ onGallery, onCancel, onDone, dirty }: { onGallery: () 
       </span>
       <div className="deb-text">
         <strong>Menyesuaikan dasbor</strong>
-        <span>Seret ⠿ untuk memindahkan, ubah ukuran, atur, atau sembunyikan widget.</span>
+        <span>Seret ⠿ untuk memindahkan, ubah ukuran, atur, atau sembunyikan panel.</span>
       </div>
       <span className="spacer" />
       <Button icon={Plus} onClick={onGallery}>
-        Tambah widget
+        Tambah panel
       </Button>
       <Button variant="ghost" onClick={onCancel}>
         {dirty ? 'Batalkan' : 'Tutup'}
@@ -341,14 +341,14 @@ export function GallerySheet({
 }) {
   const shown = new Set(layout.order);
   return (
-    <Sheet open={open} onClose={onClose} width={460} ariaLabel="Galeri widget">
+    <Sheet open={open} onClose={onClose} width={460} ariaLabel="Galeri panel">
       <div className="gal">
         <div className="dsh-head">
           <IconTile icon={LayoutDashboard} color="var(--accent-ink)" solid />
           <div className="grow" style={{ minWidth: 0 }}>
-            <div className="modal-title">Widget & tata letak</div>
+            <div className="modal-title">Panel & tata letak</div>
             <div className="muted" style={{ fontSize: 13 }}>
-              {layout.order.length} dari {Object.keys(WIDGETS).length} widget ditampilkan
+              {layout.order.length} dari {Object.keys(WIDGETS).length} panel ditampilkan
             </div>
           </div>
           <button type="button" className="close-btn" onClick={onClose} aria-label="Tutup">

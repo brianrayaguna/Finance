@@ -12,5 +12,5 @@ export const REPORTS: { key: ReportKey; label: string; desc: string; icon: Glyph
   { key: 'rasio', label: 'Rasio Keuangan', desc: 'Likuiditas, solvabilitas, profitabilitas', icon: Gauge, compare: false },
   { key: 'umur-piutang', label: 'Umur Piutang', desc: 'Analisis jatuh tempo piutang', icon: HandCoins, compare: false },
   { key: 'umur-hutang', label: 'Umur Hutang', desc: 'Analisis jatuh tempo hutang', icon: Handshake, compare: false },
-  { key: 'anggaran', label: 'Anggaran vs Realisasi', desc: 'Varians per kategori', icon: Target, compare: false },
+  { key: 'anggaran', label: 'Anggaran vs Realisasi', desc: 'Selisih anggaran & realisasi', icon: Target, compare: false },
 ];

@@ -43,10 +43,10 @@ export const NAV: NavSection[] = [
     id: 'keuangan',
     section: 'Keuangan',
     items: [
-      { to: '/dompet', label: 'Dompet & Rekening', icon: Wallet, hotkey: '4', desc: 'Saldo kas, bank, e-wallet' },
-      { to: '/anggaran', label: 'Anggaran', icon: Target, hotkey: '5', desc: 'Batas beban bulanan' },
+      { to: '/dompet', label: 'Dompet & Rekening', icon: Wallet, hotkey: '4', desc: 'Saldo kas, bank, dompet digital' },
+      { to: '/anggaran', label: 'Anggaran', icon: Target, hotkey: '5', desc: 'Batas pengeluaran & pembayaran hutang' },
       { to: '/hutang-piutang', label: 'Hutang & Piutang', icon: HandCoins, hotkey: '6', desc: 'Jadwal & jatuh tempo' },
-      { to: '/aset', label: 'Aset Tetap', icon: Building2, desc: 'Register & penyusutan' },
+      { to: '/aset', label: 'Aset Tetap', icon: Building2, desc: 'Daftar aset & penyusutan' },
     ],
   },
   {

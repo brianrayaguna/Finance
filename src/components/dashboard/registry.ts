@@ -224,7 +224,7 @@ export const WIDGETS: Record<WidgetId, WidgetMeta> = {
   },
   dailycash: {
     title: 'Saldo kas harian',
-    desc: 'Pergerakan kas, bank & e-wallet per hari',
+    desc: 'Pergerakan kas, bank & dompet digital per hari',
     icon: ChartLine,
     group: 'Ringkasan',
     settings: [

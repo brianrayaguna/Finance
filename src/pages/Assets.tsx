@@ -71,7 +71,7 @@ export default function Assets() {
     <div>
       <PageHeader
         title="Aset Tetap"
-        subtitle="Register aset dengan penyusutan otomatis setiap akhir bulan"
+        subtitle="Daftar aset dengan penyusutan otomatis setiap akhir bulan"
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setModal({})}>
             Tambah aset
@@ -355,7 +355,7 @@ function AssetModal({ editing, onClose }: { editing?: FixedAsset; onClose: () =>
             <Field label="Umur ekonomis (bulan)" error={tried && errs.life} hint={lifeN ? lifeLabel(lifeN) : undefined}>
               <TextInput value={life} onChange={(v) => setLife(v.replace(/\D/g, '').slice(0, 3))} inputMode="numeric" data-field className="num" suffix="bulan" invalid={tried && !!errs.life} />
             </Field>
-            <Field label="Preset umur">
+            <Field label="Pilihan umur">
               <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                 {[24, 48, 60, 96, 240].map((m) => (
                   <button key={m} type="button" className="chip" aria-pressed={lifeN === m} onClick={() => setLife(String(m))}>
