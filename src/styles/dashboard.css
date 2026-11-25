@@ -78,7 +78,7 @@
 .attention-title {
   overflow: hidden;
   font-size: var(--fs-md);
-  font-weight: 620;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -217,7 +217,7 @@
 }
 .kpi-note.link {
   color: var(--accent-ink);
-  font-weight: 620;
+  font-weight: 600;
 }
 .kpi-note.link:hover {
   text-decoration: underline;
@@ -253,7 +253,7 @@
 /* ───────── Mode sesuaikan ───────── */
 .dash-editbar {
   position: sticky;
-  top: calc(var(--topbar-h) + 8px);
+  top: calc(var(--topbar-total) + 8px);
   z-index: 40;
   display: flex;
   align-items: center;
@@ -288,7 +288,7 @@
 }
 .deb-text strong {
   font-size: var(--fs-md);
-  font-weight: 680;
+  font-weight: 700;
 }
 .deb-text span {
   font-size: var(--fs-sm);
@@ -378,7 +378,7 @@ body.dragging-widget * {
   min-width: 0;
   padding: 0 4px;
   font-size: var(--fs-sm);
-  font-weight: 650;
+  font-weight: 600;
 }
 .w-tool {
   display: inline-flex;
@@ -423,7 +423,7 @@ body.dragging-widget * {
 }
 .wset-title {
   font-size: var(--fs-md);
-  font-weight: 680;
+  font-weight: 700;
 }
 .wset-row {
   display: flex;
@@ -436,15 +436,15 @@ body.dragging-widget * {
   align-items: stretch;
   gap: 7px;
 }
-.wset-row.col .segmented {
+.wset-row.col .seg {
   width: 100%;
 }
-.wset-row.col .segmented > * {
+.wset-row.col .seg > * {
   flex: 1;
 }
 .wset-label {
   font-size: var(--fs-sm);
-  font-weight: 580;
+  font-weight: 600;
   color: var(--text-2);
 }
 label.wset-row {
@@ -482,7 +482,7 @@ label.wset-row {
 .gal-preset strong {
   margin-top: 4px;
   font-size: var(--fs-sm);
-  font-weight: 680;
+  font-weight: 700;
 }
 .gal-preset span:not(.gal-thumb) {
   font-size: var(--fs-xs);
@@ -540,7 +540,7 @@ label.wset-row {
 }
 .gal-name {
   font-size: var(--fs-md);
-  font-weight: 620;
+  font-weight: 600;
 }
 .gal-desc {
   font-size: var(--fs-xs);
@@ -601,10 +601,10 @@ label.wset-row {
   align-items: baseline;
   gap: 8px;
   font-size: var(--fs-sm);
-  font-weight: 580;
+  font-weight: 600;
 }
 .tc-top .money-val {
-  font-weight: 650;
+  font-weight: 600;
 }
 .tc-bar {
   display: block;
@@ -627,7 +627,7 @@ label.wset-row {
   gap: 1px;
   min-width: 52px;
   font-size: var(--fs-xs);
-  font-weight: 650;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .tc-delta .fi {
@@ -666,7 +666,7 @@ label.wset-row {
 .hm-week span {
   text-align: center;
   font-size: var(--fs-xs);
-  font-weight: 650;
+  font-weight: 600;
   color: var(--text-3);
 }
 .hm-week .wkend {
@@ -781,7 +781,7 @@ button.hm-cell:hover {
 }
 .fav-name {
   font-size: var(--fs-sm);
-  font-weight: 620;
+  font-weight: 600;
 }
 .fav-amt {
   font-size: var(--fs-xs);
@@ -854,11 +854,11 @@ button.hm-cell:hover {
   flex: 1;
   min-width: 0;
   font-size: var(--fs-md);
-  font-weight: 620;
+  font-weight: 600;
 }
 .goal-amt {
   font-size: var(--fs-sm);
-  font-weight: 620;
+  font-weight: 600;
   white-space: nowrap;
 }
 .goal-sub {
@@ -951,7 +951,7 @@ button.hm-cell:hover {
 }
 .dc-stats strong {
   font-size: var(--fs-md);
-  font-weight: 680;
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1041,7 +1041,7 @@ a.ins:hover {
 }
 .integ-status strong {
   font-size: var(--fs-md);
-  font-weight: 680;
+  font-weight: 700;
 }
 .integ-status span {
   font-size: var(--fs-xs);
@@ -1100,7 +1100,7 @@ a.ins:hover {
 
 @container dash (max-width: 640px) {
   .dash-editbar {
-    top: calc(var(--topbar-h) + 6px);
+    top: calc(var(--topbar-total) + 6px);
   }
   .dash-editbar .deb-text {
     flex-basis: calc(100% - 50px);

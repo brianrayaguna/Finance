@@ -38,7 +38,7 @@ export const ICONS: Record<string, Glyph> = {
   'graduation-cap': GraduationCap, 'book-open': BookOpen, school: School, library: Library, pen: Pen,
   laptop: Laptop, monitor: Monitor, code: Code, cpu: Cpu, headphones: Headphones, camera: Camera,
   gamepad: Gamepad2, film: Film, music: Music, popcorn: Popcorn, ticket: Ticket, 'tree-palm': TreePalm,
-  mountain: Mountain, tent: Tent, party: PartyPopper, guitar: Guitar, dices: Dices,
+  mountain: Mountain, tent: Tent, party: PartyPopper, 'party-popper': PartyPopper, guitar: Guitar, dices: Dices,
   baby: Baby, 'toy-brick': ToyBrick, users: Users, dog: Dog, cat: Cat, 'paw-print': PawPrint, heart: Heart,
   church: Church, 'hand-helping': HandHelping, flower: Flower, leaf: Leaf, sprout: Sprout,
   shield: Shield, umbrella: Umbrella, scale: Scale, gov: Gov, spreadsheet: FileSpreadsheet, calculator: Calculator,
@@ -85,7 +85,7 @@ export const ICON_GROUPS: { label: string; icons: string[] }[] = [
   },
   {
     label: 'Hiburan',
-    icons: ['gamepad', 'film', 'music', 'popcorn', 'ticket', 'tree-palm', 'mountain', 'tent', 'party', 'guitar',
+    icons: ['gamepad', 'film', 'music', 'popcorn', 'ticket', 'tree-palm', 'mountain', 'tent', 'party-popper', 'guitar',
       'dices', 'star', 'crown', 'medal'],
   },
   {
@@ -148,7 +148,7 @@ export function remapColor(c: string | undefined): string | undefined {
 }
 
 /** Nama ikon yang dipetakan ke ikon lain saat data dimuat. */
-const LEGACY_ICONS: Record<string, string> = { sparkles: 'coins' };
+const LEGACY_ICONS: Record<string, string> = { sparkles: 'coins', party: 'party-popper' };
 
 export function remapIcon(i: string | undefined): string | undefined {
   if (!i) return i;

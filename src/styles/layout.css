@@ -233,7 +233,7 @@
   gap: 4px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
-  font-weight: 560;
+  font-weight: 500;
   letter-spacing: 0.005em;
   text-align: left;
   color: var(--text-3);
@@ -269,7 +269,7 @@
   display: grid;
   place-items: center;
   font-size: var(--fs-xs);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
   color: var(--neg);
@@ -277,7 +277,7 @@
 }
 .sb-label-num {
   font-size: var(--fs-xs);
-  font-weight: 560;
+  font-weight: 500;
   color: var(--text-3);
   letter-spacing: -0.01em;
 }
@@ -317,7 +317,7 @@
   margin: 2px 0;
   border-radius: var(--radius-pill);
   font-size: var(--fs-md);
-  font-weight: 560;
+  font-weight: 500;
   color: var(--text-2);
   white-space: nowrap;
   isolation: isolate;
@@ -344,7 +344,7 @@
 }
 .sb-item.active {
   color: var(--on-accent);
-  font-weight: 650;
+  font-weight: 600;
 }
 .sb-item.active .sb-ico {
   color: inherit;
@@ -375,7 +375,7 @@
   display: grid;
   place-items: center;
   font-size: var(--fs-xs);
-  font-weight: 650;
+  font-weight: 600;
   color: var(--neg);
   background: var(--neg-soft);
   font-variant-numeric: tabular-nums;
@@ -421,7 +421,7 @@
 }
 .sb-acct-val {
   font-size: var(--fs-sm);
-  font-weight: 560;
+  font-weight: 500;
   color: var(--text-2);
   white-space: nowrap;
 }
@@ -468,7 +468,7 @@
   display: grid;
   place-items: center;
   font-size: var(--fs-xs);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--on-accent);
   background: var(--accent);
@@ -694,8 +694,8 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  height: var(--topbar-h);
-  padding: 0 var(--page-x);
+  height: var(--topbar-total);
+  padding: var(--safe-top) calc(var(--page-x) + var(--safe-right)) 0 calc(var(--page-x) + var(--safe-left));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -737,7 +737,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .tb-logo:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
 }
 .tb-left {
@@ -920,7 +920,7 @@
 }
 .rem-item strong {
   font-size: var(--fs-sm);
-  font-weight: 620;
+  font-weight: 600;
   color: var(--text);
 }
 .rem-item[data-tone='neg'] .rem-when {
@@ -966,11 +966,14 @@
   color: var(--text-2);
   transition: background var(--dur-1), color var(--dur-1), transform var(--dur-1);
 }
-.tb-btn:hover:not(:disabled) {
-  background: var(--fill-2);
-  color: var(--text);
+@media (hover: hover) {
+  .tb-btn:hover:not(:disabled) {
+    background: var(--fill-2);
+    color: var(--text);
+  }
 }
 .tb-btn:active:not(:disabled) {
+  background: var(--fill-2);
   transform: scale(0.92);
 }
 .tb-btn:disabled {
@@ -994,8 +997,10 @@
   font-size: var(--icon-sm);
   transition: transform var(--dur-3) var(--ease-spring);
 }
-.tb-cta:hover .fi {
-  transform: rotate(90deg);
+@media (hover: hover) {
+  .tb-cta:hover .fi {
+    transform: rotate(90deg);
+  }
 }
 .tb-sep {
   width: 1px;
@@ -1061,7 +1066,7 @@
 .section-head h2,
 .section-head h3 {
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.012em;
 }
 .section-head .muted {
@@ -1115,6 +1120,7 @@
     --sw: min(300px, 86vw);
   }
   .sidebar {
+    padding-top: var(--safe-top);
     transform: translateX(calc(-100% - 12px));
     box-shadow: var(--shadow-lg);
     border-right: 0;
@@ -1130,7 +1136,7 @@
     opacity: 1;
   }
   .sb-foot {
-    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    padding-bottom: calc(10px + var(--safe-bottom));
   }
   .main {
     margin-left: 0;
@@ -1225,7 +1231,7 @@
     font-size: 20px;
   }
   .page {
-    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    padding-bottom: calc(104px + var(--safe-bottom));
   }
   /* Ringkasan: tanggal di bilah atas, tanpa judul besar & tanpa ikon mata */
   .tb-privacy {
@@ -1376,8 +1382,8 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     align-items: end;
-    height: calc(56px + env(safe-area-inset-bottom));
-    padding: 0 6px env(safe-area-inset-bottom);
+    height: calc(56px + var(--safe-bottom));
+    padding: 0 6px var(--safe-bottom);
     background: color-mix(in srgb, var(--surface) 90%, transparent);
     backdrop-filter: blur(18px) saturate(180%);
     -webkit-backdrop-filter: blur(18px) saturate(180%);
@@ -1436,11 +1442,11 @@
   }
   .toast-stack,
   .toast-stack[popover] {
-    bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(70px + var(--safe-bottom)) !important;
   }
   /* Bilah aksi massal duduk di atas tab bar, bukan menutupinya */
   .bulk-bar.bulk-bar {
-    bottom: calc(68px + env(safe-area-inset-bottom));
+    bottom: calc(68px + var(--safe-bottom));
     max-width: calc(100vw - 16px);
   }
 }

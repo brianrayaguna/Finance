@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { useData } from '../store/data';
 import { usePrefs } from '../store/ui';
 import { getBooks } from '../accounting/reports';
@@ -44,6 +45,10 @@ export function useThemeSync() {
       root.style.colorScheme = dark ? 'dark' : 'light';
       const meta = document.querySelectorAll('meta[name="theme-color"]');
       meta.forEach((m) => m.setAttribute('content', dark ? '#0B0C0A' : '#F5F5F7'));
+      if (Capacitor.isNativePlatform()) {
+        // Dark = ikon terang di latar gelap; Light = ikon gelap di latar terang.
+        void SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => {});
+      }
     };
     apply();
     mq.addEventListener('change', apply);

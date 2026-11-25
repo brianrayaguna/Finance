@@ -179,7 +179,7 @@
 }
 .card-title {
   font-size: var(--fs-md);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.014em;
 }
 .card-sub {
@@ -192,7 +192,7 @@
 }
 .card-link {
   font-size: var(--fs-sm);
-  font-weight: 620;
+  font-weight: 600;
   color: var(--accent-ink);
   display: inline-flex;
   align-items: center;
@@ -229,16 +229,27 @@
 }
 .field-label {
   font-size: var(--fs-sm);
-  font-weight: 620;
+  font-weight: 600;
   color: var(--text-2);
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .field-label .opt {
-  color: var(--text-3) !important;
+  color: var(--text-3);
   font-weight: 500;
-  color: var(--text-4);
+}
+.ac-kbd-hint {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.tip-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
 }
 .field-hint {
   font-size: var(--fs-xs);
@@ -305,7 +316,7 @@
 .input-affix {
   font-size: var(--fs-sm);
   color: var(--text-3);
-  font-weight: 520;
+  font-weight: 500;
   flex: none;
 }
 .input-textarea {
@@ -391,7 +402,7 @@
   right: 14px;
   bottom: -9px;
   font-size: var(--fs-xs);
-  font-weight: 620;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
   color: var(--accent-ink);
@@ -448,7 +459,7 @@
   width: auto;
   height: calc(var(--ctl-h) - 2px);
   font-size: var(--fs-sm);
-  font-weight: 540;
+  font-weight: 500;
   padding: 0 11px 0 14px;
   gap: 7px;
   border-radius: var(--radius-pill);
@@ -836,7 +847,7 @@ dialog[open] > .popover {
 }
 .modal-title {
   font-size: 22px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.024em;
   line-height: 1.2;
 }
@@ -881,11 +892,14 @@ dialog[open] > .popover {
   flex: none;
   transition: background var(--dur-1), color var(--dur-1), transform var(--dur-1);
 }
-.close-btn:hover {
-  background: var(--fill-2);
-  color: var(--text);
+@media (hover: hover) {
+  .close-btn:hover {
+    background: var(--fill-2);
+    color: var(--text);
+  }
 }
 .close-btn:active {
+  background: var(--fill-2);
   transform: scale(0.92);
 }
 .close-btn .fi {
@@ -895,7 +909,7 @@ dialog[open] > .popover {
 @media (max-width: 560px) {
   .modal-dialog[open],
   .modal-root {
-    padding: 8px;
+    padding: max(8px, var(--safe-top)) 8px 8px;
     place-items: end center;
   }
   .modal {
@@ -909,8 +923,8 @@ dialog[open] > .popover {
   .modal-lg,
   .modal-xl {
     width: 100%;
-    max-height: calc(100vh - 16px);
-    max-height: calc(100dvh - 16px);
+    max-height: calc(100vh - max(8px, var(--safe-top)) - 8px);
+    max-height: calc(100dvh - max(8px, var(--safe-top)) - 8px);
     border-radius: var(--radius-lg);
   }
   .modal-head {
@@ -920,7 +934,7 @@ dialog[open] > .popover {
     padding: 4px 18px 18px;
   }
   .modal-foot {
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    padding: 12px 14px calc(12px + var(--safe-bottom));
   }
   .modal-foot .hint {
     display: none;
@@ -962,9 +976,9 @@ dialog[open] > .popover {
 }
 .sheet {
   position: fixed;
-  top: 10px;
-  right: 10px;
-  bottom: max(10px, env(safe-area-inset-bottom));
+  top: max(10px, var(--safe-top));
+  right: max(10px, var(--safe-right));
+  bottom: max(10px, var(--safe-bottom));
   width: min(480px, calc(100vw - 20px));
   display: flex;
   flex-direction: column;
@@ -1005,7 +1019,7 @@ dialog[open] > .popover {
   padding: 0 14px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
-  font-weight: 580;
+  font-weight: 600;
   color: var(--text-2);
   white-space: nowrap;
   transition: color var(--dur-2) var(--ease);
@@ -1019,7 +1033,7 @@ dialog[open] > .popover {
 }
 .seg-item[aria-selected='true'] {
   color: var(--text);
-  font-weight: 650;
+  font-weight: 600;
 }
 .seg-item:focus-visible {
   box-shadow: var(--focus-ring);
@@ -1119,7 +1133,7 @@ dialog[open] > .popover {
   padding: 0 8px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-xs);
-  font-weight: 620;
+  font-weight: 600;
   white-space: nowrap;
   background: var(--fill-2);
   color: var(--text-2);
@@ -1164,7 +1178,7 @@ dialog[open] > .popover {
   padding: 0 12px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
-  font-weight: 580;
+  font-weight: 600;
   color: var(--text-2);
   background: var(--fill-2);
   transition: background-color var(--dur-1) var(--ease), color var(--dur-1) var(--ease), transform var(--dur-1);
@@ -1251,7 +1265,7 @@ dialog[open] > .popover {
   padding: 6px 9px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
-  font-weight: 560;
+  font-weight: 500;
   color: var(--text-inverse);
   background: var(--text);
   box-shadow: var(--shadow-pop);
@@ -1280,7 +1294,7 @@ dialog[open] > .popover {
   position: fixed;
   z-index: 1300;
   left: 50%;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(24px + var(--safe-bottom));
   transform: translateX(-50%);
   display: flex;
   flex-direction: column-reverse;
@@ -1292,7 +1306,7 @@ dialog[open] > .popover {
 .toast-stack[popover] {
   top: auto;
   right: auto;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(24px + var(--safe-bottom));
   left: 50%;
   margin: 0;
   border: 0;
@@ -1316,7 +1330,7 @@ dialog[open] > .popover {
   color: #f5f7f2;
   box-shadow: var(--shadow-lg);
   font-size: var(--fs-md);
-  font-weight: 540;
+  font-weight: 500;
 }
 :root[data-theme='dark'] .toast {
   background: var(--surface-3);
@@ -1344,14 +1358,14 @@ dialog[open] > .popover {
   display: block;
   font-size: var(--fs-xs);
   color: rgba(245, 245, 244, 0.78);
-  font-weight: 450;
+  font-weight: 400;
 }
 .toast .t-action {
   height: 30px;
   padding: 0 14px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
-  font-weight: 650;
+  font-weight: 600;
   color: #fff;
   background: rgba(255, 255, 255, 0.14);
   transition: background var(--dur-1);
@@ -1430,7 +1444,7 @@ dialog[open] > .popover {
   height: 40px;
   padding: 0 14px;
   font-size: var(--fs-xs);
-  font-weight: 680;
+  font-weight: 700;
   letter-spacing: -0.003em;
   color: var(--text-3);
   text-align: left;
@@ -1504,7 +1518,7 @@ dialog[open] > .popover {
 .empty h2,
 .empty h3 {
   font-size: 19px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .empty p {
@@ -1609,7 +1623,7 @@ dialog[open] > .popover {
 }
 .label-caps {
   font-size: var(--fs-xs);
-  font-weight: 680;
+  font-weight: 700;
   letter-spacing: -0.003em;
   color: var(--text-3);
 }
@@ -1622,7 +1636,7 @@ dialog[open] > .popover {
 }
 .link {
   color: var(--accent-ink);
-  font-weight: 620;
+  font-weight: 600;
 }
 .link:hover {
   text-decoration: underline;
@@ -1774,7 +1788,7 @@ dialog[open] > .popover {
 }
 .error-title {
   font-size: 19px;
-  font-weight: 660;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 .error-desc {
