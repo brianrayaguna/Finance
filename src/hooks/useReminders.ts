@@ -85,13 +85,15 @@ export function computeReminders(data: AppData, today: string): Omit<Reminders, 
       to: '/hutang-piutang',
     });
   }
-  const over = budgetVsActual(getBooks(data), startOfMonth(today), endOfMonth(today), today).filter((l) => l.used > 1);
+  const over = budgetVsActual(getBooks(data), startOfMonth(today), endOfMonth(today), today).filter(
+    (l) => (l.kind === 'expense' || l.activeInPeriod) && l.used > 1,
+  );
   for (const l of over)
     items.push({
-      id: 'budget-' + l.account.id,
+      id: 'budget-' + l.key,
       tone: 'neg',
-      icon: l.account.icon,
-      title: `Anggaran ${l.account.name} terlampaui`,
+      icon: l.icon,
+      title: `Anggaran ${l.label} terlampaui`,
       detail: `Lebih ${formatMoney(-l.variance)} dari batas ${formatMoney(l.budget)}`,
       to: '/anggaran',
     });

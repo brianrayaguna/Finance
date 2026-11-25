@@ -174,10 +174,29 @@ function computeIntegrity(data: AppData): IntegrityIssue[] {
 
   // 5. Anggaran
   for (const bg of data.budgets) {
-    if (bg.kind === 'debt') continue;
+    if (bg.kind === 'debt') {
+      if (bg.debtId) {
+        const origin = ctx.txById.get(bg.debtId);
+        if (!origin || origin.type !== 'payable_new') {
+          issues.push({
+            level: 'warn',
+            code: 'budget-debt',
+            message: `Anggaran pembayaran hutang (${formatMoney(bg.amount)}/bulan) mengacu ke catatan hutang yang sudah tidak ada.`,
+          });
+        }
+      }
+      continue;
+    }
     const acc = bg.categoryId ? ctx.acc.get(bg.categoryId) : undefined;
-    if (!acc || acc.type !== 'expense')
-      issues.push({ level: 'warn', code: 'budget-account', message: `Ada anggaran untuk kategori yang bukan/tidak lagi berupa akun beban.` });
+    if (!acc || acc.type !== 'expense') {
+      issues.push({
+        level: 'warn',
+        code: 'budget-account',
+        message: acc
+          ? `Anggaran untuk "${acc.name}" (${acc.code}) bukan lagi berupa akun beban.`
+          : `Ada anggaran (${formatMoney(bg.amount)}/bulan) yang mengacu ke kategori beban yang sudah tidak ada.`,
+      });
+    }
   }
 
   // 6. Bagan akun

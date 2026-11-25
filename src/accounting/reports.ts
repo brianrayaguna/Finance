@@ -1075,85 +1075,70 @@ export function agingReport(data: AppData, kind: 'payable' | 'receivable', asOf:
 
 /* ───────── ANGGARAN ───────── */
 
-export interface BudgetLine {
-  budgetId?: string;
-  account: Account;
-  budget: number;
-  actual: number;
-  variance: number;
-  used: number;
-}
+import {
+  budgetVsActual,
+  budgetSummary,
+  type ExpenseBudgetLine,
+  type DebtBudgetLine,
+} from './budgets';
 
-function prorateMonths(from: string, to: string): number {
-  if (!from || !to || from > to) return 1;
-  const months = monthsBetween(from, to);
-  if (!months.length) return 1;
-  let total = 0;
-  for (const m of months) {
-    const ms = `${m}-01`;
-    const me = endOfMonth(ms);
-    if (from <= ms && to >= me) {
-      total += 1;
-      continue;
-    }
-    const dim = daysBetween(ms, me) + 1;
-    const s = from > ms ? from : ms;
-    const e = to < me ? to : me;
-    const overlap = Math.max(0, daysBetween(s, e) + 1);
-    total += overlap / dim;
-  }
-  return total || 1;
-}
-
-export function budgetVsActual(b: Books, from: string, to: string, actualTo = to): BudgetLine[] {
-  const months = prorateMonths(from, to);
-  const act = activity(b, from, actualTo);
-  const lines: BudgetLine[] = [];
-  const budgeted = new Set<string>();
-  for (const bg of b.data.budgets) {
-    if (bg.kind === 'debt' || !bg.categoryId) continue;
-    const a = b.acc.get(bg.categoryId);
-    if (!a) continue;
-    budgeted.add(a.id);
-    const x = act.get(a.id);
-    const actual = round2(x ? x.d - x.c : 0);
-    const budget = round2(bg.amount * months);
-    lines.push({ budgetId: bg.id, account: a, budget, actual, variance: round2(budget - actual), used: budget ? actual / budget : 0 });
-  }
-  return lines.sort((x, y) => y.used - x.used);
-}
+export {
+  budgetVsActual,
+  budgetSummary,
+  budgetBreakdown,
+  budgetThreeMonthAverage,
+  budgetStatus,
+  matchesDebtPaymentBudget,
+  type BudgetLine,
+  type ExpenseBudgetLine,
+  type DebtBudgetLine,
+  type BudgetSummary,
+  type BudgetBreakdownItem,
+  type BudgetStatusCode,
+} from './budgets';
 
 export function budgetReport(b: Books, p: Period, _entityName: string): Report {
-  const lines = budgetVsActual(b, p.from, p.to).sort((x, y) => x.account.code.localeCompare(y.account.code, 'en', { numeric: true }));
-  const budgeted = new Set(lines.map((l) => l.account.id));
+  const allLines = budgetVsActual(b, p.from, p.to);
+  const expLines = allLines
+    .filter((l): l is ExpenseBudgetLine => l.kind === 'expense')
+    .sort((x, y) => x.account.code.localeCompare(y.account.code, 'en', { numeric: true }));
+  const debtLines = allLines
+    .filter((l): l is DebtBudgetLine => l.kind === 'debt' && l.activeInPeriod)
+    .sort((x, y) => x.sortCode.localeCompare(y.sortCode, 'en', { numeric: true }));
+
+  const budgeted = new Set(expLines.map((l) => l.account.id));
   const act = activity(b, p.from, p.to);
   const extra = b.accounts
     .filter((a) => a.type === 'expense' && !budgeted.has(a.id))
     .map((a) => ({ a, v: round2((act.get(a.id)?.d ?? 0) - (act.get(a.id)?.c ?? 0)) }))
     .filter((x) => !isZero(x.v));
+
   const rows: ReportRow[] = [];
-  rows.push(row('sec-b', 'KATEGORI BERANGGARAN', 'section', [null, null, null, null]));
-  const bRows = lines.map((l) =>
+  rows.push(row('sec-b', 'ANGGARAN PENGELUARAN', 'section', [null, null, null, null]));
+  const bRows = expLines.map((l) =>
     row('a-' + l.account.id, l.account.name, 'account', [l.budget, l.actual, l.variance, round2(l.used * 100)], 1, {
       code: l.account.code,
       accountId: l.account.id,
     }),
   );
   rows.push(...bRows);
-  const tb = bRows.reduce((s, r) => s + (r.values[0] ?? 0), 0);
-  const ta = bRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
+  const tb = round2(bRows.reduce((s, r) => s + (r.values[0] ?? 0), 0));
+  const ta = round2(bRows.reduce((s, r) => s + (r.values[1] ?? 0), 0));
   rows.push(
-    row('st-b', 'Jumlah Beranggaran', 'subtotal', [tb, ta, tb - ta, tb ? round2((ta / tb) * 100) : 0], 0, {
+    row('st-b', 'Jumlah Pengeluaran Beranggaran', 'subtotal', [tb, ta, round2(tb - ta), tb ? round2((ta / tb) * 100) : 0], 0, {
       formula: { plus: bRows.map((r) => r.key) },
     }),
   );
+
   let tu = 0;
   if (extra.length) {
     rows.push(row('b1', '', 'blank', [null, null, null, null]));
     rows.push(row('sec-u', 'TANPA ANGGARAN', 'section', [null, null, null, null]));
-    const uRows = extra.map((x) => row('u-' + x.a.id, x.a.name, 'account', [0, x.v, -x.v, null], 1, { code: x.a.code }));
+    const uRows = extra.map((x) =>
+      row('u-' + x.a.id, x.a.name, 'account', [0, x.v, -x.v, null], 1, { code: x.a.code, accountId: x.a.id }),
+    );
     rows.push(...uRows);
-    tu = uRows.reduce((s, r) => s + (r.values[1] ?? 0), 0);
+    tu = round2(uRows.reduce((s, r) => s + (r.values[1] ?? 0), 0));
     rows.push(
       row('st-u', 'Jumlah Tanpa Anggaran', 'subtotal', [0, tu, -tu, null], 0, {
         formula: { plus: uRows.map((r) => r.key) },
@@ -1161,10 +1146,38 @@ export function budgetReport(b: Books, p: Period, _entityName: string): Report {
     );
   }
   rows.push(
-    row('t-all', 'JUMLAH BEBAN', 'grandtotal', [tb, ta + tu, tb - ta - tu, tb ? round2(((ta + tu) / tb) * 100) : null], 0, {
+    row('t-all', 'JUMLAH BEBAN', 'grandtotal', [tb, round2(ta + tu), round2(tb - ta - tu), tb ? round2(((ta + tu) / tb) * 100) : null], 0, {
       formula: { plus: extra.length ? ['st-b', 'st-u'] : ['st-b'] },
     }),
   );
+
+  const notes: string[] = [];
+  if (debtLines.length) {
+    const sum = budgetSummary(debtLines);
+    const hasAgg = debtLines.some((l) => !l.debtId);
+    rows.push(row('b2', '', 'blank', [null, null, null, null]));
+    rows.push(row('sec-d', 'ANGGARAN PEMBAYARAN HUTANG', 'section', [null, null, null, null]));
+    const dRows = debtLines.map((l) =>
+      row(l.debtId ? 'd-' + l.debtId : 'd-all', l.label, 'account', [l.budget, l.actual, l.variance, round2(l.used * 100)], 1, {
+        code: l.debt?.tx.ref,
+      }),
+    );
+    rows.push(...dRows);
+    rows.push(
+      row(
+        'st-d',
+        'Jumlah Pembayaran Hutang Beranggaran',
+        'subtotal',
+        [sum.debtBudget, sum.debtActual, round2(sum.debtBudget - sum.debtActual), sum.debtBudget ? round2((sum.debtActual / sum.debtBudget) * 100) : 0],
+        0,
+        {
+          formula: { plus: hasAgg ? ['d-all'] : dRows.map((r) => r.key) },
+        },
+      ),
+    );
+    notes.push('Pembayaran pokok hutang mengurangi liabilitas di Neraca (bukan beban Laba Rugi) sehingga ditampilkan terpisah dari Jumlah Beban.');
+  }
+
   return {
     id: 'budget',
     title: 'Laporan Anggaran vs Realisasi',
@@ -1176,6 +1189,7 @@ export function budgetReport(b: Books, p: Period, _entityName: string): Report {
       { label: 'Terpakai', kind: 'value', unit: 'pct' },
     ],
     rows,
+    ...(notes.length ? { notes } : {}),
   };
 }
 

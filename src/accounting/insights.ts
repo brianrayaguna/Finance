@@ -56,7 +56,7 @@ export function buildInsights(b: Books, month: string, today: string, limit = 5)
     out.push({ id: 'cat-down', tone: 'pos', text: `${down.name} turun ${formatPercent(-down.pct, 0)} — hemat ${formatMoney(-down.diff)} ${cmp}.`, to: `/transaksi?kategori=${down.id}&bulan=${month}` });
 
   // 2. Anggaran
-  const lines = budgetVsActual(b, from, monthEnd, to);
+  const lines = budgetVsActual(b, from, monthEnd, to).filter((l) => l.kind === 'expense' || l.activeInPeriod);
   const daysInMonth = Number(monthEnd.slice(8));
   const pace = isCur ? Number(today.slice(8)) / daysInMonth : 1;
   const over = lines.filter((l) => l.used > 1);
@@ -66,8 +66,8 @@ export function buildInsights(b: Books, month: string, today: string, limit = 5)
       tone: 'neg',
       text:
         over.length === 1
-          ? `Anggaran ${over[0].account.name} terlampaui ${formatMoney(-over[0].variance)}.`
-          : `${over.length} anggaran terlampaui: ${over.slice(0, 3).map((l) => l.account.name).join(', ')}${over.length > 3 ? ', …' : ''}.`,
+          ? `Anggaran ${over[0].label} terlampaui ${formatMoney(-over[0].variance)}.`
+          : `${over.length} anggaran terlampaui: ${over.slice(0, 3).map((l) => l.label).join(', ')}${over.length > 3 ? ', …' : ''}.`,
       to: '/anggaran',
     });
   if (isCur) {
@@ -76,7 +76,7 @@ export function buildInsights(b: Books, month: string, today: string, limit = 5)
       out.push({
         id: 'budget-pace',
         tone: 'warn',
-        text: `Anggaran ${risky.account.name} sudah terpakai ${formatPercent(risky.used, 0)}, padahal bulan baru berjalan ${formatPercent(pace, 0)}.`,
+        text: `Anggaran ${risky.label} sudah terpakai ${formatPercent(risky.used, 0)}, padahal bulan baru berjalan ${formatPercent(pace, 0)}.`,
         to: '/anggaran',
       });
   }

@@ -24,7 +24,7 @@ import {
 } from '../../lib/glyphs';
 import { useData } from '../../store/data';
 import { useUI } from '../../store/ui';
-import { budgetVsActual, categoryBreakdown, debtInfos, ratios, walletBalances, type MonthPoint } from '../../accounting/reports';
+import { budgetSummary, budgetVsActual, categoryBreakdown, debtInfos, ratios, walletBalances, type MonthPoint } from '../../accounting/reports';
 import { KPI_LABEL, type KpiMetric } from '../../app/dashboardLayout';
 import { addMonths, daysBetween, formatDate, formatMoney, formatMonth, formatPercent, formatRatio, isZero, relativeDay, round2, startOfMonth } from '../../lib/format';
 import { AnimatedMoney, Badge, Button, EmptyState, IconTile, Money, Progress } from '../ui/primitives';
@@ -210,11 +210,11 @@ export function KpiWidget({ layout }: WidgetProps) {
   const d = useDash();
   const phone = d.width < 560;
   const budget = useMemo(() => {
-    const lines = budgetVsActual(d.b, d.from, d.to, d.asOf);
+    const sum = budgetSummary(budgetVsActual(d.b, d.from, d.to, d.asOf));
     return {
-      budget: lines.reduce((s, l) => s + l.budget, 0),
-      actual: lines.reduce((s, l) => s + l.actual, 0),
-      over: lines.filter((l) => l.used > 1).length,
+      budget: sum.totalBudget,
+      actual: sum.totalActual,
+      over: sum.overCount,
     };
   }, [d.b, d.from, d.to, d.asOf]);
   return (
@@ -460,18 +460,23 @@ export function BudgetsWidget({ settings }: WidgetProps) {
   const { b, from, to, asOf, month, today, compact } = useDash();
   const nav = useNavigate();
   const count = Number(settings.count) || 5;
-  const all = useMemo(() => budgetVsActual(b, from, to, asOf), [b, from, to, asOf]);
+  const all = useMemo(
+    () => budgetVsActual(b, from, to, asOf).filter((l) => l.kind === 'expense' || l.activeInPeriod),
+    [b, from, to, asOf],
+  );
   const budgets = useMemo(() => {
-    const list = settings.sort === 'code' ? [...all].sort((x, y) => x.account.code.localeCompare(y.account.code, 'en', { numeric: true })) : all;
+    const list = settings.sort === 'code' ? [...all].sort((x, y) => x.sortCode.localeCompare(y.sortCode, 'en', { numeric: true })) : all;
     return list.slice(0, count);
   }, [all, settings.sort, count]);
   const over = all.filter((x) => x.used > 1).length;
+  const hasDebt = all.some((x) => x.kind === 'debt');
+  const unitWord = hasDebt ? 'anggaran' : 'kategori';
   const dayShare = month === today.slice(0, 7) ? Number(today.slice(8)) / Number(to.slice(8)) : 1;
   return (
     <WCard>
       <CardHead
         title="Anggaran bulan ini"
-        sub={all.length ? (over ? `${over} kategori melebihi batas` : `${all.length} kategori dalam batas`) : 'Belum ada anggaran'}
+        sub={all.length ? (over ? `${over} ${unitWord} melebihi batas` : `${all.length} ${unitWord} dalam batas`) : 'Belum ada anggaran'}
         to="/anggaran"
         link="Semua"
       />
@@ -482,7 +487,7 @@ export function BudgetsWidget({ settings }: WidgetProps) {
             heading="h3"
             icon={Target}
             title="Tetapkan anggaran"
-            text="Batasi beban per kategori setiap bulan."
+            text="Batasi pengeluaran dan pembayaran hutang setiap bulan."
             action={
               <Button size="sm" onClick={() => nav('/anggaran')}>
                 Buat anggaran
@@ -492,15 +497,15 @@ export function BudgetsWidget({ settings }: WidgetProps) {
         ) : (
           <div className="stack" style={{ gap: 14 }}>
             {budgets.map((bl) => {
-              const color = bl.used > 1 ? 'var(--neg)' : bl.used > 0.85 ? 'var(--warn)' : bl.account.color;
+              const color = bl.used > 1 ? 'var(--neg)' : bl.used > 0.85 ? 'var(--warn)' : bl.color;
               return (
-                <div key={bl.account.id} className="budget-mini">
+                <div key={bl.key} className="budget-mini">
                   <div className="row">
-                    <IconTile icon={bl.account.icon} color={bl.account.color} size="xs" />
-                    <span className="truncate grow" style={{ fontSize: 13, fontWeight: 580 }}>
-                      {bl.account.name}
+                    <IconTile icon={bl.icon} color={bl.color} size="xs" />
+                    <span className="truncate grow budget-mini-name">
+                      {bl.label}
                     </span>
-                    <span className="num budget-mini-amt" style={{ fontSize: 13 }}>
+                    <span className="num budget-mini-amt">
                       <span className={`money-val${bl.used > 1 ? ' neg' : ''}`}>{shortMoney(bl.actual, compact)}</span>
                       <span className="muted">
                         {' '}
@@ -508,7 +513,7 @@ export function BudgetsWidget({ settings }: WidgetProps) {
                       </span>
                     </span>
                   </div>
-                  <Progress value={bl.used} color={color} thin marker={dayShare} label={`Anggaran ${bl.account.name} terpakai`} />
+                  <Progress value={bl.used} color={color} thin marker={dayShare} label={`Anggaran ${bl.label} terpakai`} />
                 </div>
               );
             })}
