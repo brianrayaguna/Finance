@@ -7,6 +7,7 @@ import { useData } from '../store/data';
 import { confirm, toast, usePrefs, useUI } from '../store/ui';
 import { monthlySeries, periodFlow, positionAt } from '../accounting/reports';
 import { addMonths, endOfMonth, formatDate, startOfMonth } from '../lib/format';
+import { useLayer } from '../lib/layers';
 import { defaultLayout, moveWidget, packSpans, presetLayout, sizeOf, PRESETS, type DashLayout, type PresetId, type WidgetId } from '../app/dashboardLayout';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, EmptyState } from '../components/ui/primitives';
@@ -155,12 +156,15 @@ export default function Dashboard() {
   };
   const cancel = async () => {
     if (draft && !sameLayout(draft, saved)) {
-      const ok = await confirm({ title: 'Batalkan perubahan tata letak?', message: 'Susunan, ukuran, dan pengaturan widget kembali seperti sebelum disesuaikan.', confirmLabel: 'Batalkan perubahan', tone: 'danger' });
+      const ok = await confirm({ title: 'Batalkan perubahan tata letak?', message: 'Susunan, ukuran, dan pengaturan panel kembali seperti sebelum disesuaikan.', confirmLabel: 'Batalkan perubahan', tone: 'danger' });
       if (!ok) return;
     }
     setDraft(null);
     setGallery(false);
   };
+  useLayer(editing && !gallery, () => {
+    void cancel();
+  });
   const applyPreset = (p: PresetId) => {
     setDraft(presetLayout(p));
     setAnnounce(`Tata letak ${PRESETS[p].name} diterapkan`);

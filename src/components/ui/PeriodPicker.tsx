@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CalendarRange, ChevronDown, Check } from '../../lib/glyphs';
+import { focusNoScroll } from '../../lib/focus';
 import { Popover } from './Popover';
 import { DatePicker } from './DatePicker';
 import { Button, Field } from './primitives';
@@ -121,10 +122,43 @@ export function PeriodPicker({
   const [from, setFrom] = useState(value.from);
   const [to, setTo] = useState(value.to);
   const ref = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const close = () => {
     setOpen(false);
     setCustom(false);
   };
+  useEffect(() => {
+    if (!open || custom) return;
+    requestAnimationFrame(() => {
+      const m = menuRef.current;
+      if (!m) return;
+      const target = m.querySelector<HTMLElement>('[aria-current="true"], button.menu-item');
+      focusNoScroll(target);
+    });
+  }, [open, custom]);
+  const onMenuKey = (e: React.KeyboardEvent) => {
+    const m = menuRef.current;
+    if (!m) return;
+    const btns = Array.from(m.querySelectorAll<HTMLButtonElement>('button.menu-item'));
+    if (!btns.length) return;
+    const i = btns.indexOf(document.activeElement as HTMLButtonElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusNoScroll(btns[(i + 1) % btns.length]);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusNoScroll(btns[(i <= 0 ? btns.length : i) - 1]);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      focusNoScroll(btns[0]);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      focusNoScroll(btns[btns.length - 1]);
+    }
+  };
+  const visiblePresets = PRESETS.filter(
+    (p) => !exclude.includes(p.key) && !(p.key === 'fiscal_year' && fyStartMonth === 1 && value.preset !== 'fiscal_year'),
+  );
   const sub = value.preset === 'all' ? '' : `${formatDate(value.from)} – ${formatDate(value.to)}`;
   return (
     <>
@@ -135,13 +169,14 @@ export function PeriodPicker({
       </button>
       <Popover open={open} onClose={close} anchor={ref} placement="bottom-end" minWidth={custom ? 320 : 250}>
         {!custom ? (
-          <div className="menu">
+          <div className="menu" ref={menuRef} onKeyDown={onMenuKey}>
             <div className="menu-label">{sub || 'Rentang waktu'}</div>
-            {PRESETS.filter((p) => !exclude.includes(p.key)).map((p) => (
+            {visiblePresets.map((p) => (
               <button
                 key={p.key}
                 type="button"
                 className="menu-item"
+                aria-current={value.preset === p.key ? 'true' : undefined}
                 onClick={() => {
                   onChange(resolvePreset(p.key, fyStartMonth));
                   close();

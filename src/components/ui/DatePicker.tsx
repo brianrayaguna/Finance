@@ -10,10 +10,10 @@ import {
   parseISO,
   relativeDay,
   startOfMonth,
-  todayISO,
 } from '../../lib/format';
 import { focusField, focusNext, focusNoScroll } from '../../lib/focus';
 import { dayIndex, monthMatrix, weekDays } from '../../lib/week';
+import { useToday } from '../../hooks/useApp';
 import { usePrefs } from '../../store/ui';
 import { useFieldCtx } from './primitives';
 
@@ -36,7 +36,7 @@ export function MiniCalendar({
   max?: string;
 }) {
   const outOfRange = (d: string) => (!!min && d < min) || (!!max && d > max);
-  const today = todayISO();
+  const today = useToday();
   const [focused, setFocused] = useState(value || today);
   const [month, setMonth] = useState(startOfMonth(value || today));
   const grid = useRef<HTMLDivElement>(null);
@@ -44,6 +44,17 @@ export function MiniCalendar({
   const dayId = (d: string) => `${gridId}-${d}`;
   const weekStart = usePrefs((s) => s.weekStart);
   const days = useMemo(() => monthMatrix(month, weekStart), [month, weekStart]);
+  const weeks = useMemo(() => {
+    const out: string[][] = [];
+    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
+    return out;
+  }, [days]);
+
+  const shiftMonth = (delta: number) => {
+    const next = addMonths(month, delta);
+    setMonth(next);
+    setFocused(next);
+  };
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -88,10 +99,10 @@ export function MiniCalendar({
         <div className="mc-title">
           {MONTHS[m.getMonth()]} <span className="muted">{m.getFullYear()}</span>
         </div>
-        <button type="button" className="mc-nav" aria-label="Bulan sebelumnya" onClick={() => setMonth(addMonths(month, -1))}>
+        <button type="button" className="mc-nav" aria-label="Bulan sebelumnya" onClick={() => shiftMonth(-1)}>
           <ChevronLeft />
         </button>
-        <button type="button" className="mc-nav" aria-label="Bulan berikutnya" onClick={() => setMonth(addMonths(month, 1))}>
+        <button type="button" className="mc-nav" aria-label="Bulan berikutnya" onClick={() => shiftMonth(1)}>
           <ChevronRight />
         </button>
       </div>
@@ -103,37 +114,42 @@ export function MiniCalendar({
         ))}
       </div>
       <div className="mc-grid" ref={grid} tabIndex={0} onKeyDown={onKey} role="grid" aria-label="Kalender" aria-activedescendant={dayId(focused)}>
-        {days.map((d) => {
-          const out = d.slice(0, 7) !== month.slice(0, 7);
-          const blocked = outOfRange(d);
-          return (
-            <button
-              key={d}
-              id={dayId(d)}
-              type="button"
-              tabIndex={-1}
-              className={[
-                'mc-day',
-                out && 'out',
-                blocked && 'blocked',
-                d === today && 'today',
-                d === value && 'sel',
-                d === focused && 'focus',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onClick={() => !blocked && onSelect(d)}
-              onMouseEnter={() => setFocused(d)}
-              aria-label={formatDate(d, 'full')}
-              aria-selected={d === value}
-              aria-current={d === today ? 'date' : undefined}
-              aria-disabled={blocked || undefined}
-            >
-              {Number(d.slice(8))}
-              {marks?.has(d) && <i className="mc-mark" />}
-            </button>
-          );
-        })}
+        {weeks.map((week, wi) => (
+          <div key={wi} role="row" style={{ display: 'contents' }}>
+            {week.map((d) => {
+              const out = d.slice(0, 7) !== month.slice(0, 7);
+              const blocked = outOfRange(d);
+              return (
+                <button
+                  key={d}
+                  id={dayId(d)}
+                  type="button"
+                  role="gridcell"
+                  tabIndex={-1}
+                  className={[
+                    'mc-day',
+                    out && 'out',
+                    blocked && 'blocked',
+                    d === today && 'today',
+                    d === value && 'sel',
+                    d === focused && 'focus',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => !blocked && onSelect(d)}
+                  onMouseEnter={() => setFocused(d)}
+                  aria-label={formatDate(d, 'full')}
+                  aria-selected={d === value}
+                  aria-current={d === today ? 'date' : undefined}
+                  aria-disabled={blocked || undefined}
+                >
+                  {Number(d.slice(8))}
+                  {marks?.has(d) && <i className="mc-mark" />}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -171,7 +187,7 @@ export function DatePicker({
   const field = useFieldCtx();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement | null>(null);
-  const today = todayISO();
+  const today = useToday();
   const allowed = (d: string) => !d || ((!min || d >= min) && (!max || d <= max));
   const close = () => {
     setOpen(false);
@@ -250,16 +266,15 @@ export function DatePicker({
                   {p.label}
                 </button>
               ))}
-            {clearable ? (
+            {clearable && allowed(addDays(today, 30)) && (
+              <button type="button" className="chip" onClick={() => pick(addDays(today, 30))}>
+                +30 hari
+              </button>
+            )}
+            {clearable && (
               <button type="button" className="chip" style={{ marginLeft: 'auto' }} onClick={() => pick('')}>
                 Kosongkan
               </button>
-            ) : (
-              allowed(addDays(today, 30)) && (
-                <button type="button" className="chip" style={{ marginLeft: 'auto' }} onClick={() => pick(addDays(today, 30))}>
-                  +30 hari
-                </button>
-              )
             )}
           </div>
         </div>

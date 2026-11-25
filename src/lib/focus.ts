@@ -20,16 +20,20 @@ export function focusNoScroll(el: HTMLElement | null | undefined) {
 }
 
 /**
- * Gulir hanya `.modal-body` agar `el` masuk ke visualViewport (di atas keyboard).
- * Dipanggil setelah focusNoScroll pada field di dalam modal.
+ * Gulir hanya `.modal-body` atau `.dsh-body` agar `el` masuk ke area terlihat di atas keyboard
+ * tanpa tertutup kepala/kaki dialog. Dipanggil setelah focusNoScroll pada kolom di dalam dialog/panel.
  */
 export function ensureInModalViewport(el: HTMLElement | null | undefined, pad = 12) {
   if (!el || typeof window === 'undefined') return;
-  const body = el.closest('.modal-body') as HTMLElement | null;
+  const body = el.closest('.modal-body, .dsh-body') as HTMLElement | null;
   if (!body) return;
   const vv = window.visualViewport;
-  const viewTop = (vv?.offsetTop ?? 0) + pad;
-  const viewBottom = (vv?.offsetTop ?? 0) + (vv?.height ?? window.innerHeight) - pad;
+  const br = body.getBoundingClientRect();
+  const vvTop = vv?.offsetTop ?? 0;
+  const vvBottom = vvTop + (vv?.height ?? window.innerHeight);
+  const viewTop = Math.max(vvTop, br.top) + pad;
+  const viewBottom = Math.min(vvBottom, br.bottom) - pad;
+  if (viewBottom <= viewTop) return;
   const r = el.getBoundingClientRect();
   if (r.top >= viewTop && r.bottom <= viewBottom) return;
   if (r.bottom > viewBottom) body.scrollTop += r.bottom - viewBottom;

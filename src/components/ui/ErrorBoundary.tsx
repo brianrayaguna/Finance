@@ -20,24 +20,44 @@ function exportEmergencyBackup() {
     }
     const rawData = localStorage.getItem('neraca.data');
     const rawPrefs = localStorage.getItem('neraca.prefs');
-    const parsedData = rawData ? JSON.parse(rawData) : null;
-    const parsedPrefs = rawPrefs ? JSON.parse(rawPrefs) : null;
+    if (!rawData && !rawPrefs) {
+      window.alert('Tidak ada data tersimpan yang dapat dicadangkan.');
+      return;
+    }
+    const safeParse = (raw: string | null): { parsed: Record<string, unknown> | null; rawFallback?: string } => {
+      if (!raw) return { parsed: null };
+      try {
+        return { parsed: JSON.parse(raw) as Record<string, unknown> };
+      } catch {
+        return { parsed: null, rawFallback: raw };
+      }
+    };
+    const d = safeParse(rawData);
+    const p = safeParse(rawPrefs);
     const payload = {
       app: 'keuanganku',
       version: 3,
       emergencyBackup: true,
       exportedAt: new Date().toISOString(),
-      data: parsedData?.state?.data ?? parsedData,
-      prefs: parsedPrefs?.state ?? parsedPrefs,
+      data: (d.parsed?.state as Record<string, unknown> | undefined)?.data ?? d.parsed,
+      prefs: (p.parsed?.state as Record<string, unknown> | undefined) ?? p.parsed,
+      ...(d.rawFallback ? { rawDataCorrupt: d.rawFallback } : {}),
+      ...(p.rawFallback ? { rawPrefsCorrupt: p.rawFallback } : {}),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    // Layar galat utama tidak menampilkan toast: lokasi diberitahukan lewat dialog sistem.
-    void saveFile({ kind: 'backup', name: `keuanganku-cadangan-darurat-${todayStamp()}.json`, mime: 'application/json', blob, quiet: true }).then((path) => {
-      if (!path) window.alert('Cadangan darurat gagal disimpan.');
-      else if (isNativeApp()) window.alert(`Cadangan darurat disimpan di:\n${path}`);
-    });
+    // Layar gangguan utama tidak menampilkan toast: lokasi diberitahukan lewat dialog sistem.
+    void saveFile({ kind: 'backup', name: `keuanganku-cadangan-darurat-${todayStamp()}.json`, mime: 'application/json', blob, quiet: true })
+      .then((path) => {
+        if (!path) window.alert('Cadangan darurat gagal disimpan.');
+        else if (isNativeApp()) window.alert(`Cadangan darurat disimpan di:\n${path}`);
+      })
+      .catch((err) => {
+        console.error('Emergency backup save failed:', err);
+        window.alert('Cadangan darurat gagal disimpan.');
+      });
   } catch (err) {
     console.error('Emergency backup failed:', err);
+    window.alert('Cadangan darurat gagal dibuat.');
   }
 }
 
@@ -78,7 +98,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="card error-card">
           <IconTile icon={TriangleAlert} size="lg" color="var(--neg)" />
           <Heading className="error-title">Terjadi gangguan saat menampilkan halaman</Heading>
-          <p className="muted error-desc">Data transaksi dan pengaturan Anda tetap tersimpan aman di browser ini. Anda bisa mencoba lagi, memuat ulang aplikasi, atau mengunduh cadangan JSON terlebih dahulu.</p>
+          <p className="muted error-desc">Data transaksi dan pengaturan Anda tetap tersimpan aman di perangkat ini. Anda bisa mencoba lagi, memuat ulang aplikasi, atau mengunduh cadangan JSON terlebih dahulu.</p>
           {error.message && (
             <details className="error-details">
               <summary>Rincian teknis</summary>

@@ -28,10 +28,11 @@ export function Tooltip({
 
   const show = () => {
     if (disabled) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches) return;
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       const el = (wrap.current?.firstElementChild as HTMLElement | null) ?? wrap.current;
-      if (!el) return;
+      if (!el || !document.contains(el) || el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return;
       setAnchor(el.getBoundingClientRect());
     }, delay);
   };
@@ -137,6 +138,15 @@ export function Tooltip({
               exit={{ opacity: 0, transition: { duration: 0.08 } }}
             >
               <span>{label}</span>
+              {kbd && kbd.length > 0 && (
+                <span className="tip-kbd">
+                  {kbd.map((k, i) => (
+                    <kbd key={i} className="kbd">
+                      {k}
+                    </kbd>
+                  ))}
+                </span>
+              )}
             </motion.div>
           )}
         </AnimatePresence>,

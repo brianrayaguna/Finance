@@ -48,6 +48,7 @@ export function useWidgetDrag(onMove: (id: WidgetId, target: WidgetId, after: bo
     if (e.button !== 0) return;
     e.preventDefault();
     stopRef.current?.();
+    const activePointerId = e.pointerId;
     let x = e.clientX;
     let y = e.clientY;
     let lock = 0;
@@ -59,7 +60,7 @@ export function useWidgetDrag(onMove: (id: WidgetId, target: WidgetId, after: bo
         .find((el): el is HTMLElement => el instanceof HTMLElement && !!el.dataset.widget && el.dataset.widget !== id);
       if (!hit) return;
       // Sisi target menentukan sebelum/sesudah (tidak berayun saat ukuran berbeda): kiri/kanan untuk
-      // widget sebaris, atas/bawah untuk widget selebar baris (layar sempit, ukuran Penuh).
+      // panel sebaris, atas/bawah untuk panel selebar baris (layar sempit, ukuran Penuh).
       const r = hit.getBoundingClientRect();
       const grid = hit.parentElement?.getBoundingClientRect();
       const fullRow = !!grid && r.width >= grid.width - 4;
@@ -67,6 +68,7 @@ export function useWidgetDrag(onMove: (id: WidgetId, target: WidgetId, after: bo
       if (moveRef.current(id, hit.dataset.widget as WidgetId, after)) lock = performance.now() + 180;
     };
     const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId) return;
       x = ev.clientX;
       y = ev.clientY;
       hitTest();
@@ -83,21 +85,25 @@ export function useWidgetDrag(onMove: (id: WidgetId, target: WidgetId, after: bo
       }
       raf = requestAnimationFrame(tick);
     };
-    const stop = () => {
+    const cleanup = () => {
       window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', stop);
-      window.removeEventListener('pointercancel', stop);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('pointercancel', onEnd);
       cancelAnimationFrame(raf);
       document.body.classList.remove('dragging-widget');
       stopRef.current = null;
       setDragId(null);
     };
+    const onEnd = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId) return;
+      cleanup();
+    };
     window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', stop);
-    window.addEventListener('pointercancel', stop);
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('pointercancel', onEnd);
     raf = requestAnimationFrame(tick);
     document.body.classList.add('dragging-widget');
-    stopRef.current = stop;
+    stopRef.current = cleanup;
     setDragId(id);
   };
 

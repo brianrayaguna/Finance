@@ -59,16 +59,21 @@ export function useGlobalHotkeys() {
         return;
       }
       if (mod || e.altKey) return;
-      if (k === 'n') {
+      if (k === 'n' && !e.shiftKey) {
         e.preventDefault();
         ui.openTx();
-      } else if (k === 'h') {
+      } else if (k === 'h' && !e.shiftKey) {
         e.preventDefault();
         prefs.set({ hideAmounts: !prefs.hideAmounts });
       } else if (e.key === '?') {
         e.preventDefault();
         ui.setShortcuts(true);
-      } else if (e.key === '/') {
+      } else if (e.key === '/' && !e.shiftKey) {
+        // Di halaman daftar Transaksi, '/' memfokuskan kolom pencarian halaman alih-alih membuka palet perintah bersamaan.
+        const onTxList =
+          window.location.pathname === '/transaksi' &&
+          new URLSearchParams(window.location.search).get('tampil') !== 'kalender';
+        if (onTxList) return;
         e.preventDefault();
         ui.setPalette(true);
       }

@@ -111,7 +111,7 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
     const m = before.match(/[\d.,]+$/);
     if (!m || !/\d/.test(m[0])) return;
     const v = Number(m[0].replace(/\./g, '').replace(',', '.'));
-    if (!Number.isFinite(v)) return;
+    if (!Number.isFinite(v) || v === 0) return;
     const next = before.slice(0, before.length - m[0].length) + amountToDisplay(Math.round(v * factor * 100) / 100);
     apply(next + text.slice(e), next.length);
   };
@@ -154,9 +154,10 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
       onFocus={(e) => {
         focused.current = true;
         const el = e.currentTarget;
+        const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
         focusNoScroll(el);
         requestAnimationFrame(() => {
-          el.select();
+          if (!coarse) el.select();
           ensureInModalViewport(el);
         });
       }}

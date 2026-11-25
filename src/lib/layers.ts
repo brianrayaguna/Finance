@@ -6,13 +6,23 @@ const stack: Layer[] = [];
 let seq = 0;
 let bound = false;
 
+export function shouldHandleLayerEscape(e: {
+  key: string;
+  defaultPrevented: boolean;
+  isComposing?: boolean;
+  keyCode?: number;
+  nativeEvent?: { isComposing?: boolean; keyCode?: number };
+}): boolean {
+  return e.key === 'Escape' && !e.defaultPrevented && !isImeComposing(e);
+}
+
 function bind() {
   if (bound || typeof window === 'undefined') return;
   bound = true;
   window.addEventListener(
     'keydown',
     (e) => {
-      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (!shouldHandleLayerEscape(e)) return;
       const top = stack[stack.length - 1];
       if (top) {
         e.preventDefault();

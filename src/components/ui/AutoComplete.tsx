@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Glyph } from '../../lib/glyphs';
 import { Popover } from './Popover';
 import { ensureInModalViewport } from '../../lib/focus';
@@ -38,11 +38,14 @@ export function AutoComplete({
   const field = useFieldCtx();
   const wrap = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const blurTimer = useRef<number>(0);
   const [focused, setFocused] = useState(false);
   const [active, setActive] = useState(-1);
   const [dismissed, setDismissed] = useState(false);
   const listId = useId();
   const optId = (i: number) => `${listId}-opt-${i}`;
+
+  useEffect(() => () => window.clearTimeout(blurTimer.current), []);
 
   const list = useMemo(() => {
     const q = normalize(value.trim());
@@ -61,6 +64,7 @@ export function AutoComplete({
   const open = focused && !dismissed && list.length > 0;
 
   const pick = (s: Suggestion) => {
+    window.clearTimeout(blurTimer.current);
     onChange(s.value);
     onPick?.(s);
     setDismissed(true);
@@ -89,13 +93,18 @@ export function AutoComplete({
         enterKeyHint="done"
         autoFocus={autoFocus}
         onFocus={(e) => {
+          window.clearTimeout(blurTimer.current);
           setFocused(true);
           const el = e.currentTarget;
           requestAnimationFrame(() => ensureInModalViewport(el));
         }}
         onBlur={() => {
-          setFocused(false);
-          setActive(-1);
+          // Tunda penutupan singkat agar ketukan saran di layar sentuh selesai menjalankan onClick sebelum Popover dilepas.
+          window.clearTimeout(blurTimer.current);
+          blurTimer.current = window.setTimeout(() => {
+            setFocused(false);
+            setActive(-1);
+          }, 150);
         }}
         onChange={(e) => {
           onChange(e.target.value);
@@ -121,7 +130,7 @@ export function AutoComplete({
         <div id={listId} role="listbox" className="listbox" style={{ maxHeight: 240 }}>
           <div className="list-group" style={{ display: 'flex' }}>
             <span>Saran</span>
-            <span style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0, fontWeight: 500 }}>↑↓ lalu ↵</span>
+            <span className="ac-kbd-hint">↑↓ lalu ↵</span>
           </div>
           {list.map((s, i) => (
             <div

@@ -14,15 +14,10 @@ function ToastItem({ t }: { t: Toast }) {
   useEffect(() => {
     if (persistent || paused) return;
     started.current = Date.now();
-    let raf = 0;
-    const tick = () => {
-      const left = remaining.current - (Date.now() - started.current);
-      if (left <= 0) dismiss(t.id);
-      else raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
+    const wait = Math.max(0, remaining.current);
+    const id = window.setTimeout(() => dismiss(t.id), wait);
     return () => {
-      cancelAnimationFrame(raf);
+      window.clearTimeout(id);
       remaining.current -= Date.now() - started.current;
     };
   }, [persistent, paused, t.id, t.duration, dismiss]);
@@ -78,17 +73,33 @@ export function Toasts() {
   useLayoutEffect(() => {
     const el = stackRef.current;
     if (!el || typeof el.showPopover !== 'function') return;
+    let hideTimer = 0;
     const promote = () => {
+      window.clearTimeout(hideTimer);
       try {
-        if (el.matches(':popover-open')) el.hidePopover();
-        if (toasts.length > 0) el.showPopover();
+        if (toasts.length > 0) {
+          if (el.matches(':popover-open')) el.hidePopover();
+          el.showPopover();
+        } else if (el.matches(':popover-open')) {
+          // Tunggu animasi keluar toast (160ms) selesai sebelum menutup top-layer.
+          hideTimer = window.setTimeout(() => {
+            try {
+              if (el.matches(':popover-open')) el.hidePopover();
+            } catch {
+              /* abaikan */
+            }
+          }, 200);
+        }
       } catch {
         /* abaikan bila browser belum mendukung */
       }
     };
     promote();
     window.addEventListener('top-layer-open', promote);
-    return () => window.removeEventListener('top-layer-open', promote);
+    return () => {
+      window.clearTimeout(hideTimer);
+      window.removeEventListener('top-layer-open', promote);
+    };
   }, [toastKeys, toasts.length]);
 
   return createPortal(

@@ -30,9 +30,10 @@ export function Segmented<T extends string>({
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const idx = options.findIndex((o) => o.value === value);
   const onKey = (e: React.KeyboardEvent) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (!options.length || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
     e.preventDefault();
-    const n = (idx + (e.key === 'ArrowRight' ? 1 : -1) + options.length) % options.length;
+    const cur = idx < 0 ? 0 : idx;
+    const n = (cur + (e.key === 'ArrowRight' ? 1 : -1) + options.length) % options.length;
     onChange(options[n].value);
     refs.current[n]?.focus();
   };
@@ -46,6 +47,7 @@ export function Segmented<T extends string>({
     >
       {options.map((o, i) => {
         const sel = o.value === value;
+        const focusable = sel || (idx < 0 && i === 0);
         return (
           <button
             key={o.value}
@@ -55,7 +57,7 @@ export function Segmented<T extends string>({
             type="button"
             role="tab"
             aria-selected={sel}
-            tabIndex={sel ? 0 : -1}
+            tabIndex={focusable ? 0 : -1}
             title={o.title}
             className="seg-item"
             onClick={() => onChange(o.value)}

@@ -224,7 +224,15 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
   // Saldo buku dihitung per TANGGAL PENYESUAIAN yang dipilih, bukan per hari ini.
   // Untuk kartu kredit, "saldo" = jumlah terutang (positif = berhutang).
   const book = useMemo(() => walletBalances(b, date).find((w) => w.account.id === account.id)?.balance ?? 0, [b, date, account.id]);
-  const [actual, setActual] = useState<number | null>(() => walletBalances(b, today).find((w) => w.account.id === account.id)?.balance ?? 0);
+  const [actual, setActual] = useState<number | null>(book);
+  const [edited, setEdited] = useState(false);
+  const handleDateChange = (nextDate: string) => {
+    setDate(nextDate);
+    if (!edited) {
+      const nextBook = walletBalances(b, nextDate).find((w) => w.account.id === account.id)?.balance ?? 0;
+      setActual(nextBook);
+    }
+  };
   const typed = actual ?? 0;
   // selisih dari sudut pandang kekayaan: + = bertambah (pendapatan), − = berkurang (beban)
   const diff = round2(liab ? book - typed : typed - book);
@@ -282,10 +290,18 @@ function ReconcileModal({ account, onClose }: { account: Account; onClose: () =>
           <strong className="num money-val">{formatMoney(book)}</strong>
         </div>
         <Field label={liab ? 'Tagihan aktual (jumlah terutang)' : 'Saldo aktual'} hint={liab ? 'Isi negatif bila ada kelebihan bayar' : undefined}>
-          <AmountInput value={actual} onChange={setActual} autoFocus allowNegative />
+          <AmountInput
+            value={actual}
+            onChange={(v) => {
+              setEdited(true);
+              setActual(v);
+            }}
+            autoFocus
+            allowNegative
+          />
         </Field>
         <Field label="Tanggal penyesuaian" error={dateLocked ? `Periode sampai ${formatDate(lockDate!)} sudah dikunci` : undefined}>
-          <DatePicker value={date} onChange={setDate} min={lockDate ? addDays(lockDate, 1) : undefined} invalid={dateLocked} />
+          <DatePicker value={date} onChange={handleDateChange} min={lockDate ? addDays(lockDate, 1) : undefined} invalid={dateLocked} />
         </Field>
         <div className={`recon-diff ${isZero(diff) ? '' : diff > 0 ? 'up' : 'down'}`}>
           <span>Selisih</span>

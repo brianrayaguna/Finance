@@ -176,10 +176,20 @@ export function Select<T extends string>({
         e.stopPropagation();
         choose(filtered[active]);
         break;
-      case 'Tab':
+      case 'Tab': {
         e.preventDefault();
-        choose(filtered[active]);
+        const item = !e.shiftKey ? filtered[active] : undefined;
+        if (item && !item.disabled) {
+          choose(item);
+        } else {
+          setOpen(false);
+          setQ('');
+          requestAnimationFrame(() => {
+            if (trigger.current) focusNext(trigger.current, e.shiftKey ? -1 : 1);
+          });
+        }
         break;
+      }
       default:
         if (!isSearch && e.key.length === 1 && /\S/.test(e.key)) {
           const k = normalize(e.key);
@@ -266,11 +276,11 @@ export function Select<T extends string>({
         <div
           id={listId}
           role="listbox"
-          aria-activedescendant={!isSearch ? activeDescendant : undefined}
+          aria-activedescendant={activeDescendant}
           className="listbox"
           ref={list}
           tabIndex={-1}
-          onKeyDown={isSearch ? undefined : onListKey}
+          onKeyDown={onListKey}
           style={{ outline: 'none' }}
         >
           {filtered.length === 0 && <div className="list-empty">{emptyText}</div>}
