@@ -5,6 +5,7 @@
  */
 import { endOfMonth, formatMonth, round2, todayISO, isZero, addMonths } from '../lib/format';
 import { CASH_SUBTYPES, SYS, normalSide } from './coa';
+import { avgCostBefore, moveSignedQty, sortMoves } from './stock';
 import type {
   Account,
   AppData,
@@ -12,6 +13,8 @@ import type {
   FixedAsset,
   JournalEntry,
   JournalLine,
+  StockItem,
+  StockMove,
   Transaction,
   TxType,
 } from './types';
@@ -396,6 +399,73 @@ export function assetEntries(asset: FixedAsset, ctx: Ctx, through: string, seqNo
 
 const cache = new WeakMap<AppData, { through: string; entries: JournalEntry[] }>();
 
+export function stockEntries(move: StockMove, item: StockItem | undefined, ctx: Ctx, allMoves: StockMove[]): JournalEntry | null {
+  if (!item || !ctx.acc.has(item.inventoryAccountId)) return null;
+  if (move.type === 'transfer') return null; // transfer antar lokasi: qty saja, nilai GL tidak berubah
+  const inv = item.inventoryAccountId;
+  const cogs = (item.cogsAccountId && ctx.acc.has(item.cogsAccountId) ? item.cogsAccountId : null) || SYS.cogs;
+  const adjustAcc = ctx.acc.has(SYS.stockAdjust) ? SYS.stockAdjust : cogs;
+  const signed = moveSignedQty(move);
+  if (isZero(signed) && move.type !== 'adjust') return null;
+
+  const name = item.name;
+  const lines: JournalLine[] = [];
+  let description = '';
+
+  if (move.type === 'in' || (move.type === 'adjust' && signed > 0)) {
+    const unit = round2(Math.max(0, move.unitCost ?? 0));
+    const value = round2(Math.abs(signed) * unit);
+    if (!(value > 0) && move.type === 'in') return null;
+    if (!(value > 0)) return null;
+    lines.push(D(inv, value, 'O', name));
+    if (move.type === 'in') {
+      if (move.funding === 'opening') {
+        lines.push(C(SYS.openingEquity, value));
+        description = `Saldo awal stok — ${name}`;
+      } else if (move.funding === 'payable') {
+        const pay = move.payableAccountId && ctx.acc.has(move.payableAccountId) ? move.payableAccountId : SYS.payable;
+        lines.push(C(pay, value));
+        description = `Pembelian stok (kredit) — ${name}`;
+      } else if (move.funding === 'wallet') {
+        const wallet = move.walletAccountId && ctx.acc.has(move.walletAccountId) ? move.walletAccountId : SYS.cash;
+        lines.push(C(wallet, value));
+        description = `Pembelian stok — ${name}`;
+      } else {
+        lines.push(C(SYS.openingEquity, value));
+        description = `Masuk stok — ${name}`;
+      }
+    } else {
+      lines.push(C(adjustAcc, value));
+      description = `Opname naik — ${name}`;
+    }
+  } else if (move.type === 'out' || (move.type === 'adjust' && signed < 0)) {
+    const avg = avgCostBefore(allMoves, move.id, move.itemId);
+    const qty = Math.abs(signed);
+    const value = round2(qty * avg);
+    if (!(value > 0) && !(qty > 0)) return null;
+    // Keluar tanpa nilai (stok 0 / belum ada biaya) — tetap catat 0? lewati jurnal kosong
+    if (!(value > 0)) return null;
+    const expense = move.type === 'out' ? cogs : adjustAcc;
+    lines.push(D(expense, value, 'O', name));
+    lines.push(C(inv, value, 'O', name));
+    description = move.type === 'out' ? `Keluar stok / HPP — ${name}` : `Opname turun — ${name}`;
+  } else {
+    return null;
+  }
+
+  return {
+    id: `stk-${move.id}`,
+    date: move.date,
+    ref: move.ref,
+    description: move.note?.trim() ? `${description} (${move.note.trim()})` : description,
+    lines,
+    source: 'stock',
+    stockMoveId: move.id,
+    opening: move.funding === 'opening',
+    sort: move.createdAt,
+  };
+}
+
 export function buildJournal(data: AppData): JournalEntry[] {
   const through = endOfMonth(todayISO());
   const hit = cache.get(data);
@@ -408,6 +478,12 @@ export function buildJournal(data: AppData): JournalEntry[] {
   }
   const assetOrder = [...data.assets].sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1));
   assetOrder.forEach((a, i) => entries.push(...assetEntries(a, ctx, through, i + 1)));
+  const items = new Map(data.stockItems.map((it) => [it.id, it]));
+  const moves = sortMoves(data.stockMoves ?? []);
+  for (const m of moves) {
+    const e = stockEntries(m, items.get(m.itemId), ctx, moves);
+    if (e) entries.push(e);
+  }
   entries.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.sort - b.sort || (a.id < b.id ? -1 : 1)));
   cache.set(data, { through, entries });
   return entries;

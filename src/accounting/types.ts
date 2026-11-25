@@ -8,6 +8,7 @@ export type AccountSubtype =
   | 'investment'
   | 'receivable'
   | 'prepaid'
+  | 'inventory'
   | 'other_current_asset'
   | 'fixed_asset'
   | 'accum_depreciation'
@@ -138,6 +139,106 @@ export type BudgetTarget =
   | { kind: 'expense'; categoryId: string }
   | { kind: 'debt'; debtId?: string };
 
+/* ───────── Persediaan (stok barang) ───────── */
+/* Backlog: multi-varian, konversi multi-satuan, PPN/HSN, foto produk, bin/rak, impor CSV */
+
+export type StockMoveType = 'in' | 'out' | 'adjust' | 'transfer';
+export type StockFunding = 'wallet' | 'payable' | 'opening' | 'none';
+
+export interface StockCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  createdAt: number;
+}
+
+export interface StockItem {
+  id: string;
+  sku: string;
+  name: string;
+  unit: string;
+  minQty: number;
+  sellPrice?: number;
+  /** Modal/harga beli bawaan (prefill form Masuk) */
+  costPrice?: number;
+  /** Barcode terpisah dari SKU (leading zero aman sebagai string) */
+  barcode?: string;
+  brand?: string;
+  categoryId?: string;
+  /** Qty usulan pesan ulang saat stok rendah */
+  reorderQty?: number;
+  description?: string;
+  notes?: string;
+  inventoryAccountId: string;
+  cogsAccountId?: string;
+  revenueAccountId?: string;
+  /** Lacak batch/kadaluarsa (gelombang 3) */
+  trackBatch?: boolean;
+  archived?: boolean;
+  createdAt: number;
+}
+
+export interface StockLocation {
+  id: string;
+  name: string;
+  archived?: boolean;
+  createdAt: number;
+}
+
+export interface StockBatch {
+  id: string;
+  itemId: string;
+  lot: string;
+  expiry?: string;
+  createdAt: number;
+}
+
+export interface StockMove {
+  id: string;
+  date: string;
+  type: StockMoveType;
+  itemId: string;
+  locationId: string;
+  toLocationId?: string;
+  /** Selalu positif; arah ditentukan `type` (adjust: signed via `adjustSign`) */
+  qty: number;
+  /** +1 naik / -1 turun — hanya untuk type `adjust` */
+  adjustSign?: 1 | -1;
+  unitCost?: number;
+  note?: string;
+  ref: string;
+  funding: StockFunding;
+  walletAccountId?: string;
+  payableAccountId?: string;
+  batchId?: string;
+  /** Tautan ke transaksi penjualan (gelombang 3) */
+  saleTxId?: string;
+  createdAt: number;
+}
+
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
+
+export interface PurchaseOrderLine {
+  itemId: string;
+  qty: number;
+  unitCost: number;
+  receivedQty: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  date: string;
+  supplier?: string;
+  status: PurchaseOrderStatus;
+  locationId: string;
+  lines: PurchaseOrderLine[];
+  note?: string;
+  ref: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Profile {
   name: string;
   entityName: string;
@@ -190,6 +291,12 @@ export interface AppData {
   assets: FixedAsset[];
   goals: Goal[];
   templates: TxTemplate[];
+  stockCategories: StockCategory[];
+  stockItems: StockItem[];
+  stockLocations: StockLocation[];
+  stockMoves: StockMove[];
+  stockBatches: StockBatch[];
+  purchaseOrders: PurchaseOrder[];
 }
 
 /* ───────── Journal (derived) ───────── */
@@ -204,7 +311,7 @@ export interface JournalLine {
   cf?: CFClass;
 }
 
-export type EntrySource = 'tx' | 'asset' | 'depreciation' | 'disposal';
+export type EntrySource = 'tx' | 'asset' | 'depreciation' | 'disposal' | 'stock';
 
 export interface JournalEntry {
   id: string;
@@ -215,6 +322,7 @@ export interface JournalEntry {
   source: EntrySource;
   txId?: string;
   assetId?: string;
+  stockMoveId?: string;
   txType?: TxType;
   opening?: boolean;
   adjusting?: boolean;

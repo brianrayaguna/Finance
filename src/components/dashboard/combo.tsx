@@ -3,9 +3,10 @@
  * sehingga dasbor lebih pendek tanpa menghilangkan isinya.
  */
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ChartColumnBig, ChartPie, Wallet, Gauge, HandCoins, type Glyph } from '../../lib/glyphs';
+import { ArrowLeftRight, ChartColumnBig, ChartPie, Gauge, HandCoins, Package, TriangleAlert, Wallet, type Glyph } from '../../lib/glyphs';
 import { EmbedProvider } from './common';
 import { BudgetsWidget, CashflowWidget, CompositionWidget, DebtsWidget, WalletsWidget } from './core';
+import { StockLowWidget, StockMovesWidget, StockSummaryWidget } from './extra';
 import type { WidgetProps } from './types';
 
 interface TabDef {
@@ -121,6 +122,20 @@ export function FinanceWidget(p: WidgetProps) {
         { key: 'wallets', label: 'Dompet', icon: Wallet, node: <WalletsWidget {...p} /> },
         { key: 'budgets', label: 'Anggaran', icon: Gauge, node: <BudgetsWidget {...p} /> },
         { key: 'debts', label: 'Hutang', icon: HandCoins, node: <DebtsWidget /> },
+      ]}
+    />
+  );
+}
+
+/** Mutasi, stok rendah, dan ringkasan persediaan dalam satu kartu. */
+export function StockComboWidget(p: WidgetProps) {
+  return (
+    <TabbedCard
+      id="stock"
+      tabs={[
+        { key: 'moves', label: 'Mutasi', icon: ArrowLeftRight, node: <StockMovesWidget {...p} /> },
+        { key: 'low', label: 'Rendah', icon: TriangleAlert, node: <StockLowWidget {...p} /> },
+        { key: 'summary', label: 'Ringkas', icon: Package, node: <StockSummaryWidget {...p} /> },
       ]}
     />
   );

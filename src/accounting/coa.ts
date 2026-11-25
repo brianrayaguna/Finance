@@ -21,6 +21,9 @@ export const SYS = {
   /** Lawan penyesuaian saldo (rekonsiliasi) dompet */
   otherIncome: 'acc-other-income',
   otherExpense: 'acc-other-expense',
+  inventory: 'acc-inventory',
+  cogs: 'acc-cogs',
+  stockAdjust: 'acc-stock-adjust',
 } as const;
 
 export const TYPE_LABEL: Record<AccountType, string> = {
@@ -43,30 +46,31 @@ export const SUBTYPE_META: Record<
   investment: { label: 'Investasi', type: 'asset', group: 'Aset Lancar', order: 4, cf: 'I', codeBase: 11400 },
   receivable: { label: 'Piutang', type: 'asset', group: 'Aset Lancar', order: 5, cf: 'O', codeBase: 11500 },
   prepaid: { label: 'Biaya Dibayar di Muka', type: 'asset', group: 'Aset Lancar', order: 6, cf: 'O', codeBase: 11600 },
-  other_current_asset: { label: 'Aset Lancar Lainnya', type: 'asset', group: 'Aset Lancar', order: 7, cf: 'O', codeBase: 11900 },
-  fixed_asset: { label: 'Aset Tetap', type: 'asset', group: 'Aset Tidak Lancar', order: 8, cf: 'I', codeBase: 12100 },
-  accum_depreciation: { label: 'Akumulasi Penyusutan', type: 'asset', group: 'Aset Tidak Lancar', order: 9, cf: 'O', codeBase: 12900 },
-  other_asset: { label: 'Aset Tidak Lancar Lainnya', type: 'asset', group: 'Aset Tidak Lancar', order: 10, cf: 'I', codeBase: 12500 },
+  inventory: { label: 'Persediaan', type: 'asset', group: 'Aset Lancar', order: 7, cf: 'O', codeBase: 11700 },
+  other_current_asset: { label: 'Aset Lancar Lainnya', type: 'asset', group: 'Aset Lancar', order: 8, cf: 'O', codeBase: 11900 },
+  fixed_asset: { label: 'Aset Tetap', type: 'asset', group: 'Aset Tidak Lancar', order: 9, cf: 'I', codeBase: 12100 },
+  accum_depreciation: { label: 'Akumulasi Penyusutan', type: 'asset', group: 'Aset Tidak Lancar', order: 10, cf: 'O', codeBase: 12900 },
+  other_asset: { label: 'Aset Tidak Lancar Lainnya', type: 'asset', group: 'Aset Tidak Lancar', order: 11, cf: 'I', codeBase: 12500 },
 
-  credit_card: { label: 'Kartu Kredit / PayLater', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 11, cf: 'O', codeBase: 21200 },
-  payable: { label: 'Hutang', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 12, cf: 'O', codeBase: 21100 },
-  accrued: { label: 'Beban Masih Harus Dibayar', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 13, cf: 'O', codeBase: 21300 },
-  loan: { label: 'Pinjaman Jangka Pendek', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 14, cf: 'F', codeBase: 21400 },
-  other_current_liability: { label: 'Liabilitas Lancar Lainnya', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 15, cf: 'O', codeBase: 21900 },
-  long_term_liability: { label: 'Liabilitas Jangka Panjang', type: 'liability', group: 'Liabilitas Jangka Panjang', order: 16, cf: 'F', codeBase: 22100 },
+  credit_card: { label: 'Kartu Kredit / PayLater', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 12, cf: 'O', codeBase: 21200 },
+  payable: { label: 'Hutang', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 13, cf: 'O', codeBase: 21100 },
+  accrued: { label: 'Beban Masih Harus Dibayar', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 14, cf: 'O', codeBase: 21300 },
+  loan: { label: 'Pinjaman Jangka Pendek', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 15, cf: 'F', codeBase: 21400 },
+  other_current_liability: { label: 'Liabilitas Lancar Lainnya', type: 'liability', group: 'Liabilitas Jangka Pendek', order: 16, cf: 'O', codeBase: 21900 },
+  long_term_liability: { label: 'Liabilitas Jangka Panjang', type: 'liability', group: 'Liabilitas Jangka Panjang', order: 17, cf: 'F', codeBase: 22100 },
 
-  capital: { label: 'Modal', type: 'equity', group: 'Ekuitas', order: 17, cf: 'F', codeBase: 31000 },
-  opening_equity: { label: 'Ekuitas Saldo Awal', type: 'equity', group: 'Ekuitas', order: 18, cf: 'F', codeBase: 31100 },
-  retained_earnings: { label: 'Saldo Laba', type: 'equity', group: 'Ekuitas', order: 19, cf: 'F', codeBase: 32000 },
-  drawing: { label: 'Prive', type: 'equity', group: 'Ekuitas', order: 20, cf: 'F', codeBase: 33000 },
-  income_summary: { label: 'Ikhtisar Laba Rugi', type: 'equity', group: 'Ekuitas', order: 21, cf: 'F', codeBase: 39000 },
+  capital: { label: 'Modal', type: 'equity', group: 'Ekuitas', order: 18, cf: 'F', codeBase: 31000 },
+  opening_equity: { label: 'Ekuitas Saldo Awal', type: 'equity', group: 'Ekuitas', order: 19, cf: 'F', codeBase: 31100 },
+  retained_earnings: { label: 'Saldo Laba', type: 'equity', group: 'Ekuitas', order: 20, cf: 'F', codeBase: 32000 },
+  drawing: { label: 'Prive', type: 'equity', group: 'Ekuitas', order: 21, cf: 'F', codeBase: 33000 },
+  income_summary: { label: 'Ikhtisar Laba Rugi', type: 'equity', group: 'Ekuitas', order: 22, cf: 'F', codeBase: 39000 },
 
-  operating_revenue: { label: 'Pendapatan Utama', type: 'revenue', group: 'Pendapatan Utama', order: 22, cf: 'O', codeBase: 41000 },
-  other_revenue: { label: 'Pendapatan Lain-lain', type: 'revenue', group: 'Pendapatan Lain-lain', order: 23, cf: 'O', codeBase: 42000 },
+  operating_revenue: { label: 'Pendapatan Utama', type: 'revenue', group: 'Pendapatan Utama', order: 23, cf: 'O', codeBase: 41000 },
+  other_revenue: { label: 'Pendapatan Lain-lain', type: 'revenue', group: 'Pendapatan Lain-lain', order: 24, cf: 'O', codeBase: 42000 },
 
-  cogs: { label: 'Harga Pokok Penjualan', type: 'expense', group: 'Harga Pokok Penjualan', order: 24, cf: 'O', codeBase: 51000 },
-  operating_expense: { label: 'Beban Operasional', type: 'expense', group: 'Beban Operasional', order: 25, cf: 'O', codeBase: 61000 },
-  other_expense: { label: 'Beban Lain-lain', type: 'expense', group: 'Beban Lain-lain', order: 26, cf: 'O', codeBase: 71000 },
+  cogs: { label: 'Harga Pokok Penjualan', type: 'expense', group: 'Harga Pokok Penjualan', order: 25, cf: 'O', codeBase: 51000 },
+  operating_expense: { label: 'Beban Operasional', type: 'expense', group: 'Beban Operasional', order: 26, cf: 'O', codeBase: 61000 },
+  other_expense: { label: 'Beban Lain-lain', type: 'expense', group: 'Beban Lain-lain', order: 27, cf: 'O', codeBase: 71000 },
 };
 
 export const WALLET_SUBTYPES: AccountSubtype[] = ['cash', 'bank', 'ewallet', 'investment', 'credit_card'];
@@ -119,6 +123,7 @@ const SEEDS: Seed[] = [
   [SYS.cash, '1-1100', 'Kas Tunai', 'cash', 'wallet', '#4C8A58', true],
   [SYS.receivable, '1-1500', 'Piutang', 'receivable', 'hand-coins', '#2E7F80', true, 'Piutang usaha & pinjaman yang diberikan'],
   ['acc-prepaid', '1-1600', 'Biaya Dibayar di Muka', 'prepaid', 'hourglass', '#78736A'],
+  [SYS.inventory, '1-1700', 'Persediaan Barang', 'inventory', 'package', '#8A6546', true, 'Nilai stok barang (metode rata-rata tertimbang)'],
   ['acc-equipment', '1-2100', 'Peralatan & Elektronik', 'fixed_asset', 'laptop', '#57609F'],
   ['acc-vehicle', '1-2110', 'Kendaraan', 'fixed_asset', 'car', '#3B6A96'],
   ['acc-building', '1-2120', 'Tanah & Bangunan', 'fixed_asset', 'building', '#8A6546'],
@@ -145,7 +150,8 @@ const SEEDS: Seed[] = [
   [SYS.gainDisposal, '4-2200', 'Laba Pelepasan Aset', 'other_revenue', 'badge-percent', '#4C8A58', true],
   [SYS.otherIncome, '4-2900', 'Pendapatan Lain-lain', 'other_revenue', 'coins', '#78736A', true, 'Juga menampung selisih lebih penyesuaian saldo'],
   // HPP
-  ['acc-cogs', '5-1000', 'Harga Pokok Penjualan', 'cogs', 'package', '#8A6546'],
+  [SYS.cogs, '5-1000', 'Harga Pokok Penjualan', 'cogs', 'package', '#8A6546', true],
+  [SYS.stockAdjust, '5-1100', 'Penyesuaian Persediaan', 'cogs', 'boxes', '#A88B5E', true, 'Selisih opname & koreksi stok'],
   // BEBAN OPERASIONAL
   ['acc-food', '6-1100', 'Makan & Minum', 'operating_expense', 'utensils', '#C8792C'],
   ['acc-groceries', '6-1110', 'Belanja Kebutuhan', 'operating_expense', 'shopping-cart', '#4C8A58'],

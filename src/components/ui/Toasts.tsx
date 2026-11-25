@@ -6,9 +6,10 @@ import { useToasts, type Toast } from '../../store/ui';
 
 function ToastItem({ t }: { t: Toast }) {
   const dismiss = useToasts((s) => s.dismiss);
-  const persistent = t.tone === 'danger' || !!t.action || t.duration === Infinity;
+  // Hanya menempel bila eksplisit Infinity, atau danger tanpa duration.
+  const persistent = t.duration === Infinity || (t.tone === 'danger' && t.duration === undefined);
   const [paused, setPaused] = useState(false);
-  const remaining = useRef(t.duration ?? 3600);
+  const remaining = useRef(t.duration ?? (t.tone === 'danger' ? Infinity : 4200));
   const started = useRef(Date.now());
 
   useEffect(() => {

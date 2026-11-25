@@ -28,7 +28,8 @@ import { TX_META, journalizeTx, makeCtx } from '../../accounting/engine';
 import { isLocked } from '../../accounting/lock';
 import { bal, balancesAt, debtInfos, getBooks } from '../../accounting/reports';
 import type { DebtCounter, Transaction, TxType } from '../../accounting/types';
-import { addTemplate, addTransaction, deleteTransactions, getData, updateTransaction, useData, childCount } from '../../store/data';
+import { addIncomeWithStock, addTemplate, addTransaction, deleteTransactions, getData, updateTransaction, useData, childCount } from '../../store/data';
+import { DEFAULT_LOCATION_ID, computeStock, itemQty } from '../../accounting/stock';
 import { confirm, usePrefs, useUI } from '../../store/ui';
 import { notify } from '../../store/history';
 import { addDays, formatDate, formatMoney, isoFromTs, nowTime, round2, todayISO, daysBetween } from '../../lib/format';
@@ -66,6 +67,9 @@ interface Draft {
   counter: DebtCounter;
   description: string;
   note: string;
+  /** Penjualan terikat stok (hanya pemasukan baru) */
+  stockItemId: string;
+  stockQty: number | null;
 }
 
 function modeOf(t: TxType): [Mode, Sub] {
@@ -135,6 +139,8 @@ function initDraft(editing?: Transaction, defaults?: Partial<Transaction>): Draf
     counter: src.counter ?? 'wallet',
     description: src.description ?? '',
     note: src.note ?? '',
+    stockItemId: '',
+    stockQty: null,
   };
 }
 
@@ -474,6 +480,14 @@ function TransactionModal({
       const hid = updateTransaction(editing.id, tx as Partial<Transaction>, `Ubah ${label.toLowerCase()}`);
       if (!hid) return;
       notify(`${label} ${amt} diperbarui`, hid);
+    } else if (type === 'income' && d.stockItemId && d.stockQty && d.stockQty > 0) {
+      const { tx: saved, historyId } = addIncomeWithStock(tx, {
+        itemId: d.stockItemId,
+        qty: d.stockQty,
+        locationId: DEFAULT_LOCATION_ID,
+      });
+      if (!historyId) return;
+      notify(`${label} ${amt} + HPP stok`, historyId, { detail: saved.ref });
     } else {
       const { tx: saved, historyId } = addTransaction(tx, `Tambah ${label.toLowerCase()}`);
       if (!historyId) return;
@@ -543,6 +557,8 @@ function TransactionModal({
         counter: 'wallet',
         accountId: p.accountId || lastWallet(nt),
         toAccountId: m === 'transfer' ? p.toAccountId : '',
+        stockItemId: '',
+        stockQty: null,
       };
     });
     setTried(false);
@@ -741,6 +757,40 @@ function TransactionModal({
             <Field label={d.refund ? (d.mode === 'income' ? 'Kategori beban yang dikembalikan' : 'Kategori pendapatan yang dikembalikan') : 'Kategori'} error={err('categoryId')}>
               <Select value={d.categoryId} onChange={(v) => set('categoryId', v)} options={cats} placeholder="Pilih kategori…" invalid={!!err('categoryId')} searchable advance />
             </Field>
+          )}
+          {d.mode === 'income' && !d.refund && !editing && data.stockItems.some((it) => !it.archived) && (
+            <>
+              <Field label="Barang terjual (opsional)" hint="Mengurangi stok & menjurnal HPP otomatis">
+                <Select
+                  value={d.stockItemId}
+                  onChange={(v) => {
+                    const it = data.stockItems.find((x) => x.id === v);
+                    setD((p) => ({
+                      ...p,
+                      stockItemId: v,
+                      description: p.description.trim() || it?.name || p.description,
+                      amount: p.amount ?? (it?.sellPrice && it.sellPrice > 0 ? it.sellPrice : p.amount),
+                      stockQty: p.stockQty ?? 1,
+                    }));
+                  }}
+                  options={[
+                    { value: '', label: 'Tanpa stok' },
+                    ...data.stockItems
+                      .filter((it) => !it.archived)
+                      .map((it) => {
+                        const q = itemQty(computeStock(data.stockMoves), it.id, DEFAULT_LOCATION_ID);
+                        return { value: it.id, label: it.name, sub: `${it.sku || it.unit} · stok ${q}` };
+                      }),
+                  ]}
+                  searchable
+                />
+              </Field>
+              {d.stockItemId && (
+                <Field label="Qty terjual">
+                  <AmountInput value={d.stockQty} onChange={(v) => set('stockQty', v)} />
+                </Field>
+              )}
+            </>
           )}
           {(d.mode === 'expense' || d.mode === 'income') && (showRefund || d.refund) && (
             <Field

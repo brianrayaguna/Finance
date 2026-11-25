@@ -13,11 +13,12 @@ import type { AppData, Transaction } from '../../accounting/types';
 import { todayISO } from '../../lib/format';
 
 describe('tata letak dasbor', () => {
-  it('bawaan = tata letak lama (9 widget) dengan 4 KPI', () => {
+  it('bawaan = tata letak lengkap dengan 4 KPI dan persediaan', () => {
     const l = defaultLayout();
-    expect(l.order).toEqual(['hero', 'kpi', 'flow', 'health', 'recent', 'finance']);
+    expect(l.order).toEqual(['hero', 'kpi', 'flow', 'health', 'recent', 'finance', 'stock']);
     expect(l.kpi).toEqual(['income', 'expense', 'net', 'cash']);
     expect(sizeOf(l, 'cashflow')).toBe('l');
+    expect(sizeOf(l, 'stock')).toBe('m');
   });
 
   it('memindahkan widget sebelum/sesudah target', () => {
@@ -40,15 +41,15 @@ describe('tata letak dasbor', () => {
 
   it('baris selalu penuh: widget terakhir melebar bila berikutnya tidak muat', () => {
     const l = defaultLayout();
-    // hero 6 + kpi 6 | arus kas 8 + kesehatan 4 | terbaru 8 + keuangan 4
-    expect(packSpans(l, 1200)).toEqual([6, 6, 8, 4, 8, 4]);
+    // hero 6 + kpi 6 | arus kas 8 + kesehatan 4 | terbaru 8 + keuangan 4 | stok 6
+    expect(packSpans(l, 1200)).toEqual([6, 6, 8, 4, 8, 4, 6]);
     const gap = { ...l, order: ['cashflow', 'insights', 'wallets'] as WidgetId[] };
     // 8 lalu 6 tidak muat → cashflow melebar ke 12; insights 6 + wallets 4 (baris terakhir boleh bercelah)
     expect(packSpans(gap, 1200)).toEqual([12, 6, 4]);
-    // layar sedang: hero/kpi penuh, s/m setengah
-    expect(packSpans(l, 700)).toEqual([12, 12, 12, 12, 12, 6]);
+    // layar sedang: hero/kpi/l penuh; finance+stock separuh
+    expect(packSpans(l, 700)).toEqual([12, 12, 12, 12, 12, 6, 6]);
     // laptop dengan sidebar terbuka: kolom penuh seperti desktop
-    expect(packSpans(l, 944)).toEqual([6, 6, 8, 4, 8, 4]);
+    expect(packSpans(l, 944)).toEqual([6, 6, 8, 4, 8, 4, 6]);
     // ponsel: semuanya penuh
     expect(new Set(packSpans(l, 400))).toEqual(new Set([12]));
     for (const w of [400, 700, 900, 1200]) for (const s of packSpans(presetLayout('akuntan'), w)) expect(s).toBeLessThanOrEqual(12);
@@ -92,10 +93,25 @@ describe('navigasi', () => {
 
   it('urutan kustom dan data navigasi rusak', () => {
     const n = sanitizeNavPrefs({ hidden: ['/x', '/aset', '/aset'], pinned: 'rusak', order: { keuangan: ['/aset', '/dompet', '/jurnal'] }, folded: ['pembukuan', 'aneh'] });
-    expect(n).toEqual({ hidden: ['/aset'], pinned: [], order: { keuangan: ['/aset', '/dompet'] }, folded: ['pembukuan'] });
+    expect(n.hidden).toEqual(['/aset']);
+    expect(n.pinned).toEqual([]);
+    expect(n.order).toEqual({ keuangan: ['/aset', '/dompet'] });
+    expect(n.folded).toEqual(['pembukuan']);
+    expect(n.tabBar).toEqual(['/', '/transaksi', '/dompet', '/laporan']);
+    expect(n.disabledModules).toEqual([]);
     expect(sanitizeNavPrefs({ folded: ['favorit', 'favorit', 'keuangan'] }).folded).toEqual(['favorit', 'keuangan']);
     const keu = buildNav(n, 'accountant').sections.find((s) => s.id === 'keuangan')!;
     expect(keu.items[0].to).toBe('/dompet');
+  });
+
+  it('modul dinonaktifkan hilang dari sidebar; tabBar tersanitasi', () => {
+    const prefs = { ...defaultNavPrefs(), disabledModules: ['stock' as const], tabBar: ['/', '/persediaan', '/dompet', '/laporan'] as ["/", "/persediaan", "/dompet", "/laporan"] };
+    const routes = buildNav(prefs, 'accountant').sections.flatMap((s) => s.items.map((i) => i.to));
+    expect(routes).not.toContain('/persediaan');
+    const bad = sanitizeNavPrefs({ tabBar: ['/x', '/persediaan', '/dompet', '/laporan'], disabledModules: ['stock', 'aneh'] });
+    expect(bad.tabBar[0]).toBe('/');
+    expect(bad.tabBar[1]).toBe('/persediaan');
+    expect(bad.disabledModules).toEqual(['stock']);
   });
 });
 

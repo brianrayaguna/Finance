@@ -24,6 +24,7 @@ const Wallets = lazy(() => import('./pages/Wallets'));
 const Debts = lazy(() => import('./pages/Debts'));
 const Budgets = lazy(() => import('./pages/Budgets'));
 const Assets = lazy(() => import('./pages/Assets'));
+const Stock = lazy(() => import('./pages/Stock'));
 const Journal = lazy(() => import('./pages/Journal'));
 const Ledger = lazy(() => import('./pages/Ledger'));
 const TrialBalance = lazy(() => import('./pages/TrialBalance'));
@@ -68,6 +69,7 @@ function AnimatedRoutes() {
             <Route path="/hutang-piutang" element={<Debts />} />
             <Route path="/anggaran" element={<Budgets />} />
             <Route path="/aset" element={<Assets />} />
+            <Route path="/persediaan" element={<Stock />} />
             <Route path="/jurnal" element={<Journal />} />
             <Route path="/buku-besar" element={<Ledger />} />
             <Route path="/neraca-saldo" element={<TrialBalance />} />

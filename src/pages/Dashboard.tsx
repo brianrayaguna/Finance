@@ -9,6 +9,7 @@ import { monthlySeries, periodFlow, positionAt } from '../accounting/reports';
 import { addMonths, endOfMonth, formatDate, startOfMonth } from '../lib/format';
 import { useLayer } from '../lib/layers';
 import { defaultLayout, moveWidget, packSpans, presetLayout, sizeOf, PRESETS, type DashLayout, type PresetId, type WidgetId } from '../app/dashboardLayout';
+import { disabledWidgetIds } from '../app/nav';
 import { PageHeader } from '../components/layout/Topbar';
 import { Button, EmptyState } from '../components/ui/primitives';
 import { MonthSwitcher } from '../components/ui/MonthSwitcher';
@@ -42,6 +43,8 @@ export default function Dashboard() {
   const saved = usePrefs((s) => s.dashboard);
   const setLayout = usePrefs((s) => s.setLayout);
   const compact = usePrefs((s) => s.compactNumbers);
+  const disabledMods = usePrefs((s) => s.nav.disabledModules);
+  const offWidgets = useMemo(() => disabledWidgetIds(disabledMods ?? []), [disabledMods]);
   const dashMonth = useUI((s) => s.dashMonth);
   const setDashMonth = useUI((s) => s.setDashMonth);
   const month = dashMonth ?? today.slice(0, 7);
@@ -226,7 +229,7 @@ export default function Dashboard() {
             <div className="dash-grid" key={month}>
               {layout.order.map((id, i) => {
                 const W = WIDGETS[id]?.Component;
-                if (!W) return null;
+                if (!W || offWidgets.has(id)) return null;
                 return (
                   <WidgetFrame
                     key={id}

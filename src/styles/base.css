@@ -338,6 +338,18 @@ textarea:focus-visible {
 :root[data-perf='lite'] .tabbar {
   background: var(--surface) !important;
 }
+/* APK / perangkat lemah: kurangi bayangan & blur sisa, nonaktifkan stagger berat */
+:root[data-perf='lite'] .card,
+:root[data-perf='lite'] .widget {
+  box-shadow: none !important;
+}
+:root[data-perf='lite'] .route {
+  animation: none !important;
+}
+html {
+  scroll-padding-bottom: calc(4.5rem + var(--safe-bottom));
+  scroll-padding-top: calc(var(--topbar-total) + 12px);
+}
 
 /* Ponsel & layar sentuh: tanpa efek kaca, apa pun mode hematnya. Tab bar (fixed) dan topbar (sticky)
    ber-backdrop-filter dihitung ulang setiap frame saat menggulir — sumber utama gulir patah-patah di

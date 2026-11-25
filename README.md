@@ -33,7 +33,9 @@ Tampilan **putih galeri** dengan kartu datar berbingkai garis rambut, tinta **hi
 
 **Dasbor yang dapat disesuaikan**
 - Mode *Sesuaikan*: seret widget (mouse, sentuh, atau tombol panah), ubah ukuran (kecil/sedang/lebar/penuh), atur isi, sembunyikan — baris selalu terisi rapi tanpa celah
-- 19 widget: kekayaan bersih, indikator utama (4 kartu pilihan dari 10 metrik), arus kas & komposisi (satu kartu bertab), dompet-anggaran-hutang (satu kartu bertab), transaksi terbaru, kesehatan keuangan, jatuh tempo, kategori teratas, kalender pengeluaran, transaksi favorit, target tabungan, saldo kas harian, wawasan otomatis, integritas buku — plus versi terpisah untuk pendapatan & beban, komposisi, dompet, anggaran, dan hutang-piutang
+- 20 widget: kekayaan bersih, indikator utama (4 kartu pilihan dari 10 metrik), arus kas & komposisi (satu kartu bertab), dompet-anggaran-hutang (satu kartu bertab), transaksi terbaru, kesehatan keuangan, jatuh tempo, kategori teratas, kalender pengeluaran, transaksi favorit, target tabungan, saldo kas harian, wawasan otomatis, integritas buku, persediaan — plus versi terpisah untuk pendapatan & beban, komposisi, dompet, anggaran, dan hutang-piutang
+- **Persediaan**: katalog barang (kategori, merk, barcode, harga beli/jual, reorder), mutasi masuk/keluar/opname/transfer, multi-lokasi, PO multi-baris, penjualan terikat stok (HPP otomatis, rata-rata tertimbang), alert stok rendah. Belum: multi-varian, konversi multi-satuan, PPN/HSN, foto, impor CSV
+- **Navigasi ponsel**: tab bawah 4 slot dapat diganti (mis. Transaksi → Persediaan); modul Persediaan/Aset/Anggaran/Hutang/Pembukuan teknis dapat dimatikan di Pengaturan → Menu
 - Tata letak siap pakai *Lengkap*, *Sederhana*, *Akuntan*; panduan *Mulai di sini* untuk pengguna baru
 - **Target tabungan** yang kemajuannya dihitung dari saldo dompet tertaut, dengan saran setoran per bulan
 - **Transaksi favorit**: simpan dari formulir, catat ulang dengan sekali klik dari tombol *Catat*, dasbor, atau palet perintah

@@ -12,6 +12,12 @@ import type {
   FixedAsset,
   Goal,
   Profile,
+  PurchaseOrder,
+  StockBatch,
+  StockCategory,
+  StockItem,
+  StockLocation,
+  StockMove,
   Transaction,
   TxTemplate,
 } from '../accounting/types';
@@ -25,6 +31,7 @@ export function budgetTargetKey(b: Pick<Budget, 'kind' | 'categoryId' | 'debtId'
   return `expense:${b.categoryId ?? ''}`;
 }
 import { lockViolations } from '../accounting/lock';
+import { DEFAULT_LOCATION_ID, defaultLocations } from '../accounting/stock';
 import { formatDate, round2, todayISO, uid } from '../lib/format';
 import { remapColor, remapIcon } from '../lib/icons';
 import { toast } from './ui';
@@ -46,6 +53,12 @@ export function emptyData(): AppData {
     assets: [],
     goals: [],
     templates: [],
+    stockCategories: [],
+    stockItems: [],
+    stockLocations: defaultLocations(),
+    stockMoves: [],
+    stockBatches: [],
+    purchaseOrders: [],
   };
 }
 
@@ -198,6 +211,139 @@ export function normalizeData(input: AppData): AppData {
     for (const [k, v] of Object.entries(p.refSeq)) if (typeof v === 'number' && Number.isFinite(v) && v > 0) seq[k] = Math.floor(v);
   if (Object.keys(seq).length) profile.refSeq = seq;
   else delete profile.refSeq;
+
+  const stockCategories: StockCategory[] = uniqBy(
+    list<StockCategory>(d.stockCategories).filter((c) => typeof c.id === 'string' && c.id && typeof c.name === 'string' && c.name.trim()),
+    (c) => c.id,
+  ).map((c) => ({
+    id: c.id,
+    name: String(c.name).trim(),
+    icon: typeof c.icon === 'string' && c.icon ? remapIcon(c.icon) || c.icon : 'package',
+    color: typeof c.color === 'string' && c.color ? remapColor(c.color) || c.color : '#8A6546',
+    createdAt: num(c.createdAt, Date.now()),
+  }));
+  const categoryIds = new Set(stockCategories.map((c) => c.id));
+
+  const stockItems: StockItem[] = uniqBy(
+    list<StockItem>(d.stockItems).filter((it) => typeof it.id === 'string' && it.id && typeof it.name === 'string'),
+    (it) => it.id,
+  ).map((it) => {
+    const barcode = String(it.barcode ?? '').trim();
+    const brand = String(it.brand ?? '').trim();
+    const description = String(it.description ?? '').trim();
+    const notes = String(it.notes ?? '').trim();
+    const categoryId = typeof it.categoryId === 'string' && categoryIds.has(it.categoryId) ? it.categoryId : undefined;
+    const costPrice = it.costPrice !== undefined ? round2(Math.max(0, num(it.costPrice))) : undefined;
+    const reorderQty = it.reorderQty !== undefined ? round2(Math.max(0, num(it.reorderQty))) : undefined;
+    return {
+      ...it,
+      sku: String(it.sku ?? '').trim(),
+      name: String(it.name ?? '').trim() || 'Barang',
+      unit: String(it.unit ?? '').trim() || 'pcs',
+      minQty: Math.max(0, round2(num(it.minQty))),
+      sellPrice: it.sellPrice !== undefined ? round2(Math.max(0, num(it.sellPrice))) : undefined,
+      costPrice: costPrice && costPrice > 0 ? costPrice : undefined,
+      barcode: barcode || undefined,
+      brand: brand || undefined,
+      categoryId,
+      reorderQty: reorderQty && reorderQty > 0 ? reorderQty : undefined,
+      description: description || undefined,
+      notes: notes || undefined,
+      inventoryAccountId: typeof it.inventoryAccountId === 'string' && it.inventoryAccountId ? it.inventoryAccountId : SYS.inventory,
+      cogsAccountId: typeof it.cogsAccountId === 'string' && it.cogsAccountId ? it.cogsAccountId : undefined,
+      revenueAccountId: typeof it.revenueAccountId === 'string' && it.revenueAccountId ? it.revenueAccountId : undefined,
+      trackBatch: !!it.trackBatch || undefined,
+      archived: !!it.archived || undefined,
+      createdAt: num(it.createdAt, Date.now()),
+    };
+  });
+
+  let stockLocations: StockLocation[] = uniqBy(
+    list<StockLocation>(d.stockLocations).filter((l) => typeof l.id === 'string' && l.id),
+    (l) => l.id,
+  ).map((l) => ({
+    ...l,
+    name: String(l.name ?? '').trim() || 'Lokasi',
+    archived: !!l.archived || undefined,
+    createdAt: num(l.createdAt, Date.now()),
+  }));
+  if (!stockLocations.length) stockLocations = defaultLocations();
+  else if (!stockLocations.some((l) => l.id === DEFAULT_LOCATION_ID)) {
+    stockLocations = [...defaultLocations(), ...stockLocations];
+  }
+
+  const locationIds = new Set(stockLocations.map((l) => l.id));
+  const itemIds = new Set(stockItems.map((it) => it.id));
+
+  const stockBatches: StockBatch[] = uniqBy(
+    list<StockBatch>(d.stockBatches).filter((b) => typeof b.id === 'string' && b.id && itemIds.has(b.itemId)),
+    (b) => b.id,
+  ).map((b) => ({
+    ...b,
+    lot: String(b.lot ?? '').trim() || b.id,
+    expiry: isDate(b.expiry) ? b.expiry : undefined,
+    createdAt: num(b.createdAt, Date.now()),
+  }));
+  const batchIds = new Set(stockBatches.map((b) => b.id));
+
+  const MOVE_TYPES = new Set(['in', 'out', 'adjust', 'transfer']);
+  const FUNDINGS = new Set(['wallet', 'payable', 'opening', 'none']);
+  const stockMoves: StockMove[] = uniqBy(
+    list<StockMove>(d.stockMoves).filter(
+      (m) => typeof m.id === 'string' && m.id && isDate(m.date) && itemIds.has(m.itemId) && MOVE_TYPES.has(m.type),
+    ),
+    (m) => m.id,
+  ).map((m) => {
+    const loc = locationIds.has(m.locationId) ? m.locationId : DEFAULT_LOCATION_ID;
+    const x: StockMove = {
+      ...m,
+      locationId: loc,
+      toLocationId: m.toLocationId && locationIds.has(m.toLocationId) ? m.toLocationId : undefined,
+      qty: round2(Math.abs(num(m.qty))),
+      unitCost: m.unitCost !== undefined ? round2(Math.max(0, num(m.unitCost))) : undefined,
+      note: typeof m.note === 'string' ? m.note : undefined,
+      ref: typeof m.ref === 'string' && m.ref ? m.ref : '',
+      funding: FUNDINGS.has(m.funding) ? m.funding : m.type === 'in' ? 'wallet' : 'none',
+      walletAccountId: typeof m.walletAccountId === 'string' ? m.walletAccountId : undefined,
+      payableAccountId: typeof m.payableAccountId === 'string' ? m.payableAccountId : undefined,
+      batchId: m.batchId && batchIds.has(m.batchId) ? m.batchId : undefined,
+      saleTxId: typeof m.saleTxId === 'string' ? m.saleTxId : undefined,
+      adjustSign: m.type === 'adjust' ? (m.adjustSign === -1 ? -1 : 1) : undefined,
+      createdAt: num(m.createdAt, Date.now()),
+    };
+    return x;
+  });
+  for (const m of stockMoves) if (!m.ref) m.ref = nextRef(stockMoves, stockMovePrefix(m.type), m.date);
+
+  const PO_STATUS = new Set(['draft', 'ordered', 'partial', 'received', 'cancelled']);
+  const purchaseOrders: PurchaseOrder[] = uniqBy(
+    list<PurchaseOrder>(d.purchaseOrders).filter((p) => typeof p.id === 'string' && p.id && isDate(p.date)),
+    (p) => p.id,
+  ).map((p) => {
+    const lines = Array.isArray(p.lines)
+      ? p.lines
+          .filter((l) => l && itemIds.has(l.itemId))
+          .map((l) => ({
+            itemId: l.itemId,
+            qty: round2(Math.abs(num(l.qty))),
+            unitCost: round2(Math.max(0, num(l.unitCost))),
+            receivedQty: round2(Math.max(0, num(l.receivedQty))),
+          }))
+      : [];
+    return {
+      ...p,
+      supplier: typeof p.supplier === 'string' ? p.supplier : undefined,
+      status: PO_STATUS.has(p.status) ? p.status : 'draft',
+      locationId: locationIds.has(p.locationId) ? p.locationId : DEFAULT_LOCATION_ID,
+      lines,
+      note: typeof p.note === 'string' ? p.note : undefined,
+      ref: typeof p.ref === 'string' && p.ref ? p.ref : '',
+      createdAt: num(p.createdAt, Date.now()),
+      updatedAt: num(p.updatedAt, num(p.createdAt, Date.now())),
+    };
+  });
+  for (const p of purchaseOrders) if (!p.ref) p.ref = nextRef(purchaseOrders, 'PO', p.date);
+
   return {
     version: 1,
     profile,
@@ -207,7 +353,28 @@ export function normalizeData(input: AppData): AppData {
     assets,
     goals,
     templates,
+    stockCategories,
+    stockItems,
+    stockLocations,
+    stockMoves,
+    stockBatches,
+    purchaseOrders,
   };
+}
+
+function stockMovePrefix(type: StockMove['type']): string {
+  switch (type) {
+    case 'in':
+      return 'STM';
+    case 'out':
+      return 'STK';
+    case 'adjust':
+      return 'STO';
+    case 'transfer':
+      return 'STT';
+    default:
+      return 'ST';
+  }
 }
 
 function fallbackSubtype(type: unknown): AccountSubtype {
@@ -518,7 +685,7 @@ export function updateTransaction(id: string, patch: Partial<Transaction>, label
   });
 }
 
-/** Menghapus transaksi beserta turunannya (pembayaran hutang/piutang) dan anggaran hutang terkait. */
+/** Menghapus transaksi beserta turunannya (pembayaran hutang/piutang), anggaran hutang, dan mutasi stok terikat penjualan. */
 export function deleteTransactions(ids: string[], label?: string) {
   const all = new Set(ids);
   const d = getData();
@@ -527,7 +694,54 @@ export function deleteTransactions(ids: string[], label?: string) {
     ...s,
     transactions: s.transactions.filter((t) => !all.has(t.id)),
     budgets: s.budgets.filter((b) => !(budgetKind(b) === 'debt' && b.debtId && all.has(b.debtId))),
+    stockMoves: s.stockMoves.filter((m) => !m.saleTxId || !all.has(m.saleTxId)),
   }));
+}
+
+/** Pemasukan + keluar stok (HPP) dalam satu langkah riwayat. */
+export function addIncomeWithStock(
+  input: TxInput,
+  stock: { itemId: string; qty: number; locationId?: string },
+  label = 'Tambah penjualan stok',
+) {
+  const now = Date.now();
+  const d = getData();
+  const issued = input.ref ? null : issueRef(d, refPrefix(input), input.date);
+  const tx = clean({
+    ...input,
+    id: uid('tx'),
+    ref: input.ref || issued!.ref,
+    createdAt: now,
+    updatedAt: now,
+  } as Transaction);
+  const moveIssued = issueRef(
+    { ...d, profile: issued ? withSeq(d.profile, issued.head, issued.n) : d.profile },
+    'STK',
+    input.date,
+    d.stockMoves,
+  );
+  const move: StockMove = {
+    id: uid('smv'),
+    date: input.date,
+    type: 'out',
+    itemId: stock.itemId,
+    locationId: stock.locationId || DEFAULT_LOCATION_ID,
+    qty: round2(Math.abs(stock.qty)),
+    funding: 'none',
+    ref: moveIssued.ref,
+    saleTxId: tx.id,
+    note: `Penjualan ${tx.ref}`,
+    createdAt: now + 1,
+  };
+  let profile = issued ? withSeq(d.profile, issued.head, issued.n) : d.profile;
+  profile = withSeq(profile, moveIssued.head, moveIssued.n);
+  const historyId = commit(label, (s) => ({
+    ...s,
+    profile,
+    transactions: [...s.transactions, tx],
+    stockMoves: [...s.stockMoves, move],
+  }));
+  return { tx, move, historyId };
 }
 
 export function childCount(ids: string[]): number {
@@ -584,6 +798,12 @@ export function accountUsage(id: string): number {
   }
   for (const a of d.assets) if (a.accountId === id || a.paidFromAccountId === id || a.disposal?.accountId === id) n++;
   if (d.budgets.some((b) => budgetKind(b) === 'expense' && b.categoryId === id)) n++;
+  for (const it of d.stockItems) {
+    if (it.inventoryAccountId === id || it.cogsAccountId === id || it.revenueAccountId === id) n++;
+  }
+  for (const m of d.stockMoves) {
+    if (m.walletAccountId === id || m.payableAccountId === id) n++;
+  }
   return n;
 }
 
@@ -793,6 +1013,271 @@ export function addTemplate(input: Omit<TxTemplate, 'id' | 'createdAt'>) {
 
 export function deleteTemplate(id: string) {
   return commit('Hapus transaksi favorit', (s) => ({ ...s, templates: s.templates.filter((t) => t.id !== id) }));
+}
+
+/* Persediaan */
+
+function cleanItemFields(it: StockItem): StockItem {
+  const next = { ...it };
+  if (next.costPrice !== undefined) {
+    next.costPrice = round2(Math.max(0, next.costPrice));
+    if (!(next.costPrice > 0)) delete next.costPrice;
+  }
+  if (next.reorderQty !== undefined) {
+    next.reorderQty = round2(Math.max(0, next.reorderQty));
+    if (!(next.reorderQty > 0)) delete next.reorderQty;
+  }
+  if (next.barcode !== undefined) {
+    next.barcode = next.barcode.trim();
+    if (!next.barcode) delete next.barcode;
+  }
+  if (next.brand !== undefined) {
+    next.brand = next.brand.trim();
+    if (!next.brand) delete next.brand;
+  }
+  if (next.description !== undefined) {
+    next.description = next.description.trim();
+    if (!next.description) delete next.description;
+  }
+  if (next.notes !== undefined) {
+    next.notes = next.notes.trim();
+    if (!next.notes) delete next.notes;
+  }
+  if (next.categoryId === '') delete next.categoryId;
+  return next;
+}
+
+export function addStockCategory(input: { name: string; icon?: string; color?: string } | string) {
+  const raw = typeof input === 'string' ? { name: input } : input;
+  const cat: StockCategory = {
+    id: uid('scat'),
+    name: raw.name.trim() || 'Kategori',
+    icon: raw.icon?.trim() || 'package',
+    color: raw.color?.trim() || '#8A6546',
+    createdAt: Date.now(),
+  };
+  const historyId = commit('Tambah kategori stok', (s) => ({ ...s, stockCategories: [...(s.stockCategories ?? []), cat] }));
+  return { category: cat, historyId };
+}
+
+export function updateStockCategory(id: string, patch: Partial<StockCategory>, label = 'Ubah kategori stok') {
+  return commit(label, (s) => ({
+    ...s,
+    stockCategories: (s.stockCategories ?? []).map((c) => {
+      if (c.id !== id) return c;
+      const next = { ...c, ...patch };
+      if (patch.name !== undefined) next.name = patch.name.trim() || c.name;
+      if (patch.icon !== undefined) next.icon = patch.icon.trim() || c.icon;
+      if (patch.color !== undefined) next.color = patch.color.trim() || c.color;
+      return next;
+    }),
+  }));
+}
+
+export function deleteStockCategory(id: string) {
+  return commit('Hapus kategori stok', (s) => ({
+    ...s,
+    stockCategories: (s.stockCategories ?? []).filter((c) => c.id !== id),
+    stockItems: s.stockItems.map((it) => (it.categoryId === id ? { ...it, categoryId: undefined } : it)),
+  }));
+}
+
+export function addStockItem(input: Omit<StockItem, 'id' | 'createdAt'>) {
+  const item = cleanItemFields({
+    ...input,
+    id: uid('stk'),
+    sku: input.sku.trim(),
+    name: input.name.trim() || 'Barang',
+    unit: input.unit.trim() || 'pcs',
+    minQty: Math.max(0, round2(input.minQty || 0)),
+    sellPrice: input.sellPrice !== undefined ? round2(Math.max(0, input.sellPrice)) : undefined,
+    inventoryAccountId: input.inventoryAccountId || SYS.inventory,
+    trackBatch: input.trackBatch || undefined,
+    createdAt: Date.now(),
+  });
+  const historyId = commit('Tambah barang', (s) => ({ ...s, stockItems: [...s.stockItems, item] }));
+  return { item, historyId };
+}
+
+export function updateStockItem(id: string, patch: Partial<StockItem>, label = 'Ubah barang') {
+  return commit(label, (s) => ({
+    ...s,
+    stockItems: s.stockItems.map((it) => {
+      if (it.id !== id) return it;
+      let next: StockItem = { ...it, ...patch };
+      if (patch.name !== undefined) next.name = patch.name.trim() || it.name;
+      if (patch.sku !== undefined) next.sku = patch.sku.trim();
+      if (patch.unit !== undefined) next.unit = patch.unit.trim() || 'pcs';
+      if (patch.minQty !== undefined) next.minQty = Math.max(0, round2(patch.minQty));
+      if (patch.sellPrice !== undefined) next.sellPrice = round2(Math.max(0, patch.sellPrice));
+      if (patch.categoryId === null || patch.categoryId === '') next.categoryId = undefined;
+      next = cleanItemFields(next);
+      return next;
+    }),
+  }));
+}
+
+export function deleteStockItem(id: string) {
+  return commit('Hapus barang', (s) => ({
+    ...s,
+    stockItems: s.stockItems.filter((it) => it.id !== id),
+    stockMoves: s.stockMoves.filter((m) => m.itemId !== id),
+    stockBatches: s.stockBatches.filter((b) => b.itemId !== id),
+    purchaseOrders: s.purchaseOrders.map((p) => ({ ...p, lines: p.lines.filter((l) => l.itemId !== id) })),
+  }));
+}
+
+export function addStockLocation(name: string) {
+  const loc: StockLocation = { id: uid('loc'), name: name.trim() || 'Lokasi', createdAt: Date.now() };
+  const historyId = commit('Tambah lokasi stok', (s) => ({ ...s, stockLocations: [...s.stockLocations, loc] }));
+  return { location: loc, historyId };
+}
+
+export function updateStockLocation(id: string, patch: Partial<StockLocation>, label = 'Ubah lokasi stok') {
+  return commit(label, (s) => ({
+    ...s,
+    stockLocations: s.stockLocations.map((l) => (l.id === id ? { ...l, ...patch, name: patch.name !== undefined ? patch.name.trim() || l.name : l.name } : l)),
+  }));
+}
+
+export function deleteStockLocation(id: string) {
+  if (id === DEFAULT_LOCATION_ID) return '';
+  const d = getData();
+  if (d.stockMoves.some((m) => m.locationId === id || m.toLocationId === id)) return '';
+  if (d.purchaseOrders.some((p) => p.locationId === id)) return '';
+  return commit('Hapus lokasi stok', (s) => ({ ...s, stockLocations: s.stockLocations.filter((l) => l.id !== id) }));
+}
+
+export function addStockBatch(input: Omit<StockBatch, 'id' | 'createdAt'>) {
+  const batch: StockBatch = { ...input, id: uid('bat'), lot: input.lot.trim() || 'LOT', createdAt: Date.now() };
+  const historyId = commit('Tambah batch stok', (s) => ({ ...s, stockBatches: [...s.stockBatches, batch] }));
+  return { batch, historyId };
+}
+
+export function addStockMove(input: Omit<StockMove, 'id' | 'ref' | 'createdAt'> & { ref?: string }) {
+  const d = getData();
+  const prefix = stockMovePrefix(input.type);
+  const issued = input.ref ? null : issueRef(d, prefix, input.date, d.stockMoves);
+  const move: StockMove = {
+    ...input,
+    id: uid('smv'),
+    qty: round2(Math.abs(input.qty || 0)),
+    unitCost: input.unitCost !== undefined ? round2(Math.max(0, input.unitCost)) : undefined,
+    ref: input.ref || issued!.ref,
+    funding: input.funding ?? (input.type === 'in' ? 'wallet' : 'none'),
+    adjustSign: input.type === 'adjust' ? (input.adjustSign === -1 ? -1 : 1) : undefined,
+    createdAt: Date.now(),
+  };
+  const historyId = commit('Mutasi stok', (s) => ({
+    ...s,
+    profile: issued ? withSeq(s.profile, issued.head, issued.n) : s.profile,
+    stockMoves: [...s.stockMoves, move],
+  }));
+  return { move, historyId };
+}
+
+export function updateStockMove(id: string, patch: Partial<StockMove>, label = 'Ubah mutasi stok') {
+  return commit(label, (s) => ({
+    ...s,
+    stockMoves: s.stockMoves.map((m) => {
+      if (m.id !== id) return m;
+      const next: StockMove = { ...m, ...patch };
+      if (patch.qty !== undefined) next.qty = round2(Math.abs(patch.qty));
+      if (patch.unitCost !== undefined) next.unitCost = round2(Math.max(0, patch.unitCost));
+      if (patch.type === 'adjust' || (patch.adjustSign !== undefined && next.type === 'adjust'))
+        next.adjustSign = patch.adjustSign === -1 || next.adjustSign === -1 ? -1 : 1;
+      return next;
+    }),
+  }));
+}
+
+export function deleteStockMove(id: string) {
+  return commit('Hapus mutasi stok', (s) => ({ ...s, stockMoves: s.stockMoves.filter((m) => m.id !== id) }));
+}
+
+export function addPurchaseOrder(input: Omit<PurchaseOrder, 'id' | 'ref' | 'createdAt' | 'updatedAt'> & { ref?: string }) {
+  const d = getData();
+  const now = Date.now();
+  const issued = input.ref ? null : issueRef(d, 'PO', input.date, d.purchaseOrders);
+  const po: PurchaseOrder = {
+    ...input,
+    id: uid('po'),
+    lines: input.lines.map((l) => ({
+      itemId: l.itemId,
+      qty: round2(Math.abs(l.qty)),
+      unitCost: round2(Math.max(0, l.unitCost)),
+      receivedQty: round2(Math.max(0, l.receivedQty || 0)),
+    })),
+    ref: input.ref || issued!.ref,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const historyId = commit('Tambah pesanan pembelian', (s) => ({
+    ...s,
+    profile: issued ? withSeq(s.profile, issued.head, issued.n) : s.profile,
+    purchaseOrders: [...s.purchaseOrders, po],
+  }));
+  return { po, historyId };
+}
+
+export function updatePurchaseOrder(id: string, patch: Partial<PurchaseOrder>, label = 'Ubah pesanan pembelian') {
+  return commit(label, (s) => ({
+    ...s,
+    purchaseOrders: s.purchaseOrders.map((p) => (p.id === id ? { ...p, ...patch, updatedAt: Date.now() } : p)),
+  }));
+}
+
+export function deletePurchaseOrder(id: string) {
+  return commit('Hapus pesanan pembelian', (s) => ({ ...s, purchaseOrders: s.purchaseOrders.filter((p) => p.id !== id) }));
+}
+
+/** Terima sebagian/penuh baris PO → mutasi masuk + update receivedQty. */
+export function receivePurchaseOrder(
+  poId: string,
+  receipts: { itemId: string; qty: number }[],
+  opts: { date: string; funding: StockMove['funding']; walletAccountId?: string; payableAccountId?: string },
+) {
+  const d = getData();
+  const po = d.purchaseOrders.find((p) => p.id === poId);
+  if (!po || po.status === 'cancelled') return '';
+  const moves: StockMove[] = [];
+  let profile = d.profile;
+  const lines = po.lines.map((l) => ({ ...l }));
+  for (const r of receipts) {
+    const line = lines.find((l) => l.itemId === r.itemId);
+    if (!line) continue;
+    const remain = round2(Math.max(0, line.qty - line.receivedQty));
+    const qty = round2(Math.min(remain, Math.abs(r.qty)));
+    if (!(qty > 0)) continue;
+    const issued = issueRef({ ...d, profile }, 'STM', opts.date, [...d.stockMoves, ...moves]);
+    profile = withSeq(profile, issued.head, issued.n);
+    moves.push({
+      id: uid('smv'),
+      date: opts.date,
+      type: 'in',
+      itemId: r.itemId,
+      locationId: po.locationId,
+      qty,
+      unitCost: line.unitCost,
+      note: `Terima ${po.ref}`,
+      ref: issued.ref,
+      funding: opts.funding,
+      walletAccountId: opts.walletAccountId,
+      payableAccountId: opts.payableAccountId,
+      createdAt: Date.now(),
+    });
+    line.receivedQty = round2(line.receivedQty + qty);
+  }
+  if (!moves.length) return '';
+  const allDone = lines.every((l) => l.receivedQty + 0.0005 >= l.qty);
+  const any = lines.some((l) => l.receivedQty > 0.0005);
+  const status = allDone ? 'received' : any ? 'partial' : po.status;
+  return commit('Terima pesanan pembelian', (s) => ({
+    ...s,
+    profile,
+    stockMoves: [...s.stockMoves, ...moves],
+    purchaseOrders: s.purchaseOrders.map((p) => (p.id === poId ? { ...p, lines, status, updatedAt: Date.now() } : p)),
+  }));
 }
 
 /* Profil & data */

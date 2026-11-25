@@ -5,12 +5,12 @@
  * transaksi atau aset tetap yang menyentuh tanggal pada/sebelum tanggal kunci ditolak — dari formulir
  * mana pun perubahan itu datang.
  */
-import type { Account, AppData, FixedAsset, Transaction } from './types';
+import type { Account, AppData, FixedAsset, StockMove, Transaction } from './types';
 
 export const isLocked = (date: string | undefined, lockDate: string | undefined): boolean => !!lockDate && !!date && date <= lockDate;
 
 export interface LockViolation {
-  kind: 'tx' | 'asset' | 'account' | 'profile';
+  kind: 'tx' | 'asset' | 'stock' | 'account' | 'profile';
   ref: string;
   date: string;
 }
@@ -88,7 +88,51 @@ function usedInLocked(data: AppData, id: string, lock: string): boolean {
     if (isLocked(a.acquisitionDate, lock) && (a.accountId === id || a.paidFromAccountId === id)) return true;
     if (a.disposal && isLocked(a.disposal.date, lock) && a.disposal.accountId === id) return true;
   }
+  for (const it of data.stockItems ?? []) {
+    if (it.inventoryAccountId === id || it.cogsAccountId === id || it.revenueAccountId === id) {
+      if ((data.stockMoves ?? []).some((m) => m.itemId === it.id && isLocked(m.date, lock))) return true;
+    }
+  }
+  for (const m of data.stockMoves ?? []) {
+    if (isLocked(m.date, lock) && (m.walletAccountId === id || m.payableAccountId === id)) return true;
+  }
   return false;
+}
+
+const STOCK_BOOK_KEYS: (keyof StockMove)[] = [
+  'date',
+  'type',
+  'itemId',
+  'locationId',
+  'toLocationId',
+  'qty',
+  'adjustSign',
+  'unitCost',
+  'funding',
+  'walletAccountId',
+  'payableAccountId',
+  'batchId',
+];
+
+function stockViolations(prev: StockMove[], next: StockMove[], lock: string): LockViolation[] {
+  const out: LockViolation[] = [];
+  const locked = (d?: string) => isLocked(d, lock);
+  const before = new Map(prev.map((m) => [m.id, m]));
+  const seen = new Set<string>();
+  for (const m of next) {
+    seen.add(m.id);
+    const o = before.get(m.id);
+    if (o === m) continue;
+    if (!o) {
+      if (locked(m.date)) out.push({ kind: 'stock', ref: m.ref, date: m.date });
+      continue;
+    }
+    const changed = STOCK_BOOK_KEYS.some((k) => o[k] !== m[k]);
+    if (changed && (locked(o.date) || locked(m.date)))
+      out.push({ kind: 'stock', ref: o.ref || m.ref, date: locked(o.date) ? o.date : m.date });
+  }
+  for (const o of prev) if (!seen.has(o.id) && locked(o.date)) out.push({ kind: 'stock', ref: o.ref, date: o.date });
+  return out;
 }
 
 /**
@@ -116,6 +160,7 @@ export function lockViolations(prev: AppData, next: AppData): LockViolation[] {
   return [
     ...(prev.transactions !== next.transactions ? txViolations(prev.transactions, next.transactions, lock) : []),
     ...(prev.assets !== next.assets ? assetViolations(prev.assets, next.assets, lock) : []),
+    ...(prev.stockMoves !== next.stockMoves ? stockViolations(prev.stockMoves ?? [], next.stockMoves ?? [], lock) : []),
     ...(prev.accounts !== next.accounts ? accountViolations(prev, next, lock) : []),
     // awal tahun buku menentukan pemisahan saldo laba & laba tahun berjalan di laporan yang sudah terbit
     ...(prev.profile.fiscalYearStartMonth !== next.profile.fiscalYearStartMonth

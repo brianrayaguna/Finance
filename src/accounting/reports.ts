@@ -321,7 +321,7 @@ export function balanceSheet(b: Books, dates: { to: string; label: string }[], _
 
   rows.push(row('sec-assets', 'ASET', 'section', empty));
   rows.push(row('g-ca', 'Aset Lancar', 'group', empty, 1));
-  const ca = accRows(['cash', 'bank', 'ewallet', 'investment', 'receivable', 'prepaid', 'other_current_asset']);
+  const ca = accRows(['cash', 'bank', 'ewallet', 'investment', 'receivable', 'prepaid', 'inventory', 'other_current_asset']);
   rows.push(...ca);
   const tCa = sumRows(ca, n);
   rows.push(row('st-ca', 'Jumlah Aset Lancar', 'subtotal', tCa, 1, { formula: { plus: ca.map((r) => r.key) } }));

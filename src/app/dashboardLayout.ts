@@ -22,6 +22,7 @@ export type WidgetId =
   | 'dailycash'
   | 'insights'
   | 'integrity'
+  | 'stock'
   | 'flow'
   | 'finance';
 
@@ -86,6 +87,7 @@ export const WIDGET_SIZES: Record<WidgetId, { sizes: WidgetSize[]; def: WidgetSi
   dailycash: { sizes: ['m', 'l', 'xl'], def: 'l' },
   insights: { sizes: ['s', 'm', 'l'], def: 'm' },
   integrity: { sizes: ['s', 'm'], def: 's' },
+  stock: { sizes: ['s', 'm', 'l'], def: 'm' },
   flow: { sizes: ['m', 'l', 'xl'], def: 'l' },
   finance: { sizes: ['s', 'm'], def: 's' },
 };
@@ -99,9 +101,9 @@ export type PresetId = 'lengkap' | 'sederhana' | 'akuntan';
 export const PRESETS: Record<PresetId, { name: string; desc: string; order: WidgetId[]; sizes?: Partial<Record<WidgetId, WidgetSize>>; kpi: KpiMetric[] }> = {
   lengkap: {
     name: 'Lengkap',
-    desc: 'Tata letak bawaan: posisi, arus kas & komposisi, kesehatan keuangan, transaksi, dan dompet-anggaran-hutang dalam kartu bertab',
-    order: ['hero', 'kpi', 'flow', 'health', 'recent', 'finance'],
-    sizes: { flow: 'l', health: 's', recent: 'l', finance: 's' },
+    desc: 'Tata letak bawaan: posisi, arus kas & komposisi, kesehatan keuangan, transaksi, dompet-anggaran-hutang, dan persediaan',
+    order: ['hero', 'kpi', 'flow', 'health', 'recent', 'finance', 'stock'],
+    sizes: { flow: 'l', health: 's', recent: 'l', finance: 's', stock: 'm' },
     kpi: DEFAULT_KPI,
   },
   sederhana: {

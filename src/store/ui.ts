@@ -71,7 +71,7 @@ export const BACKUP_PREF_KEYS: (keyof PrefsState)[] = [
   'theme', 'accent', 'density', 'reduceMotion', 'perfMode', 'dashboard', 'nav', 'mode', 'weekStart', 'landing', 'reportPreset', 'compactNumbers',
 ];
 
-const LANDINGS = ['/', '/transaksi', '/dompet', '/anggaran', '/hutang-piutang', '/laporan'];
+const LANDINGS = ['/', '/transaksi', '/dompet', '/anggaran', '/hutang-piutang', '/persediaan', '/laporan'];
 const REPORT_PRESETS: PresetKey[] = ['this_month', 'last_month', 'this_quarter', 'ytd', 'this_year', 'last_year', 'fiscal_year', 'last_30', 'last_90'];
 
 /** Menyelaraskan preferensi dari penyimpanan / berkas cadangan dengan bentuk yang berlaku. */

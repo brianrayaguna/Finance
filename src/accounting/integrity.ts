@@ -7,6 +7,7 @@
  */
 import { SUBTYPE_META } from './coa';
 import { buildJournal, journalizeTx, makeCtx, TX_META } from './engine';
+import { computeStock } from './stock';
 import type { AppData, Transaction } from './types';
 import { formatDate, formatMoney, isZero, round2 } from '../lib/format';
 
@@ -18,6 +19,8 @@ export interface IntegrityIssue {
   message: string;
   txId?: string;
   assetId?: string;
+  stockMoveId?: string;
+  stockItemId?: string;
   ref?: string;
 }
 
@@ -196,6 +199,93 @@ function computeIntegrity(data: AppData): IntegrityIssue[] {
           ? `Anggaran untuk "${acc.name}" (${acc.code}) bukan lagi berupa akun beban.`
           : `Ada anggaran (${formatMoney(bg.amount)}/bulan) yang mengacu ke kategori beban yang sudah tidak ada.`,
       });
+    }
+  }
+
+  // 5b. Persediaan
+  const itemById = new Map((data.stockItems ?? []).map((it) => [it.id, it]));
+  const locIds = new Set((data.stockLocations ?? []).map((l) => l.id));
+  const skuSeen = new Map<string, string>();
+  for (const it of data.stockItems ?? []) {
+    if (!has(it.inventoryAccountId))
+      issues.push({
+        level: 'error',
+        code: 'stock-item-account',
+        stockItemId: it.id,
+        message: `Barang ${it.name} memakai akun persediaan yang sudah tidak ada.`,
+      });
+    const sku = (it.sku ?? '').trim().toLowerCase();
+    if (sku) {
+      const prev = skuSeen.get(sku);
+      if (prev)
+        issues.push({
+          level: 'warn',
+          code: 'stock-sku-dup',
+          stockItemId: it.id,
+          message: `SKU “${it.sku}” dipakai lebih dari satu barang.`,
+        });
+      else skuSeen.set(sku, it.id);
+    }
+  }
+  for (const m of data.stockMoves ?? []) {
+    const it = itemById.get(m.itemId);
+    if (!it)
+      issues.push({
+        level: 'error',
+        code: 'stock-orphan-move',
+        stockMoveId: m.id,
+        ref: m.ref,
+        message: `Mutasi stok ${m.ref} merujuk barang yang sudah tidak ada.`,
+      });
+    if (!locIds.has(m.locationId))
+      issues.push({
+        level: 'warn',
+        code: 'stock-location',
+        stockMoveId: m.id,
+        ref: m.ref,
+        message: `Mutasi ${m.ref} memakai lokasi yang tidak dikenal.`,
+      });
+    if (m.type === 'in' && !(Math.abs(m.unitCost ?? 0) > 0) && m.funding !== 'none')
+      issues.push({
+        level: 'warn',
+        code: 'stock-in-no-cost',
+        stockMoveId: m.id,
+        ref: m.ref,
+        message: `Masuk stok ${m.ref} tanpa harga satuan — tidak ada jurnal nilai.`,
+      });
+    if (m.type === 'transfer' && (!m.toLocationId || m.toLocationId === m.locationId))
+      issues.push({
+        level: 'warn',
+        code: 'stock-transfer-same',
+        stockMoveId: m.id,
+        ref: m.ref,
+        message: `Transfer ${m.ref} tidak memiliki lokasi tujuan yang berbeda.`,
+      });
+  }
+  // qty negatif per lokasi
+  {
+    const snap = computeStock(data.stockMoves ?? []);
+    for (const [itemId, st] of snap.byItem) {
+      if (st.qty < -0.005) {
+        const name = itemById.get(itemId)?.name ?? itemId;
+        issues.push({
+          level: 'error',
+          code: 'stock-negative',
+          stockItemId: itemId,
+          message: `Stok ${name} negatif (${st.qty}).`,
+        });
+      }
+      for (const [loc, q] of st.byLocation) {
+        if (q < -0.005) {
+          const name = itemById.get(itemId)?.name ?? itemId;
+          issues.push({
+            level: 'warn',
+            code: 'stock-loc-negative',
+            stockItemId: itemId,
+            message: `Stok ${name} di lokasi ${loc} negatif (${q}).`,
+          });
+        }
+      }
     }
   }
 
