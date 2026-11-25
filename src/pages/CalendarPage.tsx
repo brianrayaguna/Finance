@@ -68,7 +68,7 @@ export default function CalendarPage() {
       if (!d) m.set(t.date, (d = { inc: 0, exp: 0, count: 0, txs: [] }));
       d.count++;
       d.txs.push(t);
-      const f = txFlow(t);
+      const f = txFlow(t, b.acc);
       d.inc += f.inc;
       d.exp += f.exp;
     }

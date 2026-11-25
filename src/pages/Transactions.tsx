@@ -22,8 +22,9 @@ import {
 } from '../lib/glyphs';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, confirm } from '../store/ui';
-import { canDuplicateTransaction, deleteTransactions, duplicateTransaction, childCount } from '../store/data';
+import { canDuplicateTransaction, deleteTransactions, duplicateTransaction, childCount, SYS } from '../store/data';
 import { notify } from '../store/history';
+import { matchesDebtPaymentBudget } from '../accounting/budgets';
 import type { Transaction, TxType } from '../accounting/types';
 import { formatDate, formatMoney, normalize, endOfMonth, DAYS, DAYS_SHORT, MONTHS_SHORT, parseISO, round2, isZero } from '../lib/format';
 import { isImeComposing, isTypingTarget, layerCount } from '../lib/layers';
@@ -66,7 +67,7 @@ export default function Transactions() {
   const initialPeriod = (): PeriodValue => {
     const m = params.get('bulan');
     if (m) return { preset: 'month', from: m + '-01', to: endOfMonth(m + '-01') };
-    return resolvePreset(params.get('kategori') || params.get('akun') ? 'all' : 'this_month', b.fyStartMonth, today);
+    return resolvePreset(params.get('kategori') || params.get('akun') || params.get('jenis') ? 'all' : 'this_month', b.fyStartMonth, today);
   };
 
   const [q, setQ] = useState('');
@@ -74,6 +75,8 @@ export default function Transactions() {
   const [period, setPeriod] = useState<PeriodValue>(initialPeriod);
   const [account, setAccount] = useState(params.get('akun') ?? '');
   const [category, setCategory] = useState(params.get('kategori') ?? '');
+  const [debtPayFilter, setDebtPayFilter] = useState(params.get('jenis') === 'debt_payment');
+  const [parentFilter, setParentFilter] = useState(params.get('induk') ?? '');
   const [limit, setLimit] = useState(PAGE);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Ponsel: kotak centang baris disembunyikan sampai pengguna menekan "Pilih".
@@ -84,29 +87,33 @@ export default function Transactions() {
   const listRef = useRef<HTMLDivElement>(null);
   const ctx = useContextMenu();
 
-  // Tautan masuk (rekening di sidebar, wawasan dasbor): ?akun, ?kategori, ?bulan. Dibaca setiap kali URL
-  // berubah — bukan hanya saat halaman dibuka — agar klik rekening lain saat sudah di halaman ini ikut
-  // mengganti filter. ?kategori & ?bulan sekali pakai; ?akun tetap di URL selama filternya aktif.
+  // Tautan masuk (rekening di bilah sisi, wawasan dasbor, rincian anggaran): ?akun, ?kategori, ?jenis, ?induk, ?bulan.
   useEffect(() => {
     const akun = params.get('akun') ?? '';
     const kategori = params.get('kategori');
+    const jenis = params.get('jenis');
+    const induk = params.get('induk');
     const bulan = params.get('bulan');
-    if (kategori !== null || bulan !== null || akun !== account) {
+    if (kategori !== null || jenis !== null || induk !== null || bulan !== null || akun !== account) {
       setQ('');
       setKind('all');
       setAccount(akun);
       setCategory(kategori ?? '');
+      setDebtPayFilter(jenis === 'debt_payment');
+      setParentFilter(induk ?? '');
       setPeriod(
         bulan
           ? { preset: 'month', from: bulan + '-01', to: endOfMonth(bulan + '-01') }
-          : resolvePreset(akun || kategori ? 'all' : 'this_month', b.fyStartMonth, today),
+          : resolvePreset(akun || kategori || jenis ? 'all' : 'this_month', b.fyStartMonth, today),
       );
     }
-    if (kategori !== null || bulan !== null)
+    if (kategori !== null || jenis !== null || induk !== null || bulan !== null)
       setParams(
         (p) => {
           const n = new URLSearchParams(p);
           n.delete('kategori');
+          n.delete('jenis');
+          n.delete('induk');
           n.delete('bulan');
           return n;
         },
@@ -139,9 +146,17 @@ export default function Transactions() {
     return b.data.transactions
       .filter((t) => {
         if (t.date < period.from || t.date > period.to) return false;
+        if (debtPayFilter && !matchesDebtPaymentBudget(b, t, parentFilter || undefined)) return false;
         if (types && !types.includes(t.type)) return false;
         if (account && t.accountId !== account && t.toAccountId !== account && !t.lines?.some((l) => l.accountId === account)) return false;
-        if (category && t.categoryId !== category && !t.lines?.some((l) => l.accountId === category)) return false;
+        if (category) {
+          const hit =
+            t.categoryId === category ||
+            (t.type === 'payable_pay' && (t.interest || 0) > 0 && category === SYS.interestExpense) ||
+            (t.type === 'transfer' && (t.fee || 0) > 0 && category === SYS.bankFee) ||
+            !!t.lines?.some((l) => l.accountId === category);
+          if (!hit) return false;
+        }
         if (n) {
           const cat = b.acc.get(t.categoryId ?? '')?.name ?? '';
           const acc = b.acc.get(t.accountId ?? '')?.name ?? '';
@@ -153,12 +168,12 @@ export default function Transactions() {
         return true;
       })
       .sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : (y.time ?? '').localeCompare(x.time ?? '') || y.createdAt - x.createdAt));
-  }, [b, q, kind, period, account, category]);
+  }, [b, q, kind, period, account, category, debtPayFilter, parentFilter]);
 
   useEffect(() => {
     setLimit(PAGE);
     setSelected(new Set());
-  }, [q, kind, period, account, category]);
+  }, [q, kind, period, account, category, debtPayFilter, parentFilter]);
 
   const visible = filtered.slice(0, limit);
 
@@ -168,7 +183,7 @@ export default function Transactions() {
     let spend = 0;
     let spendN = 0;
     for (const t of filtered) {
-      const f = txFlow(t);
+      const f = txFlow(t, b.acc);
       inc += f.inc;
       exp += f.exp;
       if (t.type === 'expense') {
@@ -177,7 +192,7 @@ export default function Transactions() {
       }
     }
     return { inc: round2(inc), exp: round2(exp), net: round2(inc - exp), avg: spendN ? Math.round(spend / spendN) : 0 };
-  }, [filtered]);
+  }, [filtered, b.acc]);
 
   const groups = useMemo(() => {
     const out: { date: string; items: Transaction[]; net: number }[] = [];
@@ -190,12 +205,14 @@ export default function Transactions() {
     return out;
   }, [visible]);
 
-  const hasFilter = !!(q || kind !== 'all' || account || category || period.preset !== 'this_month');
+  const hasFilter = !!(q || kind !== 'all' || account || category || debtPayFilter || parentFilter || period.preset !== 'this_month');
   const clearFilters = () => {
     setQ('');
     setKind('all');
     setAccount('');
     setCategory('');
+    setDebtPayFilter(false);
+    setParentFilter('');
     setPeriod(resolvePreset('this_month', b.fyStartMonth, today));
   };
 
@@ -405,11 +422,31 @@ export default function Transactions() {
               </div>
               {hasFilter && (
                 <Button size="sm" variant="ghost" icon={FilterX} onClick={clearFilters}>
-                  Reset
+                  Atur ulang
                 </Button>
               )}
             </div>
           </div>
+          {debtPayFilter && (
+            <div className="active-filters">
+              <span>Filter aktif:</span>
+              <button
+                type="button"
+                className="chip active"
+                onClick={() => {
+                  setDebtPayFilter(false);
+                  setParentFilter('');
+                }}
+              >
+                <span>
+                  {parentFilter
+                    ? `Pembayaran hutang: ${txById.get(parentFilter)?.contact || 'Hutang'}`
+                    : 'Semua pembayaran hutang'}
+                </span>
+                <X size={13} />
+              </button>
+            </div>
+          )}
         </div>
         {filtered.length === 0 ? (
           <EmptyState
@@ -419,7 +456,7 @@ export default function Transactions() {
             action={
               hasFilter ? (
                 <Button onClick={clearFilters} icon={FilterX}>
-                  Reset filter
+                  Atur ulang filter
                 </Button>
               ) : (
                 <Button variant="primary" icon={Plus} onClick={() => openTx()}>

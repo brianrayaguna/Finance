@@ -8,7 +8,7 @@ import ExcelJS from 'exceljs';
 import { saveFile } from '../lib/saveFile';
 import type { Borders, Cell, Fill, Font, Worksheet, Workbook } from 'exceljs';
 import { SUBTYPE_META, TYPE_LABEL, normalSide } from '../accounting/coa';
-import { TX_META, accumulatedAt, disposalStop, entryTotals } from '../accounting/engine';
+import { TX_META, accumulatedAt, defaultDescription, disposalStop, entryTotals, makeCtx } from '../accounting/engine';
 import {
   balanceSheet,
   budgetReport,
@@ -27,7 +27,7 @@ import {
 } from '../accounting/reports';
 import { makeDates, makePeriods } from '../accounting/periods';
 import type { FixedAsset, JournalEntry, Report, ReportRow, Transaction } from '../accounting/types';
-import { formatDate, periodLabel, todayISO, parseISO, round2 } from '../lib/format';
+import { formatDate, isZero, periodLabel, todayISO, parseISO, round2 } from '../lib/format';
 
 /* ───────── Style constants ───────── */
 
@@ -489,7 +489,7 @@ function writeTable(
   period: string,
   cols: ColDef[],
   rows: (string | number | Date | null | { formula: string; result: number })[][],
-  opts: { landscape?: boolean; tab?: string; rowStyle?: (i: number) => Partial<Font> | undefined } = {},
+  opts: { landscape?: boolean; tab?: string; rowStyle?: (i: number) => Partial<Font> | undefined; emptyText?: string } = {},
 ): Worksheet {
   const ws = addSheet(wb, name, { landscape: opts.landscape ?? cols.length > 6, tab: opts.tab ?? 'FF78736A', freeze: 7 });
   footer(ws, ctx, title);
@@ -547,7 +547,12 @@ function writeTable(
         cell.border = { top: inkThin, bottom: { style: 'double', color: { argb: INK } } };
         if (c.total) {
           const L = colL(ci + 1);
-          const sum = rows.reduce((s, row) => s + (typeof row[ci] === 'number' ? (row[ci] as number) : 0), 0);
+          const sum = rows.reduce((s, row) => {
+            const v = row[ci];
+            if (typeof v === 'number') return s + v;
+            if (v && typeof v === 'object' && 'result' in v && typeof v.result === 'number') return s + v.result;
+            return s;
+          }, 0);
           cell.value = { formula: `SUBTOTAL(109,${L}${first}:${L}${last})`, result: round2(sum) };
           cell.numFmt = NUM;
         }
@@ -564,7 +569,7 @@ function writeTable(
     const emptyRow = ws.getRow(r);
     if (cols.length > 1) ws.mergeCells(r, 1, r, cols.length);
     const ec = emptyRow.getCell(1);
-    ec.value = 'Tidak ada data pada periode ini.';
+    ec.value = opts.emptyText ?? 'Tidak ada data pada periode ini.';
     ec.font = font({ italic: true, size: 10, color: { argb: INK_3 } });
     ec.alignment = { horizontal: 'left', vertical: 'middle' };
     emptyRow.height = 20;
@@ -581,13 +586,17 @@ function writeTable(
 
 function writeTransactions(wb: Workbook, ctx: Ctx, b: Books, txs: Transaction[], period: string) {
   const acc = (id?: string) => (id ? b.acc.get(id)?.name ?? '' : '');
-  const byId = new Map(b.data.transactions.map((t) => [t.id, t]));
+  const txCtx = makeCtx(b.data);
+  const byId = txCtx.txById;
   const sorted = [...txs].sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : x.createdAt - y.createdAt));
   const rows = sorted.map((t, i) => {
     const total = t.amount + (t.fee || 0) + (t.interest || 0);
     const walletDebt = t.counter !== 'category' && t.counter !== 'opening' && !!t.accountId;
     const inflow = ['income', 'receivable_collect'].includes(t.type) || (t.type === 'payable_new' && walletDebt);
     const outflow = ['expense', 'payable_pay'].includes(t.type) || (t.type === 'receivable_new' && walletDebt);
+    const cashIn = inflow ? total : 0;
+    const cashOut = outflow ? total : t.type === 'transfer' ? t.fee || 0 : 0;
+    const neutral = t.type === 'transfer' ? t.amount : !inflow && !outflow ? total : 0;
     const contact = t.contact || (t.parentId ? byId.get(t.parentId)?.contact : '') || '';
     return [
       i + 1,
@@ -595,14 +604,14 @@ function writeTransactions(wb: Workbook, ctx: Ctx, b: Books, txs: Transaction[],
       t.time ?? '',
       t.ref,
       TX_META[t.type].label,
-      t.description || '',
+      t.description?.trim() || defaultDescription(t, txCtx),
       acc(t.categoryId),
       acc(t.accountId),
       acc(t.toAccountId),
       contact,
-      inflow ? total : 0,
-      outflow ? total : 0,
-      !inflow && !outflow ? total : 0,
+      cashIn,
+      cashOut,
+      neutral,
       t.note ?? '',
     ];
   });
@@ -633,7 +642,15 @@ function writeTransactions(wb: Workbook, ctx: Ctx, b: Books, txs: Transaction[],
   );
 }
 
-function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[], period: string, sheet = 'Jurnal Umum') {
+function writeJournal(
+  wb: Workbook,
+  ctx: Ctx,
+  b: Books,
+  entries: JournalEntry[],
+  period: string,
+  sheet = 'Jurnal Umum',
+  fallbackAcc?: Map<string, { code?: string; name: string }>,
+) {
   const ws = addSheet(wb, sheet, { landscape: true, tab: 'FF57609F', freeze: 7 });
   footer(ws, ctx, sheet);
   const widths = [12, 20, 10, 36, 40, 17, 17];
@@ -656,14 +673,15 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
     lines.forEach((l, i) => {
       const x = ws.getRow(r);
       const a = b.acc.get(l.accountId);
+      const fb = !a ? fallbackAcc?.get(l.accountId) : undefined;
       if (i === 0) {
         x.getCell(1).value = xDate(e.date);
         x.getCell(1).numFmt = DATE;
         x.getCell(2).value = e.ref + (e.adjusting ? ' (AJP)' : '');
         x.getCell(5).value = l.memo ? `${e.description}, ${l.memo}` : e.description;
       } else if (l.memo) x.getCell(5).value = l.memo;
-      x.getCell(3).value = a?.code ?? '';
-      x.getCell(4).value = a?.name ?? '';
+      x.getCell(3).value = a?.code ?? fb?.code ?? '';
+      x.getCell(4).value = a?.name ?? fb?.name ?? '';
       x.getCell(4).alignment = { horizontal: 'left', indent: l.credit ? 3 : 0 };
       x.getCell(6).value = l.debit || null;
       x.getCell(7).value = l.credit || null;
@@ -702,14 +720,14 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
   r = totalRow + 2;
   const k = ws.getRow(r);
   const diff = round2(totD - totC);
-  const balanced = Math.abs(diff) < 1;
+  const balanced = isZero(diff);
   k.getCell(4).value = 'Kontrol: Debit − Kredit';
   k.getCell(4).font = font({ italic: true, size: 9.5, color: { argb: INK_3 } });
   k.getCell(6).value = { formula: `F${totalRow}-G${totalRow}`, result: diff };
   k.getCell(6).numFmt = NUM;
   k.getCell(6).font = font({ italic: true, size: 9.5, color: { argb: INK_3 } });
   k.getCell(6).alignment = { horizontal: 'right' };
-  k.getCell(7).value = { formula: `IF(ABS(F${r})<1,"✓ Seimbang","✗ Periksa")`, result: balanced ? '✓ Seimbang' : '✗ Periksa' };
+  k.getCell(7).value = { formula: `IF(ABS(F${r})<0.005,"✓ Seimbang","✗ Periksa")`, result: balanced ? '✓ Seimbang' : '✗ Periksa' };
   k.getCell(7).font = font({ bold: true, size: 9.5, color: { argb: balanced ? POS : NEG } });
   k.getCell(7).alignment = { horizontal: 'right' };
   fitColumns(ws, headRow, { 2: 26, 4: 44, 5: 52, 6: 24, 7: 24 });
@@ -718,16 +736,21 @@ function writeJournal(wb: Workbook, ctx: Ctx, b: Books, entries: JournalEntry[],
 
 function writeClosing(wb: Workbook, ctx: Ctx, b: Books, from: string, to: string) {
   const list = closingEntries(b, { from, to, label: '' });
+  const fallback = new Map<string, { code?: string; name: string }>();
   const entries: JournalEntry[] = list.map((e) => ({
     id: 'c' + e.no,
     date: to,
     ref: `JPT-${e.no}`,
     description: e.title,
-    lines: e.lines.map((l) => ({ accountId: l.accountId ?? '', debit: l.debit, credit: l.credit })),
+    lines: e.lines.map((l, idx) => {
+      const id = l.accountId || `__closing_${e.no}_${idx}`;
+      if (!l.accountId) fallback.set(id, { code: l.code, name: l.name });
+      return { accountId: id, debit: l.debit, credit: l.credit };
+    }),
     source: 'tx',
     sort: e.no,
   }));
-  return writeJournal(wb, ctx, b, entries, `Per ${formatDate(to, 'long')}`, 'Jurnal Penutup');
+  return writeJournal(wb, ctx, b, entries, `Per ${formatDate(to, 'long')}`, 'Jurnal Penutup', fallback);
 }
 
 function writeLedger(wb: Workbook, ctx: Ctx, b: Books, from: string, to: string, ids?: string[]) {
@@ -899,7 +922,7 @@ function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
     wb,
     ctx,
     'Aset Tetap',
-    'Register Aset Tetap',
+    'Daftar Aset Tetap',
     `Per ${formatDate(to, 'long')}`,
     [
       { header: 'No. Bukti', width: 16, kind: 'code' },
@@ -915,7 +938,13 @@ function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
       { header: 'Status', width: 22 },
     ],
     activeRows,
-    { landscape: true, tab: 'FF8A6546' },
+    {
+      landscape: true,
+      tab: 'FF8A6546',
+      emptyText: otherRows.length
+        ? 'Tidak ada aset aktif per tanggal laporan — lihat daftar aset dilepas/belum berlaku di bawah.'
+        : undefined,
+    },
   );
 
   // Cantumkan aset yang sudah dilepas per `to` atau belum berlaku di bagian terpisah agar tidak menggeser total neraca.
@@ -944,6 +973,7 @@ function writeAssets(wb: Workbook, ctx: Ctx, b: Books, to: string) {
         }
       });
     }
+    fitColumns(ws, 6, { 1: 24, 2: 40, 3: 32, 4: 18, 5: 24, 6: 24, 7: 16, 8: 28, 9: 24, 10: 24, 11: 32 });
   }
   return ws;
 }
@@ -1135,7 +1165,15 @@ export async function exportLedger(b: Books, p: { from: string; to: string }, id
 }
 
 export async function exportPackage(b: Books, o: { from: string; to: string; compare: boolean; include: Set<string> }) {
-  const { from, to, compare, include } = o;
+  const { compare, include } = o;
+  const from =
+    o.from === '1900-01-01'
+      ? b.entries.reduce((m, e) => (e.date < m ? e.date : m), b.entries[0]?.date ?? todayISO())
+      : o.from;
+  const to =
+    o.to === '2999-12-31'
+      ? b.entries.reduce((m, e) => (e.date > m ? e.date : m), b.entries[0]?.date ?? todayISO())
+      : o.to;
   const wb = newWorkbook(b, 'Laporan Keuangan');
   const ctx = ctxOf(b);
   const P = { from, to, label: periodLabel(from, to) };

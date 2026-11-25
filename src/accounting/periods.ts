@@ -3,8 +3,9 @@ import type { Period } from './reports';
 
 /** Periode pembanding dengan panjang yang sama tepat sebelum periode aktif. */
 export function previousPeriod(from: string, to: string): { from: string; to: string } {
-  // periode panjang / tahun berjalan: bandingkan dengan periode yang sama tahun lalu
-  if (daysBetween(from, to) > 95 || (from.slice(5) === '01-01' && to.slice(5, 7) !== '01')) {
+  // periode panjang (> 1 kuartal) atau tahun berjalan parsial: bandingkan dengan periode yang sama tahun lalu
+  const partialYtd = from.slice(5) === '01-01' && to.slice(5, 7) !== '01' && to !== endOfMonth(to);
+  if (daysBetween(from, to) > 95 || partialYtd) {
     const f = addMonths(from, -12);
     const t = to === endOfMonth(to) ? endOfMonth(addMonths(to, -12)) : addMonths(to, -12);
     return { from: f, to: t };

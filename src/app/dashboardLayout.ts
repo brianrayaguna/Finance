@@ -142,7 +142,8 @@ function isLegacyDefault(r: Partial<DashLayout>): boolean {
     r.order.every((id, i) => id === LEGACY_DEFAULT_ORDER[i]) &&
     Object.keys(r.sizes ?? {}).length === 0 &&
     Object.keys(r.settings ?? {}).length === 0 &&
-    (!Array.isArray(r.kpi) || r.kpi.every((k, i) => k === DEFAULT_KPI[i]))
+    (!Array.isArray(r.kpi) ||
+      (r.kpi.length === DEFAULT_KPI.length && r.kpi.every((k, i) => k === DEFAULT_KPI[i])))
   );
 }
 
@@ -167,7 +168,12 @@ export function sanitizeLayout(raw: unknown): DashLayout {
         settings[id as WidgetId] = clean;
       }
   const kpiKnown = new Set<string>(ALL_KPI);
-  const kpi = Array.isArray(r.kpi) ? r.kpi.filter((k) => kpiKnown.has(k)).slice(0, 4) : [];
+  const kpi: KpiMetric[] = [];
+  if (Array.isArray(r.kpi)) {
+    for (const k of r.kpi) {
+      if (kpiKnown.has(k) && !kpi.includes(k) && kpi.length < 4) kpi.push(k);
+    }
+  }
   for (const k of DEFAULT_KPI) if (kpi.length < 4 && !kpi.includes(k)) kpi.push(k);
   return { order: Array.isArray(r.order) ? order : d.order, sizes, settings, kpi };
 }

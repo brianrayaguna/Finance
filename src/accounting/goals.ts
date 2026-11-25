@@ -23,10 +23,21 @@ export interface GoalProgress {
   status: GoalStatus;
 }
 
-const linkedBalance = (b: Books, g: Goal, to: string) => {
+const linkedAccountIds = (b: Books, g: Goal): string[] => {
+  const seen = new Set<string>();
+  const valid: string[] = [];
+  for (const id of g.accountIds) {
+    if (seen.has(id) || !b.acc.has(id)) continue;
+    seen.add(id);
+    valid.push(id);
+  }
+  return valid;
+};
+
+const linkedBalance = (b: Books, ids: string[], to: string) => {
   const m = balancesAt(b, to);
   let v = 0;
-  for (const id of g.accountIds) {
+  for (const id of ids) {
     const a = b.acc.get(id);
     if (a) v += bal(a, m);
   }
@@ -36,10 +47,12 @@ const linkedBalance = (b: Books, g: Goal, to: string) => {
 const MAX_PROJECTION_MONTHS = 1200;
 
 export function goalProgress(b: Books, g: Goal, asOf: string): GoalProgress {
-  const current = linkedBalance(b, g, asOf);
-  const remaining = round2(Math.max(0, g.target - current));
-  const pct = g.target > 0 ? Math.max(0, Math.min(1, current / g.target)) : 0;
-  const pace = Math.round((current - linkedBalance(b, g, addMonths(asOf, -3))) / 3);
+  const ids = linkedAccountIds(b, g);
+  const current = linkedBalance(b, ids, asOf);
+  const target = g.target > 0 ? g.target : 0;
+  const remaining = round2(Math.max(0, target - current));
+  const pct = target > 0 ? Math.max(0, Math.min(1, current / target)) : 0;
+  const pace = Math.round((current - linkedBalance(b, ids, addMonths(asOf, -3))) / 3);
   const daysLeft = g.targetDate ? daysBetween(asOf, g.targetDate) : null;
   const monthsLeft = daysLeft === null ? null : Math.max(0, daysLeft / (365 / 12));
   // dibulatkan ke atas ke rupiah penuh agar setoran yang disarankan pasti cukup
@@ -49,7 +62,8 @@ export function goalProgress(b: Books, g: Goal, asOf: string): GoalProgress {
   const projected = monthsNeeded <= MAX_PROJECTION_MONTHS ? addDays(asOf, Math.ceil(monthsNeeded * (365 / 12))) : null;
 
   let status: GoalStatus;
-  if (!g.accountIds.length) status = 'unlinked';
+  if (!ids.length) status = 'unlinked';
+  else if (!(target > 0)) status = 'no_date';
   else if (remaining <= 0 || isZero(remaining)) status = 'done';
   else if (!g.targetDate) status = 'no_date';
   else if (daysLeft !== null && daysLeft < 0) status = 'overdue';

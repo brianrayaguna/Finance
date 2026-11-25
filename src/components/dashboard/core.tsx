@@ -141,7 +141,7 @@ function kpiValue(k: KpiMetric, d: DashData, budget: { budget: number; actual: n
     case 'expense': {
       // Beban memuat penyusutan & jurnal penyesuaian yang tidak muncul sebagai transaksi — selisih dengan "Pengeluaran" di halaman Transaksi.
       let viaTx = 0;
-      for (const t of d.b.data.transactions) if (t.date >= d.from && t.date <= d.asOf) viaTx += txFlow(t).exp;
+      for (const t of d.b.data.transactions) if (t.date >= d.from && t.date <= d.asOf) viaTx += txFlow(t, d.b.acc).exp;
       const extra = round2(cur.expense - viaTx);
       return {
         value: cur.expense,

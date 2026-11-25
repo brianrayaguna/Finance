@@ -50,56 +50,82 @@ export function evaluateAmount(display: string): number | null {
   const src = sanitizeAmount(display).replace(/,/g, '.');
   if (!src) return null;
   let i = 0;
+  let error = false;
   const peek = () => src[i];
-  const num = (): number | null => {
+  const primary = (): number | null => {
     if (peek() === '(') {
       i++;
       const v = expr();
+      if (v === null) return null;
       if (peek() === ')') i++;
       return v;
     }
-    if (peek() === '-') {
-      i++;
-      const v = num();
-      return v === null ? null : -v;
-    }
     let s = '';
-    while (i < src.length && /[0-9.]/.test(src[i])) s += src[i++];
-    if (!s || s === '.') return null;
+    let dots = 0;
+    while (i < src.length && /[0-9.]/.test(src[i])) {
+      if (src[i] === '.') dots++;
+      s += src[i++];
+    }
+    if (!s || s === '.' || dots > 1) return null;
     const v = Number(s);
     return Number.isFinite(v) ? v : null;
   };
-  const term = (): number | null => {
-    let v = num();
-    while (v !== null && (peek() === '*' || peek() === '/')) {
-      const op = src[i++];
-      const r = num();
-      if (r === null) return v; // trailing operator: ignore
-      v = op === '*' ? v * r : r === 0 ? null : v / r;
+  const unary = (allowUnary: boolean): number | null => {
+    if (allowUnary && (peek() === '-' || peek() === '+')) {
+      const sign = src[i++];
+      const v = primary();
+      if (v === null) {
+        error = true;
+        return null;
+      }
+      return sign === '-' ? -v : v;
     }
-    return v;
+    return primary();
+  };
+  const term = (allowUnary = false): number | null => {
+    let v = unary(allowUnary);
+    while (v !== null && !error && (peek() === '*' || peek() === '/')) {
+      const op = src[i++];
+      if (i === src.length) return v; // operator tunggal di akhir saat pengguna masih mengetik
+      const r = unary(false);
+      if (r === null) {
+        error = true;
+        return null;
+      }
+      if (op === '/' && r === 0) {
+        error = true;
+        return null;
+      }
+      v = op === '*' ? v * r : v / r;
+    }
+    return error ? null : v;
   };
   const expr = (): number | null => {
-    let v = term();
-    while (v !== null && (peek() === '+' || peek() === '-')) {
+    let v = term(true);
+    while (v !== null && !error && (peek() === '+' || peek() === '-')) {
       const op = src[i++];
-      const r = term();
-      if (r === null) return v;
+      if (i === src.length) return v; // operator tunggal di akhir saat pengguna masih mengetik
+      const r = term(false);
+      if (r === null) {
+        error = true;
+        return null;
+      }
       v = op === '+' ? v + r : v - r;
     }
-    return v;
+    return error ? null : v;
   };
   const v = expr();
-  if (v === null || !Number.isFinite(v)) return null;
+  if (error || v === null || i < src.length || !Number.isFinite(v)) return null;
   return Math.round(v * 100) / 100;
 }
 
 /** Number → display string for the input ("1.250.000" / "1.250,5"). */
 export function amountToDisplay(n: number | null | undefined): string {
-  if (n === null || n === undefined || !Number.isFinite(n) || n === 0) return '';
+  if (n === null || n === undefined || !Number.isFinite(n) || n === 0 || Math.abs(n) >= 1e20) return '';
   const neg = n < 0;
   const v = Math.abs(Math.round(n * 100) / 100);
-  const [i, d] = v.toFixed(2).split('.');
+  if (!Number.isFinite(v) || v >= 1e20) return '';
+  const [i, d = ''] = v.toFixed(2).split('.');
   const dec = d.replace(/0+$/, '');
   return (neg ? '-' : '') + groupThousands(i) + (dec ? ',' + dec : '');
 }
@@ -124,14 +150,19 @@ export function caretFromCount(s: string, count: number): number {
 
 /**
  * Menormalkan teks nominal yang ditempel ke format Indonesia.
- * "1250000.50" / "1,250,000.50" (format Inggris) → "1250000,50"; "Rp 1.250.000" → "1.250.000".
+ * "1250000.50" / "1,250,000.500" (format Inggris) → "1250000,50"; "Rp 1.250.000" → "1.250.000".
  * Mengembalikan null bila tidak dikenali (biarkan perilaku tempel bawaan).
  */
 export function normalizePasted(raw: string): string | null {
   const t = raw.replace(/\s|rp\.?|idr/gi, '');
   if (!t) return null;
-  if (/^-?\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(t)) return t.replace(/,/g, '').replace('.', ',');
-  if (/^-?\d+\.\d{1,2}$/.test(t)) return t.replace('.', ',');
+  const toIdDecimal = (intPart: string, decPart?: string) => (decPart ? `${intPart},${decPart.slice(0, 2)}` : intPart);
+  const enGrouped = t.match(/^(-?\d{1,3}(?:,\d{3})+)(?:\.(\d+))?$/);
+  if (enGrouped) return toIdDecimal(enGrouped[1].replace(/,/g, ''), enGrouped[2]);
+  const enPlain = t.match(/^(-?\d+)\.(\d+)$/);
+  if (enPlain && (enPlain[2].length !== 3 || enPlain[1].replace('-', '').length >= 4 || enPlain[1] === '0' || enPlain[1] === '-0')) {
+    return toIdDecimal(enPlain[1], enPlain[2]);
+  }
   if (/^-?[\d.,+\-*/()×x÷:]+$/i.test(t)) return t;
   return null;
 }

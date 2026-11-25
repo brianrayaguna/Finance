@@ -72,18 +72,24 @@ export function txView(t: Transaction, acc: Map<string, Account>, parent?: Trans
 /**
  * Pemasukan & pengeluaran (pos laba rugi) yang melekat pada satu transaksi.
  * Satu definisi dipakai bersama oleh daftar transaksi, kalender, dan ringkasan harian agar angkanya selalu sama:
- * biaya admin transfer dan bunga pinjaman ikut dihitung sebagai pengeluaran; bunga piutang sebagai pemasukan.
+ * biaya admin transfer dan bunga pinjaman ikut dihitung sebagai pengeluaran; bunga piutang sebagai pemasukan;
+ * pengembalian dana mengurangi pos lawannya; pembelian/penjualan kredit diakui sesuai kategorinya.
  */
-export function txFlow(t: Transaction): { inc: number; exp: number } {
+export function txFlow(t: Transaction, acc?: Map<string, Account>): { inc: number; exp: number } {
+  const catType = t.categoryId ? acc?.get(t.categoryId)?.type : undefined;
   switch (t.type) {
     case 'income':
-      return { inc: t.amount, exp: 0 };
+      return catType === 'expense' ? { inc: 0, exp: -t.amount } : { inc: t.amount, exp: 0 };
     case 'expense':
-      return { inc: 0, exp: t.amount };
+      return catType === 'revenue' ? { inc: -t.amount, exp: 0 } : { inc: 0, exp: t.amount };
     case 'transfer':
       return { inc: 0, exp: t.fee || 0 };
+    case 'payable_new':
+      return t.counter === 'category' ? { inc: 0, exp: t.amount } : { inc: 0, exp: 0 };
     case 'payable_pay':
       return { inc: 0, exp: t.interest || 0 };
+    case 'receivable_new':
+      return t.counter === 'category' ? { inc: t.amount, exp: 0 } : { inc: 0, exp: 0 };
     case 'receivable_collect':
       return { inc: t.interest || 0, exp: 0 };
     default:

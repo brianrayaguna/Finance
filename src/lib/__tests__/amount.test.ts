@@ -8,18 +8,29 @@ describe('input nominal', () => {
     expect(evaluateAmount('100×3−50')).toBe(250);
     expect(evaluateAmount('(10+5)÷3')).toBe(5);
     expect(evaluateAmount('1.000/0')).toBeNull();
+    expect(evaluateAmount('100+50/0')).toBeNull();
+    expect(evaluateAmount('100++200')).toBeNull();
+    expect(evaluateAmount('100)500')).toBeNull();
+    expect(evaluateAmount('+500')).toBe(500);
     expect(evaluateAmount('1.000+')).toBe(1000);
   });
 
   it('format ribuan & desimal Indonesia', () => {
     expect(formatAmountString(sanitizeAmount('1250000,5'))).toBe('1.250.000,5');
+    expect(sanitizeAmount('50.000')).toBe('50000');
     expect(amountToDisplay(-1250.5)).toBe('-1.250,5');
     expect(amountToDisplay(0)).toBe('');
+    expect(() => amountToDisplay(1e21)).not.toThrow();
+    expect(amountToDisplay(1e21)).toBe('');
+    expect(() => amountToDisplay(1e22)).not.toThrow();
+    expect(amountToDisplay(1e22)).toBe('');
   });
 
   it('menormalkan teks yang ditempel', () => {
     expect(normalizePasted('1250000.50')).toBe('1250000,50');
     expect(normalizePasted('1,250,000.75')).toBe('1250000,75');
+    expect(normalizePasted('1,250,000.500')).toBe('1250000,50');
+    expect(normalizePasted('1250.500')).toBe('1250,50');
     expect(normalizePasted('Rp 1.250.000')).toBe('1.250.000');
     expect(normalizePasted('IDR 15.000,5')).toBe('15.000,5');
     expect(normalizePasted('halo')).toBeNull();
