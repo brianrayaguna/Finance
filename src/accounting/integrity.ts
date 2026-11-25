@@ -174,7 +174,8 @@ function computeIntegrity(data: AppData): IntegrityIssue[] {
 
   // 5. Anggaran
   for (const bg of data.budgets) {
-    const acc = ctx.acc.get(bg.categoryId);
+    if (bg.kind === 'debt') continue;
+    const acc = bg.categoryId ? ctx.acc.get(bg.categoryId) : undefined;
     if (!acc || acc.type !== 'expense')
       issues.push({ level: 'warn', code: 'budget-account', message: `Ada anggaran untuk kategori yang bukan/tidak lagi berupa akun beban.` });
   }

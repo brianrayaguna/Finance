@@ -1111,6 +1111,7 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
   const lines: BudgetLine[] = [];
   const budgeted = new Set<string>();
   for (const bg of b.data.budgets) {
+    if (bg.kind === 'debt' || !bg.categoryId) continue;
     const a = b.acc.get(bg.categoryId);
     if (!a) continue;
     budgeted.add(a.id);

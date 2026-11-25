@@ -120,12 +120,23 @@ export interface FixedAsset {
   createdAt: number;
 }
 
+export type BudgetKind = 'expense' | 'debt';
+
 export interface Budget {
   id: string;
-  categoryId: string;
+  /** Jenis anggaran: 'expense' (bawaan bila tidak diisi demi kompatibilitas data lama) atau 'debt' (pembayaran hutang). */
+  kind?: BudgetKind;
+  /** Wajib untuk kind === 'expense' (atau kosong). */
+  categoryId?: string;
+  /** Opsional untuk kind === 'debt': id transaksi payable_new; kosong berarti semua pembayaran hutang. */
+  debtId?: string;
   amount: number;
   createdAt: number;
 }
+
+export type BudgetTarget =
+  | { kind: 'expense'; categoryId: string }
+  | { kind: 'debt'; debtId?: string };
 
 export interface Profile {
   name: string;

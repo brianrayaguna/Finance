@@ -7,12 +7,23 @@ import type {
   AccountSubtype,
   AppData,
   Budget,
+  BudgetKind,
+  BudgetTarget,
   FixedAsset,
   Goal,
   Profile,
   Transaction,
   TxTemplate,
 } from '../accounting/types';
+
+export function budgetKind(b: Pick<Budget, 'kind'>): BudgetKind {
+  return b.kind === 'debt' ? 'debt' : 'expense';
+}
+
+export function budgetTargetKey(b: Pick<Budget, 'kind' | 'categoryId' | 'debtId'>): string {
+  if (budgetKind(b) === 'debt') return `debt:${b.debtId || 'all'}`;
+  return `expense:${b.categoryId ?? ''}`;
+}
 import { lockViolations } from '../accounting/lock';
 import { formatDate, round2, todayISO, uid } from '../lib/format';
 import { remapColor, remapIcon } from '../lib/icons';
@@ -106,10 +117,23 @@ export function normalizeData(input: AppData): AppData {
   for (const t of transactions) if (!t.ref) t.ref = nextRef(transactions, refPrefix(t), t.date);
 
   const budgets: Budget[] = uniqBy(
-    list<Budget>(d.budgets).filter((b) => typeof b.categoryId === 'string' && num(b.amount) > 0),
-    (b) => b.categoryId,
+    list<Budget>(d.budgets).filter((b) => {
+      if (!(num(b.amount) > 0)) return false;
+      if (budgetKind(b) === 'debt') return b.debtId === undefined || b.debtId === '' || typeof b.debtId === 'string';
+      return typeof b.categoryId === 'string' && b.categoryId.trim().length > 0;
+    }),
+    (b) => budgetTargetKey(b),
     'last',
-  ).map((b) => ({ ...b, id: b.id || uid('bg'), amount: round2(num(b.amount)), createdAt: num(b.createdAt, Date.now()) }));
+  ).map((b) => {
+    const id = b.id || uid('bg');
+    const amount = round2(num(b.amount));
+    const createdAt = num(b.createdAt, Date.now());
+    if (budgetKind(b) === 'debt') {
+      const debtId = typeof b.debtId === 'string' && b.debtId.trim() ? b.debtId.trim() : undefined;
+      return debtId ? { id, kind: 'debt', debtId, amount, createdAt } : { id, kind: 'debt', amount, createdAt };
+    }
+    return { id, categoryId: b.categoryId!.trim(), amount, createdAt };
+  });
 
   const assets: FixedAsset[] = uniqBy(
     list<FixedAsset>(d.assets).filter((a) => typeof a.id === 'string' && a.id && isDate(a.acquisitionDate) && typeof a.accountId === 'string'),
@@ -494,7 +518,7 @@ export function updateTransaction(id: string, patch: Partial<Transaction>, label
   });
 }
 
-/** Menghapus transaksi beserta turunannya (pembayaran hutang/piutang). */
+/** Menghapus transaksi beserta turunannya (pembayaran hutang/piutang) dan anggaran hutang terkait. */
 export function deleteTransactions(ids: string[], label?: string) {
   const all = new Set(ids);
   const d = getData();
@@ -502,6 +526,7 @@ export function deleteTransactions(ids: string[], label?: string) {
   return commit(label ?? (ids.length > 1 ? `Hapus ${ids.length} transaksi` : 'Hapus transaksi'), (s) => ({
     ...s,
     transactions: s.transactions.filter((t) => !all.has(t.id)),
+    budgets: s.budgets.filter((b) => !(budgetKind(b) === 'debt' && b.debtId && all.has(b.debtId))),
   }));
 }
 
@@ -558,7 +583,7 @@ export function accountUsage(id: string): number {
     else if (t.lines?.some((l) => l.accountId === id)) n++;
   }
   for (const a of d.assets) if (a.accountId === id || a.paidFromAccountId === id || a.disposal?.accountId === id) n++;
-  if (d.budgets.some((b) => b.categoryId === id)) n++;
+  if (d.budgets.some((b) => budgetKind(b) === 'expense' && b.categoryId === id)) n++;
   return n;
 }
 
@@ -569,7 +594,7 @@ export function deleteAccount(id: string) {
     ...s,
     accounts: s.accounts.filter((a) => a.id !== id),
     transactions: s.transactions.filter((t) => !(t.type === 'opening' && t.accountId === id)),
-    budgets: s.budgets.filter((b) => b.categoryId !== id),
+    budgets: s.budgets.filter((b) => !(budgetKind(b) === 'expense' && b.categoryId === id)),
     // tautan target tabungan & favorit ke akun ini ikut dilepas
     goals: s.goals.map((g) => (g.accountIds.includes(id) ? { ...g, accountIds: g.accountIds.filter((x) => x !== id) } : g)),
     templates: s.templates.filter((t) => t.accountId !== id && t.toAccountId !== id && t.categoryId !== id),
@@ -666,11 +691,19 @@ export function createWallet(
 
 /* Anggaran */
 
-export function upsertBudget(categoryId: string, amount: number) {
+export function upsertBudget(target: string | BudgetTarget, amount: number) {
+  const spec: BudgetTarget = typeof target === 'string' ? { kind: 'expense', categoryId: target } : target;
+  const key = budgetTargetKey(spec);
   return commit('Simpan anggaran', (s) => {
-    const ex = s.budgets.find((b) => b.categoryId === categoryId);
-    if (ex) return { ...s, budgets: s.budgets.map((b) => (b.id === ex.id ? { ...b, amount: round2(amount) } : b)) };
-    const nb: Budget = { id: uid('bg'), categoryId, amount: round2(amount), createdAt: Date.now() };
+    const ex = s.budgets.find((b) => budgetTargetKey(b) === key);
+    const amt = round2(amount);
+    if (ex) return { ...s, budgets: s.budgets.map((b) => (b.id === ex.id ? { ...b, amount: amt } : b)) };
+    const nb: Budget =
+      spec.kind === 'debt'
+        ? spec.debtId
+          ? { id: uid('bg'), kind: 'debt', debtId: spec.debtId, amount: amt, createdAt: Date.now() }
+          : { id: uid('bg'), kind: 'debt', amount: amt, createdAt: Date.now() }
+        : { id: uid('bg'), categoryId: spec.categoryId, amount: amt, createdAt: Date.now() };
     return { ...s, budgets: [...s.budgets, nb] };
   });
 }
