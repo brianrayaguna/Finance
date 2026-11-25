@@ -90,6 +90,25 @@ export function useOpenDebtOptions(kind: 'payable' | 'receivable', includeId?: s
   );
 }
 
+export function usePayableBudgetOptions(includeDebtId?: string): SelectOption[] {
+  const open = useOpenDebtOptions('payable', includeDebtId);
+  return useMemo(
+    () => [
+      {
+        value: '__all__',
+        label: 'Semua pembayaran hutang',
+        description: 'Seluruh cicilan pokok & bunga hutang bulanan',
+        icon: 'handshake',
+        color: 'var(--tone-payable)',
+        group: 'Keseluruhan',
+        keywords: 'semua hutang cicilan pinjaman',
+      },
+      ...open.map((o) => ({ ...o, group: 'Per hutang aktif' })),
+    ],
+    [open],
+  );
+}
+
 export function useContacts(): string[] {
   const txs = useData((s) => s.data.transactions);
   return useMemo(() => {
