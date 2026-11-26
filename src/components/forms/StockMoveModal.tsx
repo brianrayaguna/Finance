@@ -15,7 +15,7 @@ import { Segmented } from '../ui/Segmented';
 import { AmountInput } from '../ui/AmountInput';
 import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
-import { Badge, Button, Field, IconTile, TextInput } from '../ui/primitives';
+import { Button, Field, IconTile, TextInput } from '../ui/primitives';
 import { useWalletOptions } from './options';
 
 const MODES: { value: StockMoveType; label: string; icon: typeof Download }[] = [
@@ -136,10 +136,13 @@ export function StockMoveModal({
     <Modal
       open
       title="Catat stok"
+      subtitle={selected ? `${selected.name}${selected.sku ? ` · ${selected.sku}` : ''}` : 'Mutasi persediaan'}
       onClose={onClose}
       size="lg"
       footer={
         <>
+          <Button onClick={onClose}>Batal</Button>
+          <span className="spacer" />
           <Button variant="ghost" icon={Plus} onClick={() => submitRef.run('new')}>
             Simpan &amp; baru
           </Button>
@@ -177,6 +180,8 @@ export function StockMoveModal({
               invalid={tried && !!errs.qty}
               autoFocus
               ariaLabel="Kuantitas"
+              prefix=""
+              suffix={selected?.unit || 'unit'}
             />
           </Field>
           {frequent.length > 0 && (
@@ -235,7 +240,7 @@ export function StockMoveModal({
               label="Harga satuan"
               error={tried && errs.cost}
               hint={selected?.costPrice ? `Modal bawaan ${formatMoney(selected.costPrice)}` : undefined}
-              className={type === 'adjust' ? 'span-2' : undefined}
+              className="span-2"
             >
               <AmountInput variant="inline" value={unitCost} onChange={setUnitCost} invalid={tried && !!errs.cost} />
             </Field>
@@ -266,15 +271,6 @@ export function StockMoveModal({
             <TextInput value={note} onChange={setNote} placeholder="Opsional" data-field />
           </Field>
         </div>
-
-        {selected && (
-          <div style={{ marginTop: 12 }}>
-            <Badge>
-              {selected.unit}
-              {selected.sku ? ` · ${selected.sku}` : ''}
-            </Badge>
-          </div>
-        )}
       </div>
     </Modal>
   );

@@ -1059,10 +1059,19 @@
 /* Judul bagian di dalam halaman */
 .section-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 32px 2px 12px;
+  margin: 28px 2px 12px;
+}
+.section-head .sh-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.section-head .btn {
+  flex: none;
 }
 .section-head h2,
 .section-head h3 {

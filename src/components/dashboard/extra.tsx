@@ -605,35 +605,37 @@ export function StockSummaryWidget(_p: WidgetProps) {
   return (
     <WCard>
       <CardHead title="Ringkasan stok" to="/persediaan" link="Kelola" />
-      {skus === 0 ? (
-        <EmptyState
-          compact
-          heading="h3"
-          icon={Package}
-          title="Belum ada barang"
-          text="Tambah barang di menu Persediaan."
-          action={
-            <Button variant="primary" size="sm" icon={Plus} onClick={() => nav('/persediaan')}>
-              Tambah barang
-            </Button>
-          }
-        />
-      ) : (
-        <div className="integ-rows">
-          <div>
-            <span>Nilai stok</span>
-            <Money value={value} />
+      <div className="card-body">
+        {skus === 0 ? (
+          <EmptyState
+            compact
+            heading="h3"
+            icon={Package}
+            title="Belum ada barang"
+            text="Tambah barang di menu Persediaan."
+            action={
+              <Button variant="primary" size="sm" icon={Plus} onClick={() => nav('/persediaan')}>
+                Tambah barang
+              </Button>
+            }
+          />
+        ) : (
+          <div className="integ-rows">
+            <div>
+              <span>Nilai stok</span>
+              <Money value={value} />
+            </div>
+            <div>
+              <span>SKU aktif</span>
+              <strong className="num">{skus}</strong>
+            </div>
+            <div>
+              <span>Stok rendah</span>
+              <strong className={`num ${low.length ? 'neg' : ''}`}>{low.length}</strong>
+            </div>
           </div>
-          <div>
-            <span>SKU aktif</span>
-            <strong className="num">{skus}</strong>
-          </div>
-          <div>
-            <span>Stok rendah</span>
-            <strong className={`num ${low.length ? 'neg' : ''}`}>{low.length}</strong>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </WCard>
   );
 }

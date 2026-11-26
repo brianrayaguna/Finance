@@ -24,6 +24,7 @@ import type { Books } from '../../accounting/reports';
 import { formatDate, formatMoney, formatMonth, formatPercent } from '../../lib/format';
 import { usePrefs, useUI } from '../../store/ui';
 import { Sheet } from '../ui/Modal';
+import { Tooltip } from '../ui/Tooltip';
 import { Badge, Button, EmptyState, IconTile, Money, Progress } from '../ui/primitives';
 
 interface Props {
@@ -128,15 +129,18 @@ export function BudgetBreakdownSheet({
 
           <div className="dsh-body">
             <div className="dsh-hero">
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                <Badge tone={sm.tone} icon={sm.icon}>
-                  {sm.label}
-                </Badge>
-                {line.kind === 'debt' && line.isPaidOff && (
-                  <Badge tone="pos" icon={CircleCheck}>
-                    Lunas
+              <div className="bsh-hero-top">
+                <span className="kpi-label">Realisasi</span>
+                <div className="bsh-hero-badges">
+                  <Badge tone={sm.tone} icon={sm.icon}>
+                    {sm.label}
                   </Badge>
-                )}
+                  {line.kind === 'debt' && line.isPaidOff && (
+                    <Badge tone="pos" icon={CircleCheck}>
+                      Lunas
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className="bsh-total">
                 <strong className={`num money-val${line.used > 1 ? ' neg' : ''}`}>{formatMoney(line.actual)}</strong>
@@ -144,12 +148,17 @@ export function BudgetBreakdownSheet({
                   dari <span className="money-val">{formatMoney(line.budget)}</span>
                 </span>
               </div>
-              <Progress
-                value={line.used}
-                color={barColor}
-                marker={pace}
-                label={`Anggaran ${line.label} terpakai`}
-              />
+              <div className="bsh-progress">
+                <Progress
+                  value={line.used}
+                  color={barColor}
+                  marker={pace}
+                  label={`Anggaran ${line.label} terpakai`}
+                />
+                {isCurrent && (
+                  <span className="muted bsh-pace-hint">Laju waktu berjalan {formatPercent(pace, 0)}</span>
+                )}
+              </div>
               <div className="dsh-grid">
                 <div>
                   <span>{line.variance >= 0 ? 'Sisa' : 'Melebihi'}</span>
@@ -161,7 +170,7 @@ export function BudgetBreakdownSheet({
                 </div>
                 <div>
                   <span>{avg.activeMonths > 0 && avg.activeMonths < 3 ? `Rata-rata ${avg.activeMonths} bln` : 'Rata-rata 3 bln'}</span>
-                  {avg.average > 0 ? <Money value={avg.average} /> : <span className="muted">—</span>}
+                  {avg.average > 0 ? <Money value={avg.average} /> : <strong className="muted">—</strong>}
                 </div>
               </div>
             </div>
@@ -181,7 +190,7 @@ export function BudgetBreakdownSheet({
             )}
 
             {line.kind === 'debt' && line.isCreditPurchase && (
-              <div className="note-box">
+              <div className="note-box bsh-note">
                 <Info size={16} style={{ flex: 'none', marginTop: 2 }} />
                 <span>
                   Beban transaksi ini sudah diakui saat pembelian kredit. Anggaran ini memantau arus kas keluar saat pelunasannya.
@@ -189,67 +198,79 @@ export function BudgetBreakdownSheet({
               </div>
             )}
 
-            <div className="bsh-sec-head">
-              <span className="label-caps">
-                {line.kind === 'debt' ? 'Rincian pembayaran' : 'Rincian transaksi'} ({items.length})
-              </span>
-              <Link to={txLink} onClick={onClose} className="link bsh-see-all">
-                Lihat di Transaksi
-              </Link>
-            </div>
-
-            {items.length === 0 ? (
-              <EmptyState
-                compact
-                heading="h3"
-                icon={line.kind === 'debt' ? Handshake : Receipt}
-                title={line.kind === 'debt' ? 'Belum ada pembayaran' : 'Belum ada transaksi'}
-                text={
-                  line.kind === 'debt'
-                    ? 'Pembayaran hutang pada bulan ini akan tampil di sini.'
-                    : 'Pengeluaran untuk kategori ini pada bulan ini akan tampil di sini.'
-                }
-              />
-            ) : (
-              <div className="bsh-list">
-                {items.map((item) => {
-                  const rowContent = (
-                    <>
-                      <div className="bsh-item-main">
-                        <div className="bsh-item-title truncate">{item.title}</div>
-                        <div className="bsh-item-sub muted truncate">
-                          {formatDate(item.date)}
-                          {item.subtitle ? ` · ${item.subtitle}` : ''}
-                        </div>
-                      </div>
-                      <div className="bsh-item-amt">
-                        <span className={`num money-val${item.isRefund ? ' pos' : ''}`}>
-                          {item.isRefund ? `−${formatMoney(Math.abs(item.amount))}` : formatMoney(item.amount)}
-                        </span>
-                        {!item.tx && <span className="bsh-auto">Otomatis</span>}
-                      </div>
-                    </>
-                  );
-                  if (item.tx) {
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="bsh-item"
-                        onClick={() => editTx(item.tx!)}
-                      >
-                        {rowContent}
-                      </button>
-                    );
-                  }
-                  return (
-                    <Link key={item.id} to="/aset" onClick={onClose} className="bsh-item">
-                      {rowContent}
-                    </Link>
-                  );
-                })}
+            <section className="bsh-section">
+              <div className="bsh-sec-head">
+                <span className="label-caps">
+                  {line.kind === 'debt' ? 'Rincian pembayaran' : 'Rincian transaksi'} ({items.length})
+                </span>
+                <Link to={txLink} onClick={onClose} className="link bsh-see-all">
+                  Lihat di Transaksi
+                </Link>
               </div>
-            )}
+
+              {items.length === 0 ? (
+                <div className="bsh-empty">
+                  <EmptyState
+                    compact
+                    heading="h3"
+                    icon={line.kind === 'debt' ? Handshake : Receipt}
+                    title={line.kind === 'debt' ? 'Belum ada pembayaran' : 'Belum ada transaksi'}
+                    text={
+                      line.kind === 'debt'
+                        ? 'Pembayaran hutang pada bulan ini akan tampil di sini.'
+                        : 'Pengeluaran untuk kategori ini pada bulan ini akan tampil di sini.'
+                    }
+                  />
+                </div>
+              ) : (
+                <div className="bsh-list">
+                  {items.map((item) => {
+                    const rowIcon = item.tx
+                      ? line.kind === 'debt'
+                        ? 'handshake'
+                        : line.icon
+                      : 'building-2';
+                    const rowColor = item.isRefund ? 'var(--pos)' : line.color;
+                    const rowContent = (
+                      <>
+                        <IconTile icon={rowIcon} color={rowColor} size="sm" />
+                        <div className="bsh-item-main">
+                          <div className="bsh-item-title truncate">{item.title}</div>
+                          <div className="bsh-item-sub muted truncate">
+                            {formatDate(item.date)}
+                            {item.subtitle ? ` · ${item.subtitle}` : ''}
+                          </div>
+                        </div>
+                        <div className="bsh-item-amt">
+                          <span className={`num money-val${item.isRefund ? ' pos' : ''}`}>
+                            {item.isRefund ? `−${formatMoney(Math.abs(item.amount))}` : formatMoney(item.amount)}
+                          </span>
+                          {!item.tx && <span className="bsh-auto">Otomatis</span>}
+                        </div>
+                        <ChevronRight size={14} className="bsh-chev" aria-hidden />
+                      </>
+                    );
+                    if (item.tx) {
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="bsh-item"
+                          onClick={() => editTx(item.tx!)}
+                        >
+                          {rowContent}
+                        </button>
+                      );
+                    }
+                    return (
+                      <Link key={item.id} to="/aset" onClick={onClose} className="bsh-item">
+                        {rowContent}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
             {line.kind === 'expense' && mode === 'accountant' && (
               <div className="bsh-extra-links">
@@ -263,15 +284,15 @@ export function BudgetBreakdownSheet({
           </div>
 
           <div className="dsh-foot">
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Trash2}
-              onClick={() => onDelete(line)}
-              aria-label={`Hapus anggaran ${line.label}`}
-            >
-              Hapus
-            </Button>
+            <Tooltip label="Hapus anggaran">
+              <Button
+                variant="danger-ghost"
+                size="sm"
+                icon={Trash2}
+                onClick={() => onDelete(line)}
+                aria-label={`Hapus anggaran ${line.label}`}
+              />
+            </Tooltip>
             <span className="spacer" />
             <Button
               size="sm"

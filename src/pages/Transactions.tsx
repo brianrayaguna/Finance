@@ -433,6 +433,7 @@ export default function Transactions() {
               <button
                 type="button"
                 className="chip active"
+                aria-pressed={true}
                 onClick={() => {
                   setDebtPayFilter(false);
                   setParentFilter('');

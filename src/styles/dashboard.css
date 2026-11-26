@@ -1140,16 +1140,6 @@ a.ins:hover {
 }
 
 /* Target tabungan di halaman Anggaran */
-/* Judul + keterangan bertumpuk di kiri, tombol di kanan: keterangan tidak terjepit di ponsel */
-.goals-section .sh-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.goals-section .section-head .btn {
-  flex: none;
-}
 .goal-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1160,9 +1150,6 @@ a.ins:hover {
 }
 .goal-card .goal-row {
   width: calc(100% + 16px);
-}
-.goals-section .section-head {
-  align-items: center;
 }
 
 /* ───────── Kartu bertab (widget gabungan) ───────── */

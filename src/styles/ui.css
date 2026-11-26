@@ -380,6 +380,10 @@
   font-size: 19px;
   font-weight: 600;
   color: var(--text-3);
+  flex: none;
+}
+.amount-input .cur-suffix {
+  font-size: 16px;
 }
 .amount-input input {
   flex: 1;
@@ -1191,7 +1195,8 @@ dialog[open] > .popover {
 .chip:active {
   transform: scale(0.97);
 }
-.chip[aria-pressed='true'] {
+.chip[aria-pressed='true'],
+.chip.active {
   background: var(--accent);
   color: var(--on-accent);
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { enter } from '../lib/motion';
 import {
+  ChevronRight,
   CircleCheck,
   Ellipsis,
   Eye,
@@ -18,7 +19,7 @@ import {
 import { useBooks, useMediaQuery, useToday } from '../hooks/useApp';
 import { deleteBudget, upsertBudget, useData } from '../store/data';
 import { notify } from '../store/history';
-import { activity } from '../accounting/reports';
+import { activity, debtInfos } from '../accounting/reports';
 import {
   budgetStatus,
   budgetSummary,
@@ -87,6 +88,10 @@ export default function Budgets() {
   const debtLines = useMemo(() => lines.filter((l): l is DebtBudgetLine => l.kind === 'debt'), [lines]);
   const sum = useMemo(() => budgetSummary(lines), [lines]);
   const detailLine = useMemo(() => (detailKey ? lines.find((l) => l.key === detailKey) ?? null : null), [lines, detailKey]);
+  const activePayableCount = useMemo(
+    () => debtInfos(b.data, today).filter((d) => d.kind === 'payable' && d.remaining > 0.005).length,
+    [b.data, today],
+  );
 
   const unbudgeted = useMemo(() => {
     const act = activity(b, from, actualTo);
@@ -144,18 +149,6 @@ export default function Budgets() {
               </button>
             </div>
             {l.sublabel && <div className="bc-sub muted truncate">{l.sublabel}</div>}
-            <div className="bc-badges">
-              {l.kind === 'debt' && l.isPaidOff ? (
-                <Badge tone="pos" icon={CircleCheck}>
-                  Lunas
-                </Badge>
-              ) : (
-                <Badge tone={sm.tone} icon={sm.icon}>
-                  {sm.label}
-                </Badge>
-              )}
-              {l.kind === 'debt' && !l.debtId && <Badge>Semua hutang</Badge>}
-            </div>
           </div>
           <div className="row-front">
             <Menu
@@ -186,19 +179,36 @@ export default function Budgets() {
             />
           </div>
         </div>
-        <div className="bc-amounts">
-          <Money value={l.actual} className="bc-actual" />
-          <span className="muted">
-            / <span className="money-val">{formatMoney(l.budget)}</span>
-          </span>
+        <div className="bc-badges">
+          {l.kind === 'debt' && l.isPaidOff ? (
+            <Badge tone="pos" icon={CircleCheck}>
+              Lunas
+            </Badge>
+          ) : (
+            <Badge tone={sm.tone} icon={sm.icon}>
+              {sm.label}
+            </Badge>
+          )}
+          {l.kind === 'debt' && !l.debtId && <Badge>Semua hutang</Badge>}
         </div>
-        <Progress value={l.used} color={barColor} marker={pace} label={`Anggaran ${l.label} terpakai`} />
-        <div className="bc-foot">
-          <span className={l.variance < 0 ? 'neg' : 'muted'}>
-            {l.variance >= 0 ? 'Sisa ' : 'Lebih '}
-            <span className="money-val">{formatMoney(Math.abs(l.variance))}</span>
-          </span>
-          <span className="muted num">{formatPercent(l.used, 0)}</span>
+        <div className="bc-meter">
+          <div className="bc-amounts">
+            <Money value={l.actual} className="bc-actual" />
+            <span className="muted">
+              / <span className="money-val">{formatMoney(l.budget)}</span>
+            </span>
+          </div>
+          <Progress value={l.used} color={barColor} marker={pace} label={`Anggaran ${l.label} terpakai`} />
+          <div className="bc-foot">
+            <span className={l.variance < 0 ? 'neg' : 'muted'}>
+              {l.variance >= 0 ? 'Sisa ' : 'Lebih '}
+              <span className="money-val">{formatMoney(Math.abs(l.variance))}</span>
+            </span>
+            <span className="bc-pct muted num">
+              {formatPercent(l.used, 0)}
+              <ChevronRight size={13} aria-hidden />
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -250,10 +260,14 @@ export default function Budgets() {
                   <span className="money-val">{formatMoney(sum.totalBudget)}</span>
                 </span>
                 {sum.hasExpense && sum.hasDebt && (
-                  <span className="muted bh-split">
-                    Pengeluaran <span className="money-val">{formatMoney(sum.expenseActual)}</span> · Pembayaran hutang{' '}
-                    <span className="money-val">{formatMoney(sum.debtActual)}</span>
-                  </span>
+                  <div className="bh-split">
+                    <span>
+                      Pengeluaran <strong className="num money-val">{formatMoney(sum.expenseActual)}</strong>
+                    </span>
+                    <span>
+                      Pembayaran hutang <strong className="num money-val">{formatMoney(sum.debtActual)}</strong>
+                    </span>
+                  </div>
                 )}
                 <div className="bh-pace">
                   <Progress value={totalUsed} color={ringColor} marker={pace} label="Total anggaran terpakai" />
@@ -282,44 +296,68 @@ export default function Budgets() {
 
           {expLines.length > 0 && (
             <section className="budget-section">
-              {debtLines.length > 0 && (
-                <div className="section-head">
-                  <div className="sh-text">
-                    <h2>Anggaran pengeluaran</h2>
-                    <span className="muted">
-                      <span className="money-val">{formatMoney(sum.expenseActual)}</span> dari{' '}
-                      <span className="money-val">{formatMoney(sum.expenseBudget)}</span>
-                    </span>
-                  </div>
+              <div className="section-head">
+                <div className="sh-text">
+                  <h2>Anggaran pengeluaran</h2>
+                  <span className="muted">
+                    <span className="money-val">{formatMoney(sum.expenseActual)}</span> dari{' '}
+                    <span className="money-val">{formatMoney(sum.expenseBudget)}</span>
+                  </span>
                 </div>
-              )}
+                <Button size="sm" icon={Plus} collapse onClick={() => setEdit({ kind: 'expense' })}>
+                  Tambah pengeluaran
+                </Button>
+              </div>
               <div className="budget-grid">{expLines.map((l, i) => renderCard(l, i))}</div>
             </section>
           )}
 
-          {debtLines.length > 0 && (
+          {(debtLines.length > 0 || activePayableCount > 0) && (
             <section className="budget-section">
               <div className="section-head">
                 <div className="sh-text">
                   <h2>Anggaran pembayaran hutang</h2>
                   <span className="muted">
-                    Pokok &amp; bunga · <span className="money-val">{formatMoney(sum.debtActual)}</span> dari{' '}
-                    <span className="money-val">{formatMoney(sum.debtBudget)}</span>
+                    {debtLines.length > 0 ? (
+                      <>
+                        Pokok &amp; bunga · <span className="money-val">{formatMoney(sum.debtActual)}</span> dari{' '}
+                        <span className="money-val">{formatMoney(sum.debtBudget)}</span>
+                      </>
+                    ) : (
+                      `${activePayableCount} hutang aktif belum dianggarkan`
+                    )}
                   </span>
                 </div>
                 <Button size="sm" icon={Handshake} collapse onClick={() => setEdit({ kind: 'debt' })}>
                   Tambah anggaran hutang
                 </Button>
               </div>
-              {sum.specificExceedsAggregate && (
-                <div className="note-box" style={{ marginTop: 0, marginBottom: 14 }}>
-                  <Info size={16} style={{ flex: 'none', marginTop: 2 }} />
-                  <span>
-                    Jumlah batas per hutang melebihi batas “Semua pembayaran hutang”. Total ringkasan di atas tetap memakai batas keseluruhan agar tidak terhitung ganda.
-                  </span>
+              {debtLines.length === 0 ? (
+                <div className="card budget-prompt">
+                  <IconTile icon={Handshake} color="var(--tone-payable)" />
+                  <div className="grow" style={{ minWidth: 0 }}>
+                    <div className="bp-title">Alokasikan batas cicilan hutang bulanan</div>
+                    <div className="muted bp-desc">
+                      Pantau realisasi pembayaran pokok dan bunga agar arus kas bulanan tetap terjaga.
+                    </div>
+                  </div>
+                  <Button size="sm" onClick={() => setEdit({ kind: 'debt' })}>
+                    Buat anggaran
+                  </Button>
                 </div>
+              ) : (
+                <>
+                  {sum.specificExceedsAggregate && (
+                    <div className="note-box" style={{ marginTop: 0, marginBottom: 14 }}>
+                      <Info size={16} style={{ flex: 'none', marginTop: 2 }} />
+                      <span>
+                        Jumlah batas per hutang melebihi batas “Semua pembayaran hutang”. Total ringkasan di atas tetap memakai batas keseluruhan agar tidak terhitung ganda.
+                      </span>
+                    </div>
+                  )}
+                  <div className="budget-grid">{debtLines.map((l, i) => renderCard(l, i))}</div>
+                </>
               )}
-              <div className="budget-grid">{debtLines.map((l, i) => renderCard(l, i))}</div>
             </section>
           )}
         </>
@@ -368,12 +406,16 @@ export default function Budgets() {
       {unbudgeted.length > 0 && (
         <section className="budget-section">
           <div className="section-head">
-            <h2>Pengeluaran tanpa anggaran</h2>
-            <span className="muted num money-val">{formatMoney(unbudgeted.reduce((s, x) => s + x.v, 0))}</span>
+            <div className="sh-text">
+              <h2>Pengeluaran tanpa anggaran</h2>
+              <span className="muted">
+                Total bulan ini <span className="num money-val">{formatMoney(unbudgeted.reduce((s, x) => s + x.v, 0))}</span>
+              </span>
+            </div>
           </div>
-          <div className="card list-body" style={{ padding: 6 }}>
+          <div className="card unbudgeted-list">
             {unbudgeted.map((x) => (
-              <div key={x.a.id} className="mini-row">
+              <div key={x.a.id} className="unbudgeted-row">
                 <IconTile icon={x.a.icon} color={x.a.color} size="sm" />
                 <span className="grow truncate">{x.a.name}</span>
                 <Money value={x.v} />
@@ -477,6 +519,13 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
       size="sm"
       title={existing ? 'Ubah anggaran' : 'Anggaran baru'}
       subtitle="Berlaku setiap bulan"
+      icon={
+        <IconTile
+          icon={kind === 'debt' ? Handshake : Target}
+          color={kind === 'debt' ? 'var(--tone-payable)' : 'var(--accent-ink)'}
+          size="lg"
+        />
+      }
       footer={
         <>
           <span className="spacer" />
@@ -500,6 +549,7 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
         {!initial.lockedKind && (
           <Field label="Jenis anggaran">
             <Segmented
+              block
               value={kind}
               onChange={(v) => {
                 setKind(v);

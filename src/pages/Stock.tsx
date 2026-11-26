@@ -51,6 +51,13 @@ type Tab = 'items' | 'moves' | 'locations' | 'orders';
 
 const UNIT_PRESETS = ['pcs', 'box', 'kg', 'liter', 'pack'] as const;
 const UNIT_OTHER = '__other__';
+const PO_STATUS: Record<PurchaseOrder['status'], { label: string; tone?: 'pos' | 'warn' | 'neg' }> = {
+  draft: { label: 'Draf' },
+  ordered: { label: 'Dipesan', tone: 'warn' },
+  partial: { label: 'Sebagian', tone: 'warn' },
+  received: { label: 'Diterima', tone: 'pos' },
+  cancelled: { label: 'Dibatalkan' },
+};
 
 function healthOf(qty: number, minQty: number): 'ok' | 'low' | 'out' {
   if (qty <= 0.0005) return 'out';
@@ -141,13 +148,14 @@ export default function Stock() {
         title="Persediaan"
         subtitle="Stok barang dengan jurnal perpetual (rata-rata tertimbang)"
         actions={
-          <div className="row stock-head-actions" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <>
             {narrow ? (
               <Menu
                 items={[
                   { label: 'Masuk stok', icon: Download, onSelect: () => openMove('in') },
                   { label: 'Keluar stok', icon: Upload, onSelect: () => openMove('out') },
                   { label: 'Opname', icon: Scale, onSelect: () => openMove('adjust') },
+                  { label: 'Transfer lokasi', icon: ArrowLeftRight, onSelect: () => openMove('transfer') },
                 ]}
                 trigger={(p) => (
                   <Button variant="ghost" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']}>
@@ -165,10 +173,10 @@ export default function Stock() {
                 </Button>
               </>
             )}
-            <Button variant="primary" icon={Plus} onClick={() => setItemModal({})}>
+            <Button variant="primary" icon={Plus} collapse onClick={() => setItemModal({})}>
               Tambah barang
             </Button>
-          </div>
+          </>
         }
       />
 
@@ -207,8 +215,9 @@ export default function Stock() {
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
+      <div className="stock-tabs">
         <Segmented
+          className="tabs-fill"
           value={tab}
           onChange={(v) => setTab(v as Tab)}
           options={[
@@ -480,10 +489,10 @@ export default function Stock() {
             />
           ) : (
             <>
-              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
-                <span className="muted">Gudang / lokasi penyimpanan</span>
-                <Button variant="ghost" icon={Plus} onClick={() => setLocModal(true)}>
-                  Tambah
+              <div className="card-head stock-card-head">
+                <span className="muted">Gudang &amp; lokasi penyimpanan</span>
+                <Button size="sm" variant="ghost" icon={Plus} onClick={() => setLocModal(true)}>
+                  Tambah lokasi
                 </Button>
               </div>
               <TableWrap label="Lokasi stok">
@@ -504,12 +513,10 @@ export default function Stock() {
                         return (
                           <tr key={l.id}>
                             <td data-label="Nama">
-                              <div className="row">
+                              <div className="row" style={{ gap: 8 }}>
                                 <IconTile icon={Building2} color="#3B6A96" size="sm" />
-                                <strong>
-                                  {l.name}
-                                  {l.id === DEFAULT_LOCATION_ID ? ' (default)' : ''}
-                                </strong>
+                                <strong>{l.name}</strong>
+                                {l.id === DEFAULT_LOCATION_ID && <Badge>Utama</Badge>}
                               </div>
                             </td>
                             <td className="r num" data-label="SKU dengan stok">
@@ -567,9 +574,9 @@ export default function Stock() {
             />
           ) : (
             <>
-              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 12 }}>
+              <div className="card-head stock-card-head">
                 <span className="muted">Pesanan pembelian (PO)</span>
-                <Button variant="primary" icon={Plus} onClick={() => setPoModal(true)} disabled={!activeItems.length}>
+                <Button size="sm" variant="primary" icon={Plus} onClick={() => setPoModal(true)} disabled={!activeItems.length}>
                   Buat PO
                 </Button>
               </div>
@@ -586,7 +593,9 @@ export default function Stock() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.purchaseOrders.map((p) => (
+                    {data.purchaseOrders.map((p) => {
+                      const st = PO_STATUS[p.status];
+                      return (
                       <tr key={p.id}>
                         <td data-label="Bukti">
                           <span className="mono">{p.ref}</span>
@@ -594,7 +603,7 @@ export default function Stock() {
                         <td data-label="Tanggal">{formatDate(p.date)}</td>
                         <td data-label="Pemasok">{p.supplier || '—'}</td>
                         <td data-label="Status">
-                          <Badge tone={p.status === 'received' ? 'pos' : p.status === 'cancelled' ? undefined : 'warn'}>{p.status}</Badge>
+                          <Badge tone={st.tone}>{st.label}</Badge>
                         </td>
                         <td className="r num" data-label="Baris">
                           {p.lines.length}
@@ -644,7 +653,8 @@ export default function Stock() {
                           />
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </TableWrap>
@@ -713,96 +723,111 @@ function ItemDetailSheet({
     <Modal
       open
       title={item.name}
+      subtitle={[catName, item.brand, item.unit].filter(Boolean).join(' · ')}
       onClose={onClose}
       size="md"
-      footer={
-        <>
-          <Button variant="ghost" onClick={onEdit}>
+      headerExtra={
+        <div className="row" style={{ gap: 4 }}>
+          <Button size="sm" variant="ghost" icon={Pencil} onClick={onEdit}>
             Ubah
           </Button>
-          <Button variant="primary" onClick={() => onMove('in')}>
-            Masuk
+          <Button size="sm" variant="danger-ghost" icon={Trash2} onClick={onDelete} aria-label={`Hapus ${item.name}`} />
+        </div>
+      }
+      footer={
+        <>
+          <span className="spacer" />
+          <Button onClick={onClose}>Tutup</Button>
+          <Button variant="primary" icon={Download} onClick={() => onMove('in')}>
+            Masuk stok
           </Button>
         </>
       }
     >
       <div className="stock-detail">
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          {h === 'out' ? (
-            <Badge tone="neg" dot>
-              Habis
-            </Badge>
-          ) : h === 'low' ? (
-            <Badge tone="warn" dot>
-              Stok rendah
-            </Badge>
-          ) : (
-            <Badge tone="pos" dot>
-              Aman
-            </Badge>
-          )}
-          {catName && <Badge>{catName}</Badge>}
-          {item.brand && <Badge>{item.brand}</Badge>}
+        <div className="stock-detail-card">
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            {h === 'out' ? (
+              <Badge tone="neg" dot>
+                Habis
+              </Badge>
+            ) : h === 'low' ? (
+              <Badge tone="warn" dot>
+                Stok rendah
+              </Badge>
+            ) : (
+              <Badge tone="pos" dot>
+                Aman
+              </Badge>
+            )}
+            {catName && <Badge>{catName}</Badge>}
+            {item.brand && <Badge>{item.brand}</Badge>}
+          </div>
+          <dl className="stock-detail-grid">
+            <div>
+              <dt>Qty total</dt>
+              <dd className="num">
+                {qty} {item.unit}
+              </dd>
+            </div>
+            <div>
+              <dt>Nilai persediaan</dt>
+              <dd className="num money-val">{formatMoney(st?.value ?? 0)}</dd>
+            </div>
+            <div>
+              <dt>Harga beli</dt>
+              <dd className="num money-val">{item.costPrice != null ? formatMoney(item.costPrice) : '—'}</dd>
+            </div>
+            <div>
+              <dt>Harga jual</dt>
+              <dd className="num money-val">
+                {item.sellPrice != null ? formatMoney(item.sellPrice) : '—'}
+                {m !== null ? ` (${m.toFixed(0)}%)` : ''}
+              </dd>
+            </div>
+            <div>
+              <dt>SKU</dt>
+              <dd className="mono">{item.sku || '—'}</dd>
+            </div>
+            <div>
+              <dt>Barcode</dt>
+              <dd className="mono">{item.barcode || '—'}</dd>
+            </div>
+          </dl>
+          {item.description && <p className="muted stock-detail-desc">{item.description}</p>}
         </div>
-        <dl className="stock-detail-grid">
-          <div>
-            <dt>Qty total</dt>
-            <dd>
-              {qty} {item.unit}
-            </dd>
-          </div>
-          <div>
-            <dt>Nilai</dt>
-            <dd>{formatMoney(st?.value ?? 0)}</dd>
-          </div>
-          <div>
-            <dt>Harga beli</dt>
-            <dd>{item.costPrice != null ? formatMoney(item.costPrice) : '—'}</dd>
-          </div>
-          <div>
-            <dt>Harga jual</dt>
-            <dd>
-              {item.sellPrice != null ? formatMoney(item.sellPrice) : '—'}
-              {m !== null ? ` (${m.toFixed(0)}%)` : ''}
-            </dd>
-          </div>
-          <div>
-            <dt>SKU</dt>
-            <dd className="mono">{item.sku || '—'}</dd>
-          </div>
-          <div>
-            <dt>Barcode</dt>
-            <dd className="mono">{item.barcode || '—'}</dd>
-          </div>
-        </dl>
-        {item.description && <p className="muted stock-detail-desc">{item.description}</p>}
-        <div className="label-caps" style={{ marginTop: 12 }}>
-          Per lokasi
+
+        <div className="stock-detail-sec">
+          <div className="label-caps">Stok per lokasi</div>
+          <ul className="stock-loc-list">
+            {locations.map((l) => {
+              const q = itemQty(snap, item.id, l.id);
+              if (q <= 0.0005 && locations.length > 3) return null;
+              return (
+                <li key={l.id}>
+                  <span>{l.name}</span>
+                  <strong className="num">
+                    {q} {item.unit}
+                  </strong>
+                </li>
+              );
+            })}
+          </ul>
         </div>
-        <ul className="stock-loc-list">
-          {locations.map((l) => {
-            const q = itemQty(snap, item.id, l.id);
-            if (q <= 0.0005 && locations.length > 3) return null;
-            return (
-              <li key={l.id}>
-                <span>{l.name}</span>
-                <strong className="num">
-                  {q} {item.unit}
-                </strong>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
-          <Button size="sm" variant="ghost" icon={Upload} onClick={() => onMove('out')}>
-            Keluar
-          </Button>
-          <Button size="sm" variant="ghost" icon={Scale} onClick={() => onMove('adjust')}>
-            Opname
-          </Button>
-          <Button size="sm" variant="ghost" icon={Trash2} onClick={onDelete}>
-            Hapus
-          </Button>
+
+        <div className="stock-detail-sec">
+          <div className="label-caps">Mutasi cepat</div>
+          <div className="stock-quick-actions">
+            <Button size="sm" variant="ghost" icon={Upload} onClick={() => onMove('out')}>
+              Keluar
+            </Button>
+            <Button size="sm" variant="ghost" icon={Scale} onClick={() => onMove('adjust')}>
+              Opname
+            </Button>
+            <Button size="sm" variant="ghost" icon={ArrowLeftRight} onClick={() => onMove('transfer')}>
+              Transfer
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>
@@ -920,12 +945,12 @@ function ItemModal({
             <TextInput value={unitCustom} onChange={setUnitCustom} placeholder="mis. roll" data-field />
           </Field>
         ) : (
-          <Field label="Merk / brand" optional>
+          <Field label="Merek" optional>
             <TextInput value={brand} onChange={setBrand} placeholder="Opsional" data-field />
           </Field>
         )}
         {unitSel === UNIT_OTHER && (
-          <Field label="Merk / brand" optional className="span-2">
+          <Field label="Merek" optional className="span-2">
             <TextInput value={brand} onChange={setBrand} placeholder="Opsional" data-field />
           </Field>
         )}
@@ -955,13 +980,17 @@ function ItemModal({
         <Field label="Stok minimum" optional>
           <TextInput value={minQty} onChange={setMinQty} inputMode="decimal" data-field className="num" />
         </Field>
-        <Field label="Qty reorder" optional>
+        <Field label="Jumlah pesan ulang" optional>
           <TextInput value={reorderQty} onChange={setReorderQty} inputMode="decimal" placeholder="0" data-field className="num" />
         </Field>
-        <Field label="Lacak batch / kadaluarsa" className="span-2" hint="Aktifkan bila barang punya nomor lot atau tanggal kedaluwarsa.">
+        <div className="stock-switch-row span-2">
+          <div className="grow">
+            <div className="field-label">Lacak batch / kedaluwarsa</div>
+            <div className="field-hint">Aktifkan bila barang punya nomor lot atau tanggal kedaluwarsa.</div>
+          </div>
           <Switch checked={trackBatch} onChange={setTrackBatch} label="Lacak batch" />
-        </Field>
-        <Field label="Deskripsi" optional className="span-2">
+        </div>
+        <Field label="Keterangan" optional className="span-2">
           <TextArea value={description} onChange={setDescription} rows={2} placeholder="Opsional" />
         </Field>
       </div>
@@ -985,9 +1014,8 @@ function LocationModal({ onClose }: { onClose: () => void }) {
       size="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
-            Batal
-          </Button>
+          <span className="spacer" />
+          <Button onClick={onClose}>Batal</Button>
           <Button variant="primary" onClick={submit}>
             Simpan
           </Button>
@@ -1055,9 +1083,8 @@ function PoModal({ onClose }: { onClose: () => void }) {
       size="lg"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
-            Batal
-          </Button>
+          <span className="spacer" />
+          <Button onClick={onClose}>Batal</Button>
           <Button variant="primary" onClick={submit}>
             Simpan
           </Button>
@@ -1150,9 +1177,8 @@ function ReceiveModal({ po, onClose }: { po: PurchaseOrder; onClose: () => void 
       size="md"
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>
-            Batal
-          </Button>
+          <span className="spacer" />
+          <Button onClick={onClose}>Batal</Button>
           <Button variant="primary" onClick={submit}>
             Terima
           </Button>

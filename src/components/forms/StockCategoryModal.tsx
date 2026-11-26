@@ -48,6 +48,7 @@ export function StockCategoryModal({
       icon={<IconTile icon={icon} color={color} size="lg" solid />}
       footer={
         <>
+          <span className="spacer" />
           <Button onClick={onClose}>Batal</Button>
           <Button variant="primary" onClick={() => submitRef.run()}>
             {editing ? 'Simpan' : 'Tambah'}

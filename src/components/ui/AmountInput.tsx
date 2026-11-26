@@ -33,6 +33,10 @@ interface Props {
   className?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   allowNegative?: boolean;
+  /** Awalan untuk varian besar; bawaan 'Rp'. Isi '' untuk menyembunyikan awalan mata uang (mis. kuantitas). */
+  prefix?: string;
+  /** Akhiran opsional untuk varian besar (mis. satuan 'pcs', 'kg'). */
+  suffix?: string;
 }
 
 /**
@@ -40,7 +44,22 @@ interface Props {
  * kalkulator (+ − × ÷), serta pintasan "k" = ribu dan "j" = juta.
  */
 export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountInput(
-  { value, onChange, variant = 'big', invalid, placeholder = '0', autoFocus, id, tone, ariaLabel, className = '', onKeyDown, allowNegative },
+  {
+    value,
+    onChange,
+    variant = 'big',
+    invalid,
+    placeholder = '0',
+    autoFocus,
+    id,
+    tone,
+    ariaLabel,
+    className = '',
+    onKeyDown,
+    allowNegative,
+    prefix = 'Rp',
+    suffix,
+  },
   ref,
 ) {
   const field = useFieldCtx();
@@ -204,9 +223,12 @@ export const AmountInput = forwardRef<HTMLInputElement, Props>(function AmountIn
   }
   return (
     <div className={['amount-input', isInvalid && 'invalid', tone && `tone-${tone}`, className].filter(Boolean).join(' ')}>
-      <span className="cur">Rp</span>
+      {prefix && <span className="cur">{prefix}</span>}
       {input}
-      {calc !== null && <span className="calc num">= {formatMoney(calc)}</span>}
+      {suffix && <span className="cur cur-suffix">{suffix}</span>}
+      {calc !== null && (
+        <span className="calc num">= {prefix === '' ? amountToDisplay(calc) : formatMoney(calc)}</span>
+      )}
     </div>
   );
 });

@@ -239,8 +239,18 @@ function NavSettings() {
                   <button
                     type="button"
                     className="navset-btn navset-grip"
-                    aria-label={`Seret untuk mengubah urutan ${it.label}`}
+                    aria-label={`Ubah urutan ${it.label} (seret atau tekan panah atas/bawah)`}
                     onPointerDown={(e) => start(sec.id, it.to, e)}
+                    onKeyDown={(e) => {
+                      const idx = items.findIndex((x) => x.to === it.to);
+                      if (e.key === 'ArrowUp' && idx > 0) {
+                        e.preventDefault();
+                        reorder(sec.id, it.to, items[idx - 1].to, false);
+                      } else if (e.key === 'ArrowDown' && idx < items.length - 1) {
+                        e.preventDefault();
+                        reorder(sec.id, it.to, items[idx + 1].to, true);
+                      }
+                    }}
                   >
                     <GripVertical aria-hidden />
                   </button>
