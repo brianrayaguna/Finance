@@ -8,7 +8,7 @@ import { notify } from '../store/history';
 import { debtInfos, AGING_BUCKETS, type DebtInfo } from '../accounting/reports';
 import { formatDate, formatMoney, initials, normalize, relativeDay } from '../lib/format';
 import { PALETTE } from '../lib/icons';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Badge, Button, EmptyState, Money, Progress, TextInput, IconTile } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { Menu } from '../components/ui/Popover';

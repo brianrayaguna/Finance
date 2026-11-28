@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Download, Search, BookOpenText, FileSpreadsheet, Layers } from '../lib/glyphs';
-import { Menu } from '../components/ui/Popover';
 import { useBooks, useToday } from '../hooks/useApp';
 import { useUI, toast } from '../store/ui';
 import { SUBTYPE_META, TYPE_LABEL, TYPE_ORDER, normalSide } from '../accounting/coa';
 import { displayBalances, ledger } from '../accounting/reports';
 import { formatDate, formatMoney, normalize } from '../lib/format';
 import { rowAction } from '../lib/focus';
-import { PageHeader } from '../components/layout/Topbar';
-import { Badge, Button, EmptyState, IconTile, Money, TextInput, Dots, TableWrap } from '../components/ui/primitives';
+import { PageHeader } from '../components/layout/Page';
+import { Badge, EmptyState, IconTile, Money, TextInput, TableWrap } from '../components/ui/primitives';
 import { PeriodPicker, resolvePreset, type PeriodValue } from '../components/ui/PeriodPicker';
 
 export default function Ledger() {
@@ -78,27 +77,16 @@ export default function Ledger() {
       <PageHeader
         title="Buku Besar"
         subtitle="Mutasi dan saldo berjalan setiap akun"
-        actions={
-          <>
-            <div className="pa-fill">
-              <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-            </div>
-            <Menu
-              placement="bottom-end"
-              minWidth={230}
-              ariaLabel="Ekspor buku besar"
-              items={[
-                { label: `${b.accounts.find((a) => a.id === sel)?.name ?? 'Akun terpilih'} (.xlsx)`, icon: FileSpreadsheet, onSelect: doExport, disabled: !sel },
-                { label: 'Semua akun (.xlsx)', icon: Layers, onSelect: exportAll },
-              ]}
-              trigger={(p) => (
-                <Button collapse variant="primary" icon={exporting ? undefined : Download} ref={p.ref} onClick={p.onClick} aria-expanded={p["aria-expanded"]} aria-haspopup={p["aria-haspopup"]} aria-label="Ekspor" disabled={exporting}>
-                  {exporting ? <Dots /> : 'Ekspor'}
-                </Button>
-              )}
-            />
-          </>
-        }
+        toolbar={<PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />}
+        primaryAction={{
+          label: 'Ekspor',
+          icon: Download,
+          busy: exporting,
+          menu: [
+            { label: `${b.accounts.find((a) => a.id === sel)?.name ?? 'Akun terpilih'} (.xlsx)`, icon: FileSpreadsheet, onSelect: doExport, disabled: !sel },
+            { label: 'Semua akun (.xlsx)', icon: Layers, onSelect: exportAll },
+          ],
+        }}
       />
       <div className="ledger-layout">
         <aside className="card ledger-accounts">

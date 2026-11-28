@@ -61,7 +61,7 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { Tooltip } from '../components/ui/Tooltip';
 import { notify } from '../store/history';
 import { MONTHS, addMonths, endOfMonth, formatDate, isoFromTs, startOfMonth, todayISO } from '../lib/format';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Button, Field, Switch, TextInput } from '../components/ui/primitives';
 import { Select } from '../components/ui/Select';
 import { Segmented } from '../components/ui/Segmented';

@@ -27,7 +27,7 @@
   - medium `600–1023px`: rail sidebar 68px;
   - expanded `≥ 1024px`: sidebar penuh.
 - Media query hanya dipakai untuk kerangka aplikasi. Komponen menyesuaikan diri lewat container query.
-- **Kerangka halaman `Page`** dengan slot `title`, `subtitle`, `meta`, `primaryAction`, `secondaryActions`, `toolbar`, dan `tabs`. Di compact, judul tampil di bilah atas. Baris toolbar berisi kontrol periode/filter di kiri, aksi utama berupa ikon di kanan, dan aksi lainnya di menu "⋯".
+- **Kerangka halaman** `PageHeader` (`src/components/layout/Page.tsx`) dengan slot `title`, `subtitle`, `meta`, `toolbar`, `primaryAction`, `secondaryActions`, dan `tabs`. Di compact, judul tampil di bilah atas; satu baris alat berisi kontrol periode/filter di kiri, menu "⋯" berisi semua aksi sekunder, dan aksi utama berupa ikon di kanan. Di medium dan expanded, dua aksi sekunder pertama tampil sebagai tombol dan sisanya di menu "⋯". `PageTabs` adalah tab yang bisa digeser mendatar dengan tepi memudar.
 - **Token tahan pembesaran teks:** ukuran huruf memakai `rem`; kontrol, baris, dan pil memakai `min-height` + padding; spasi memakai skala `--space-*`.
 - **Lapisan CSS:** `reset, tokens, base, layout, components, pages, overrides`. Gaya halaman disimpan di berkas per halaman dan diimpor oleh halaman yang di-lazy-load. Penyesuaian ponsel ditulis di samping aturan komponennya.
 - **Gaya inline** hanya untuk nilai dinamis, dan itu pun lewat variabel CSS.

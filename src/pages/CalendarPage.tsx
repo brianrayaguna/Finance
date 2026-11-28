@@ -19,7 +19,7 @@ import {
   compactNumber,
 } from '../lib/format';
 import { isImeComposing, isTypingTarget, layerCount } from '../lib/layers';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Badge, Button, EmptyState, IconTile, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { isWeekend, monthMatrix, weekDays } from '../lib/week';
@@ -163,7 +163,7 @@ export default function CalendarPage() {
         title="Transaksi"
         meta={view === 'month' ? `${monthStats.active} hari dengan transaksi` : 'Intensitas pengeluaran harian'}
         subtitle={view === 'month' ? `${monthStats.active} hari dengan transaksi bulan ini` : 'Intensitas pengeluaran harian sepanjang tahun'}
-        actions={
+        toolbar={
           <div className="cal-controls">
             <TxViewSwitch value="kalender" block />
             <Segmented

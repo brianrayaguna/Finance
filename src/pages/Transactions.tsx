@@ -28,7 +28,7 @@ import { matchesDebtPaymentBudget } from '../accounting/budgets';
 import type { Transaction, TxType } from '../accounting/types';
 import { formatDate, formatMoney, normalize, endOfMonth, DAYS, DAYS_SHORT, MONTHS_SHORT, parseISO, round2, isZero } from '../lib/format';
 import { isImeComposing, isTypingTarget, layerCount } from '../lib/layers';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Button, Checkbox, EmptyState, TextInput, Money } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { Select } from '../components/ui/Select';
@@ -353,7 +353,7 @@ export default function Transactions() {
       <PageHeader
         title="Transaksi"
         subtitle={`${filtered.length.toLocaleString('id-ID')} transaksi, ${formatDate(period.from === '1900-01-01' ? (filtered[filtered.length - 1]?.date ?? today) : period.from)} – ${formatDate(period.to === '2999-12-31' ? today : period.to)}`}
-        actions={
+        toolbar={
           <>
             <TxViewSwitch value="daftar" />
             <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />

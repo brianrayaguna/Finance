@@ -1019,13 +1019,86 @@
   font-size: var(--fs-md);
   color: var(--text-3);
 }
-/* Aksi sejajar dengan dasar judul */
+/* Aksi sejajar dengan dasar judul: toolbar (periode/filter), aksi sekunder, menu ⋯, lalu aksi utama */
 .page-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   min-height: 36px;
+}
+.pa-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.page-tabs-row {
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+/* Tab halaman: satu baris yang bisa digeser; tepi memudar selama masih ada tab di luar layar */
+.page-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.page-tabs-row .page-tabs {
+  margin-bottom: 0;
+}
+.page-tabs::-webkit-scrollbar {
+  display: none;
+}
+.page-tabs[data-start='fade'] {
+  mask-image: linear-gradient(90deg, transparent, #000 24px);
+}
+.page-tabs[data-end='fade'] {
+  mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+}
+.page-tabs[data-start='fade'][data-end='fade'] {
+  mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+.page-tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 2.75rem;
+  padding: 0 12px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-3);
+  white-space: nowrap;
+  transition: color var(--dur-1);
+}
+.page-tab[aria-selected='true'] {
+  color: var(--text);
+  box-shadow: inset 0 -2px 0 var(--accent-ink);
+}
+.page-tab:focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .page-tab:hover {
+    color: var(--text);
+  }
+}
+.page-tab-count {
+  min-width: 1.25rem;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-2);
+  color: var(--neg);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 /* Judul bagian di dalam halaman */
@@ -1261,48 +1334,39 @@
   :root[data-freeze] .main {
     content-visibility: hidden;
   }
-  /* Aksi halaman: satu baris yang bisa digeser, bukan menumpuk 2–3 baris */
+  /* Baris alat halaman: kontrol periode/filter mengisi kiri; menu ⋯ dan aksi utama (ikon) di kanan */
   .page-head .page-actions {
-    order: 2;
-    width: auto;
-    max-width: calc(100% + var(--page-x) * 2);
-    margin: 0 calc(var(--page-x) * -1);
-    padding: 2px var(--page-x);
+    width: 100%;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
-    /* Pudar hanya di area padding kanan: terlihat saat isi meluap, tak menutupi tombol bila tidak */
-    mask-image: linear-gradient(90deg, #000 calc(100% - var(--page-x)), transparent);
+    justify-content: flex-end;
   }
-  .page-head .page-actions::-webkit-scrollbar {
-    display: none;
+  .pa-toolbar {
+    flex: 1 1 auto;
   }
-  .page-actions > * {
+  .pa-toolbar > *,
+  .pa-toolbar .select-trigger {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .pa-toolbar .tb-date > * {
+    width: 100%;
+  }
+  .pa-toolbar .ms-label {
+    flex: 1;
+    min-width: 0;
+  }
+  /* Sakelar tampilan (mis. Daftar|Kalender) selebar isinya; kontrol periode mengisi sisa baris */
+  .pa-toolbar > .seg:not(.seg-block) {
     flex: none;
   }
   .btn-collapse {
     width: var(--ctl-h);
     padding: 0;
   }
-  /* Anggaran & Kalender: kontrol mengisi baris — tanpa geser & pudar */
-  .page-head .page-actions:has(.ms-stretch, .cal-controls, .pa-fill) {
-    width: 100%;
-    margin: 0;
-    padding: 2px 0;
-    overflow: visible;
-    mask-image: none;
-  }
-  /* Filter periode/tanggal mengisi baris; tombol ekspor & tambah tinggal ikon di kanannya. */
-  .page-actions .pa-fill {
-    flex: 1 1 auto;
-    width: auto;
-    min-width: 0;
-  }
-  .pa-fill > *,
-  .pa-fill .select-trigger {
-    width: 100%;
-    max-width: none;
+  /* Aksi utama bermenu di compact: ikon saja, tanpa panah */
+  .btn-collapse .btn-label ~ .fi {
+    display: none;
   }
   /* Tab halaman (Jurnal umum|penutup, Kategori|Bagan akun) selebar layar, tiap tab sama lebar. */
   .tabs-fill {
@@ -1324,20 +1388,8 @@
   .acc-toolbar .acc-search {
     width: auto;
   }
-  .page-actions .cal-controls {
-    flex: 1 1 auto;
-    width: 100%;
-  }
   .cal-controls .seg-item {
     padding: 0 6px;
-  }
-  .page-actions .ms-stretch {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  .ms-stretch .ms-label {
-    flex: 1;
-    min-width: 0;
   }
   .btn-collapse .btn-label {
     position: absolute;

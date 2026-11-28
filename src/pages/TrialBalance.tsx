@@ -8,8 +8,8 @@ import { trialBalance } from '../accounting/reports';
 import { checkIntegrity } from '../accounting/integrity';
 import { formatDate, formatMoney } from '../lib/format';
 import { rowAction } from '../lib/focus';
-import { PageHeader } from '../components/layout/Topbar';
-import { Badge, Button, Dots, IconTile, TableWrap } from '../components/ui/primitives';
+import { PageHeader } from '../components/layout/Page';
+import { Badge, Button, IconTile, TableWrap } from '../components/ui/primitives';
 import { DatePicker } from '../components/ui/DatePicker';
 
 export default function TrialBalance() {
@@ -44,16 +44,12 @@ export default function TrialBalance() {
       <PageHeader
         title="Neraca Saldo"
         subtitle={`Saldo seluruh akun sebelum penutupan per ${formatDate(to, 'long')}`}
-        actions={
-          <>
-            <div className="pa-fill tb-date">
-              <DatePicker value={to} onChange={setTo} compact />
-            </div>
-            <Button collapse variant="primary" icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting} aria-label="Ekspor Excel">
-              {exporting ? <Dots /> : 'Ekspor Excel'}
-            </Button>
-          </>
+        toolbar={
+          <div className="tb-date">
+            <DatePicker value={to} onChange={setTo} compact />
+          </div>
         }
+        primaryAction={{ label: 'Ekspor Excel', icon: Download, onSelect: doExport, busy: exporting }}
       />
       {rejected > 0 && (
         <div className="balance-banner warn">

@@ -10,7 +10,7 @@ import type { DepreciationMethod, FixedAsset } from '../accounting/types';
 import { addDays, endOfMonth, formatDate, formatMoney, round2 } from '../lib/format';
 import { rowAction, useSubmitRef } from '../lib/focus';
 import { isImeComposing } from '../lib/layers';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Progress, Switch, TextInput, TableWrap } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
 import { Modal } from '../components/ui/Modal';
@@ -72,11 +72,7 @@ export default function Assets() {
       <PageHeader
         title="Aset Tetap"
         subtitle="Daftar aset dengan penyusutan otomatis setiap akhir bulan"
-        actions={
-          <Button variant="primary" icon={Plus} onClick={() => setModal({})}>
-            Tambah aset
-          </Button>
-        }
+        primaryAction={{ label: 'Tambah aset', icon: Plus, onSelect: () => setModal({}) }}
       />
       <div className="sum-strip big">
         <div>

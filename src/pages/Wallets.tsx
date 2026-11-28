@@ -24,7 +24,7 @@ import type { Account } from '../accounting/types';
 import { addDays, formatDate, formatMoney, round2, isZero, startOfMonth } from '../lib/format';
 import { useSubmitRef } from '../lib/focus';
 import { isImeComposing } from '../lib/layers';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { AnimatedMoney, Button, EmptyState, IconTile, Money, Field } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
 import { Sparkline } from '../components/charts/Charts';
@@ -157,11 +157,7 @@ export default function Wallets() {
       <PageHeader
         title="Dompet & Rekening"
         subtitle="Kas, bank, dompet digital, investasi, dan kartu kredit"
-        actions={
-          <Button variant="primary" icon={Plus} onClick={() => modal.openNew('wallet')}>
-            Tambah dompet
-          </Button>
-        }
+        primaryAction={{ label: 'Tambah dompet', icon: Plus, onSelect: () => modal.openNew('wallet') }}
       />
       <div className="sum-strip big">
         <div>

@@ -4099,9 +4099,6 @@ body.dragging-nav .navset-row {
 .sum-strip > .stock-kpi-on {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
-.stock-tabs {
-  margin-bottom: 14px;
-}
 .stock-card-head {
   padding: 14px 16px;
   border-bottom: 1px solid var(--line);

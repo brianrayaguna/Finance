@@ -7,7 +7,6 @@ import {
   FileSpreadsheet,
   Printer,
   Download,
-  ChevronDown,
   List,
   CircleCheck,
   Package,
@@ -29,9 +28,8 @@ import {
 import { makeDates, makePeriods } from '../accounting/periods';
 import type { Report } from '../accounting/types';
 import { formatDate, formatRatio, periodLabel } from '../lib/format';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Badge, Button, Dots, Switch, Checkbox } from '../components/ui/primitives';
-import { Menu } from '../components/ui/Popover';
 import { modKey } from '../lib/layers';
 import { PeriodPicker, resolvePreset, type PeriodValue, describePeriod } from '../components/ui/PeriodPicker';
 import { Segmented } from '../components/ui/Segmented';
@@ -141,25 +139,18 @@ export default function Reports() {
       <PageHeader
         title="Laporan Keuangan"
         subtitle={`${b.data.profile.entityName || 'Buku keuangan'}, ${periodLabel(from, asOf)}`}
-        actions={
-          <Menu
-            placement="bottom-end"
-            minWidth={250}
-            ariaLabel="Unduh laporan"
-            items={[
-              { label: `${meta.label} (.xlsx)`, icon: FileSpreadsheet, onSelect: exportOne },
-              { label: 'Daftar transaksi (.xlsx)', icon: List, onSelect: exportTx },
-              { label: 'Paket laporan lengkap…', icon: Package, onSelect: () => setPack(true) },
-              { separator: true },
-              { label: 'Cetak', icon: Printer, kbd: modKey('P'), onSelect: () => window.print() },
-            ]}
-            trigger={(p) => (
-              <Button variant="primary" icon={exporting ? undefined : Download} iconRight={exporting ? undefined : ChevronDown} ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']} disabled={exporting}>
-                {exporting ? <Dots /> : 'Unduh'}
-              </Button>
-            )}
-          />
-        }
+        primaryAction={{
+          label: 'Unduh',
+          icon: Download,
+          busy: exporting,
+          menu: [
+            { label: `${meta.label} (.xlsx)`, icon: FileSpreadsheet, onSelect: exportOne },
+            { label: 'Daftar transaksi (.xlsx)', icon: List, onSelect: exportTx },
+            { label: 'Paket laporan lengkap…', icon: Package, onSelect: () => setPack(true) },
+            { separator: true },
+            { label: 'Cetak', icon: Printer, kbd: modKey('P'), onSelect: () => window.print() },
+          ],
+        }}
       />
 
       <div className="reports-layout">

@@ -8,7 +8,7 @@ import { activity, displayBalances } from '../accounting/reports';
 import type { Account } from '../accounting/types';
 import { formatMoney, normalize, startOfMonth, endOfMonth } from '../lib/format';
 import { rowAction } from '../lib/focus';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Badge, Button, IconTile, TextInput, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { useAccountModal } from '../components/forms/AccountModal';
@@ -85,14 +85,8 @@ export default function Accounts() {
       <PageHeader
         title="Bagan Akun & Kategori"
         subtitle="Struktur akun buku besar — kategori adalah akun pendapatan dan beban"
-        actions={
-          // Kategori ditambah lewat tombol "Tambah" di tiap kelompok (pendapatan/beban), jadi tidak diulang di sini.
-          tab === 'coa' ? (
-            <Button variant="primary" icon={Plus} onClick={() => modal.openNew('account')}>
-              Akun baru
-            </Button>
-          ) : undefined
-        }
+        // Kategori ditambah lewat tombol "Tambah" di tiap kelompok (pendapatan/beban), jadi tidak diulang di sini.
+        primaryAction={tab === 'coa' ? { label: 'Akun baru', icon: Plus, onSelect: () => modal.openNew('account') } : undefined}
       />
       <div className="acc-toolbar">
         <Segmented

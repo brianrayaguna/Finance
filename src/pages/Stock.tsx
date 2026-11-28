@@ -13,7 +13,7 @@ import {
   NotebookPen,
   Search,
 } from '../lib/glyphs';
-import { useBooks, useToday, useWindowClass } from '../hooks/useApp';
+import { useBooks, useToday } from '../hooks/useApp';
 import {
   addPurchaseOrder,
   addStockItem,
@@ -35,7 +35,7 @@ import type { PurchaseOrder, StockFunding, StockItem, StockMoveType } from '../a
 import { formatDate, formatMoney, round2 } from '../lib/format';
 import { rowAction, useSubmitRef } from '../lib/focus';
 import { isImeComposing } from '../lib/layers';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader, PageTabs } from '../components/layout/Page';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Switch, TextArea, TextInput, TableWrap } from '../components/ui/primitives';
 import { Menu } from '../components/ui/Popover';
 import { Modal } from '../components/ui/Modal';
@@ -73,7 +73,6 @@ function marginPct(cost?: number, sell?: number): number | null {
 export default function Stock() {
   useBooks();
   const data = useData((s) => s.data);
-  const narrow = useWindowClass() !== 'expanded';
   const [tab, setTab] = useState<Tab>('items');
   const [itemModal, setItemModal] = useState<{ editing?: StockItem } | null>(null);
   const [detail, setDetail] = useState<StockItem | null>(null);
@@ -147,37 +146,13 @@ export default function Stock() {
       <PageHeader
         title="Persediaan"
         subtitle="Stok barang dengan jurnal perpetual (rata-rata tertimbang)"
-        actions={
-          <>
-            {narrow ? (
-              <Menu
-                items={[
-                  { label: 'Masuk stok', icon: Download, onSelect: () => openMove('in') },
-                  { label: 'Keluar stok', icon: Upload, onSelect: () => openMove('out') },
-                  { label: 'Opname', icon: Scale, onSelect: () => openMove('adjust') },
-                  { label: 'Transfer lokasi', icon: ArrowLeftRight, onSelect: () => openMove('transfer') },
-                ]}
-                trigger={(p) => (
-                  <Button variant="ghost" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']}>
-                    Mutasi
-                  </Button>
-                )}
-              />
-            ) : (
-              <>
-                <Button variant="ghost" icon={Download} onClick={() => openMove('in')}>
-                  Masuk
-                </Button>
-                <Button variant="ghost" icon={Upload} onClick={() => openMove('out')}>
-                  Keluar
-                </Button>
-              </>
-            )}
-            <Button variant="primary" icon={Plus} collapse onClick={() => setItemModal({})}>
-              Tambah barang
-            </Button>
-          </>
-        }
+        secondaryActions={[
+          { label: 'Masuk stok', icon: Download, onSelect: () => openMove('in') },
+          { label: 'Keluar stok', icon: Upload, onSelect: () => openMove('out') },
+          { label: 'Opname', icon: Scale, onSelect: () => openMove('adjust') },
+          { label: 'Transfer lokasi', icon: ArrowLeftRight, onSelect: () => openMove('transfer') },
+        ]}
+        primaryAction={{ label: 'Tambah barang', icon: Plus, onSelect: () => setItemModal({}) }}
       />
 
       <div className="sum-strip big">
@@ -215,19 +190,17 @@ export default function Stock() {
         </div>
       </div>
 
-      <div className="stock-tabs">
-        <Segmented
-          className="tabs-fill"
-          value={tab}
-          onChange={(v) => setTab(v as Tab)}
-          options={[
-            { value: 'items', label: 'Barang' },
-            { value: 'moves', label: 'Mutasi' },
-            { value: 'locations', label: 'Lokasi' },
-            { value: 'orders', label: 'Pesanan' },
-          ]}
-        />
-      </div>
+      <PageTabs
+        value={tab}
+        onChange={setTab}
+        ariaLabel="Bagian persediaan"
+        tabs={[
+          { value: 'items', label: 'Barang', count: low.length || undefined },
+          { value: 'moves', label: 'Mutasi' },
+          { value: 'locations', label: 'Lokasi' },
+          { value: 'orders', label: 'Pesanan' },
+        ]}
+      />
 
       {tab === 'items' && (
         <div className="card">

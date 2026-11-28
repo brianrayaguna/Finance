@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
 import { useTransformFrom } from '../../lib/motion';
@@ -220,35 +220,5 @@ function ReminderBell() {
         </div>
       </Popover>
     </>
-  );
-}
-
-export function PageHeader({
-  title,
-  subtitle,
-  actions,
-  className,
-  meta,
-}: {
-  title: ReactNode;
-  subtitle?: ReactNode;
-  actions?: ReactNode;
-  className?: string;
-  /** Info singkat yang tetap tampil di ponsel saat judul & subjudul disembunyikan (mis. "29 transaksi"). */
-  meta?: ReactNode;
-}) {
-  return (
-    <header className={className ? `page-head ${className}` : 'page-head'}>
-      <div className="ph-main">
-        <h1 className="page-title">{title}</h1>
-        {subtitle && <p className="page-sub">{subtitle}</p>}
-      </div>
-      {meta && (
-        <p className="page-meta" aria-hidden>
-          {meta}
-        </p>
-      )}
-      {actions && <div className="page-actions no-print">{actions}</div>}
-    </header>
   );
 }

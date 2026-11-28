@@ -8,8 +8,8 @@ import { closingEntries } from '../accounting/reports';
 import type { JournalEntry } from '../accounting/types';
 import { formatDate, formatMoney, normalize, round2, isZero } from '../lib/format';
 import { rowAction } from '../lib/focus';
-import { PageHeader } from '../components/layout/Topbar';
-import { Badge, Button, EmptyState, TextInput, Dots, TableWrap } from '../components/ui/primitives';
+import { PageHeader } from '../components/layout/Page';
+import { Badge, Button, EmptyState, TextInput, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { PeriodPicker, resolvePreset, type PeriodValue } from '../components/ui/PeriodPicker';
 
@@ -90,23 +90,9 @@ export default function Journal() {
       <PageHeader
         title="Jurnal Umum"
         subtitle="Seluruh jurnal berpasangan yang terbentuk dari transaksi, aset, dan jurnal manual"
-        actions={
-          <>
-            {tab === 'general' && (
-              <div className="pa-fill">
-                <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-              </div>
-            )}
-            {tab === 'general' && (
-              <Button collapse icon={exporting ? undefined : Download} onClick={doExport} disabled={exporting} aria-label="Ekspor Excel">
-                {exporting ? <Dots /> : 'Ekspor Excel'}
-              </Button>
-            )}
-            <Button collapse variant="primary" icon={Plus} onClick={() => openTx({ type: 'journal' })} aria-label="Jurnal baru">
-              Jurnal baru
-            </Button>
-          </>
-        }
+        toolbar={tab === 'general' ? <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} /> : undefined}
+        secondaryActions={tab === 'general' ? [{ label: 'Ekspor Excel', icon: Download, onSelect: doExport, busy: exporting }] : []}
+        primaryAction={{ label: 'Jurnal baru', icon: Plus, onSelect: () => openTx({ type: 'journal' }) }}
       />
 
       <div className="row" style={{ marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>

@@ -10,7 +10,7 @@ import { addMonths, endOfMonth, formatDate, startOfMonth } from '../lib/format';
 import { useLayer } from '../lib/layers';
 import { defaultLayout, moveWidget, packSpans, presetLayout, sizeOf, PRESETS, type DashLayout, type PresetId, type WidgetId } from '../app/dashboardLayout';
 import { disabledWidgetIds } from '../app/nav';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Button, EmptyState } from '../components/ui/primitives';
 import { MonthSwitcher } from '../components/ui/MonthSwitcher';
 import { DashCtx, type DashData } from '../components/dashboard/common';
@@ -190,7 +190,7 @@ export default function Dashboard() {
         className="dash-head"
         title="Ringkasan"
         subtitle={`${entity}, posisi per ${formatDate(asOf, 'long')}`}
-        actions={<MonthSwitcher value={month} onChange={setMonth} />}
+        toolbar={<MonthSwitcher value={month} onChange={setMonth} />}
       />
 
       <AnimatePresence>{editing && <EditBar dirty={dirty} onGallery={() => setGallery(true)} onCancel={cancel} onDone={done} />}</AnimatePresence>

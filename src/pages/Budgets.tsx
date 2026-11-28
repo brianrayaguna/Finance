@@ -37,7 +37,7 @@ import type { BudgetKind, BudgetScope, BudgetTarget } from '../accounting/types'
 import { addMonths, daysBetween, endOfMonth, formatDate, formatMoney, formatMonth, formatPercent, round2 } from '../lib/format';
 import { useSubmitRef } from '../lib/focus';
 import { isImeComposing } from '../lib/layers';
-import { PageHeader } from '../components/layout/Topbar';
+import { PageHeader } from '../components/layout/Page';
 import { Badge, Button, EmptyState, Field, IconTile, Money, Progress } from '../components/ui/primitives';
 import { MonthSwitcher } from '../components/ui/MonthSwitcher';
 import { Menu } from '../components/ui/Popover';
@@ -237,14 +237,8 @@ export default function Budgets() {
       <PageHeader
         title="Anggaran"
         subtitle={`Batas pengeluaran, pembayaran hutang, dan target tabungan, ${formatMonth(month)}`}
-        actions={
-          <>
-            <MonthSwitcher value={month} onChange={setMonth} max={maxMonth} className="ms-stretch" />
-            <Button variant="primary" icon={Plus} collapse onClick={() => setEdit({})}>
-              Tambah anggaran
-            </Button>
-          </>
-        }
+        toolbar={<MonthSwitcher value={month} onChange={setMonth} max={maxMonth} />}
+        primaryAction={{ label: 'Tambah anggaran', icon: Plus, onSelect: () => setEdit({}) }}
       />
 
       {lines.length === 0 ? (
