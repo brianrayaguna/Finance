@@ -215,6 +215,39 @@
   --accent-ink: #0e0f0c;
   --accent-wash: #ececef;
 }
+/* Mesin tanpa oklch(): nilai statis hasil rumus di atas untuk tema terang. Diletakkan sebelum aturan tema
+   gelap agar --accent-ink: var(--accent) di tema gelap tetap berlaku. Nilainya diuji terhadap rumus di
+   src/styles/__tests__/color-fallbacks.test.ts. */
+@supports not (color: oklch(0 0 0)) {
+  :root {
+    --accent: #9ee871;
+    --accent-strong: #8fd961;
+    --on-accent: #163300;
+    --accent-ink: #1e3f03;
+    --accent-wash: #e3f8d8;
+  }
+  :root[data-accent='ocean'] {
+    --accent: #95daff;
+    --accent-strong: #86cbf3;
+    --on-accent: #112e3e;
+    --accent-ink: #19394b;
+    --accent-wash: #e1f3ff;
+  }
+  :root[data-accent='plum'] {
+    --accent: #e5c0f7;
+    --accent-strong: #d6b1e7;
+    --on-accent: #332439;
+    --accent-ink: #3e2e46;
+    --accent-wash: #f6ecfb;
+  }
+  :root[data-accent='clay'] {
+    --accent: #ffbb82;
+    --accent-strong: #fdac73;
+    --on-accent: #412109;
+    --accent-ink: #4f2b10;
+    --accent-wash: #ffebdb;
+  }
+}
 :root[data-theme='dark'] {
   --accent-ink: var(--accent);
   --accent-wash: color-mix(in srgb, var(--accent) 12%, var(--surface));
@@ -241,6 +274,71 @@
   --accent-soft: color-mix(in srgb, var(--accent-ink) 14%, transparent);
   --accent-softer: color-mix(in srgb, var(--accent-ink) 7%, transparent);
   --accent-line: color-mix(in srgb, var(--accent-ink) 34%, transparent);
+}
+
+/* Mesin tanpa color-mix(): kaca dan token aksen lembut sebagai rgba() statis per aksen dan tema. Nilainya
+   diuji terhadap rumus di src/styles/__tests__/color-fallbacks.test.ts. */
+@supports not (color: color-mix(in srgb, red, blue)) {
+  :root {
+    --glass: rgba(255, 255, 255, 0.9);
+    --accent-soft: rgba(30, 63, 3, 0.09);
+    --accent-softer: rgba(30, 63, 3, 0.05);
+    --accent-line: rgba(30, 63, 3, 0.28);
+  }
+  :root[data-theme='light'] {
+    --glass: rgba(255, 255, 255, 0.9);
+  }
+  :root[data-theme='dark'] {
+    --glass: rgba(11, 12, 10, 0.88);
+    --accent-wash: #26311f;
+    --accent-soft: rgba(158, 232, 113, 0.14);
+    --accent-softer: rgba(158, 232, 113, 0.07);
+    --accent-line: rgba(158, 232, 113, 0.34);
+  }
+  :root[data-accent='ocean'] {
+    --accent-soft: rgba(25, 57, 75, 0.09);
+    --accent-softer: rgba(25, 57, 75, 0.05);
+    --accent-line: rgba(25, 57, 75, 0.28);
+  }
+  :root[data-theme='dark'][data-accent='ocean'] {
+    --accent-wash: #252f30;
+    --accent-soft: rgba(149, 218, 255, 0.14);
+    --accent-softer: rgba(149, 218, 255, 0.07);
+    --accent-line: rgba(149, 218, 255, 0.34);
+  }
+  :root[data-accent='plum'] {
+    --accent-soft: rgba(62, 46, 70, 0.09);
+    --accent-softer: rgba(62, 46, 70, 0.05);
+    --accent-line: rgba(62, 46, 70, 0.28);
+  }
+  :root[data-theme='dark'][data-accent='plum'] {
+    --accent-wash: #2f2c2f;
+    --accent-soft: rgba(229, 192, 247, 0.14);
+    --accent-softer: rgba(229, 192, 247, 0.07);
+    --accent-line: rgba(229, 192, 247, 0.34);
+  }
+  :root[data-accent='clay'] {
+    --accent-soft: rgba(79, 43, 16, 0.09);
+    --accent-softer: rgba(79, 43, 16, 0.05);
+    --accent-line: rgba(79, 43, 16, 0.28);
+  }
+  :root[data-theme='dark'][data-accent='clay'] {
+    --accent-wash: #322c21;
+    --accent-soft: rgba(255, 187, 130, 0.14);
+    --accent-softer: rgba(255, 187, 130, 0.07);
+    --accent-line: rgba(255, 187, 130, 0.34);
+  }
+  :root[data-accent='graphite'] {
+    --accent-soft: rgba(14, 15, 12, 0.09);
+    --accent-softer: rgba(14, 15, 12, 0.05);
+    --accent-line: rgba(14, 15, 12, 0.28);
+  }
+  :root[data-theme='dark'][data-accent='graphite'] {
+    --accent-wash: #30322e;
+    --accent-soft: rgba(241, 243, 238, 0.14);
+    --accent-softer: rgba(241, 243, 238, 0.07);
+    --accent-line: rgba(241, 243, 238, 0.34);
+  }
 }
 
 /* ───────── Kepadatan ───────── */
