@@ -2,7 +2,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, m as motion } from 'framer-motion';
 import { useTransformFrom } from '../../lib/motion';
-import { Menu as MenuIcon, Search, Undo2, Redo2, Plus, Bell, BellOff, ChevronDown, ChevronRight, ChevronLeft, Eye, EyeOff } from '../../lib/glyphs';
+import { Search, Undo2, Redo2, Bell, BellOff, ChevronRight, ChevronLeft, Eye, EyeOff } from '../../lib/glyphs';
 import { ALL_NAV, navLabel, navSection } from '../../app/nav';
 import { REPORTS } from '../../app/reports';
 import { SETTINGS_SECTIONS } from '../../app/settings';
@@ -13,10 +13,9 @@ import { useScrolled, useToday } from '../../hooks/useApp';
 import { MonthSwitcher } from '../ui/MonthSwitcher';
 import { useReminders } from '../../hooks/useReminders';
 import { Tooltip } from '../ui/Tooltip';
-import { Menu, Popover } from '../ui/Popover';
+import { Popover } from '../ui/Popover';
 import { IconTile } from '../ui/primitives';
 import { LogoMark } from '../brand/Logo';
-import { recordMenuItems } from '../tx/recordMenu';
 
 export function Topbar() {
   const tf = useTransformFrom();
@@ -29,21 +28,11 @@ export function Topbar() {
   const nextLabel = useData((s) => s.past[s.past.length - 1]?.label);
   const redoLabel = useData((s) => s.future[0]?.label);
 
-  // Desktop: Cari & Catat ada di sidebar, jadi bilah atas hanya berisi konteks halaman.
-  // Tablet/ponsel (sidebar tersembunyi): ikon cari & tombol catat muncul di sini.
+  // Rail dan sidebar penuh sudah memuat Cari & Catat, jadi bilah atas hanya berisi konteks halaman.
+  // Compact: logo membuka laci menu, ikon cari tampil di sini, dan Catat ada di tab bar.
   return (
     <header className={`topbar no-print${scrolled ? ' scrolled' : ''}`}>
       <div className="tb-left">
-        <button
-          type="button"
-          className="tb-btn tb-menu"
-          onClick={() => setMobileNav(true)}
-          aria-expanded={mobileNav}
-          aria-controls="main-sidebar"
-          aria-label="Buka menu"
-        >
-          <MenuIcon aria-hidden />
-        </button>
         <button
           type="button"
           className="tb-logo"
@@ -88,7 +77,6 @@ export function Topbar() {
         </Tooltip>
         <PrivacyToggle />
         <ReminderBell />
-        <RecordButton />
       </div>
     </header>
   );
@@ -232,34 +220,6 @@ function ReminderBell() {
         </div>
       </Popover>
     </>
-  );
-}
-
-/** Tombol "Catat transaksi" + pilihan jenis & favorit — hanya tampil saat sidebar tersembunyi (tablet). */
-function RecordButton() {
-  const openTx = useUI((s) => s.openTx);
-  const mode = usePrefs((s) => s.mode);
-  const templates = useData((s) => s.data.templates);
-  const items = recordMenuItems(openTx, mode, templates);
-  return (
-    <div className="split-btn tb-record">
-      <Tooltip label="Catat transaksi baru">
-        <button type="button" className="btn btn-primary tb-cta" onClick={() => openTx()}>
-          <Plus aria-hidden />
-          <span className="tb-cta-label">Catat transaksi</span>
-        </button>
-      </Tooltip>
-      <Menu
-        placement="bottom-end"
-        minWidth={236}
-        items={items}
-        trigger={(p) => (
-          <button type="button" className="btn btn-primary tb-cta-more" ref={p.ref} onClick={p.onClick} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']} aria-label="Pilih jenis transaksi atau favorit">
-            <ChevronDown aria-hidden />
-          </button>
-        )}
-      />
-    </div>
   );
 }
 

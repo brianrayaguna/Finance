@@ -536,8 +536,8 @@
   margin: 6px 10px;
 }
 
-/* ───────── Sidebar ringkas (rail ikon) — hanya desktop; di laci ponsel selalu penuh ───────── */
-@media (min-width: 961px) {
+/* ───────── Sidebar ringkas (rail ikon) — medium & expanded; laci compact selalu penuh ───────── */
+@media (width >= 600px) {
   .app.collapsed .sb-head {
     justify-content: center;
     padding: 0 10px;
@@ -801,10 +801,9 @@
   gap: 6px;
   flex: none;
 }
-/* Cari & Catat di bilah atas hanya saat sidebar tersembunyi */
-.tb-search-icon,
-.tb-record {
-  display: none !important;
+/* Ikon cari di bilah atas hanya di compact; rail dan sidebar penuh sudah memuatnya */
+.topbar .tb-search-icon {
+  display: none;
 }
 /* Lonceng pengingat */
 .tb-bell {
@@ -839,30 +838,6 @@
 }
 :root[data-theme='dark'] .tb-count {
   color: #111112;
-}
-/* Tombol catat terpisah: aksi utama + pilihan */
-.split-btn {
-  display: flex;
-  align-items: stretch;
-}
-.split-btn .tb-cta {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-.tb-cta-more {
-  width: 34px;
-  height: 38px;
-  padding: 0;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--on-accent) 22%, transparent);
-}
-.tb-cta-more .fi {
-  font-size: var(--icon-xs);
-  transition: transform var(--dur-2) var(--ease);
-}
-.tb-cta-more[aria-expanded='true'] .fi {
-  transform: rotate(180deg);
 }
 /* Daftar pengingat */
 .rem {
@@ -986,9 +961,6 @@
 }
 .tb-btn .fi {
   font-size: var(--icon-md);
-}
-.tb-btn.tb-menu {
-  display: none;
 }
 .tb-cta {
   height: 38px;
@@ -1118,25 +1090,19 @@
   color: var(--accent-ink);
 }
 
-/* ───────── Responsif ───────── */
-@media (max-width: 1200px) {
+/* ───────── Responsif: compact < 600px · medium 600–1023px · expanded ≥ 1024px (src/app/breakpoints.ts) ───────── */
+@media (width < 1024px) {
   :root {
     --page-x: 26px;
   }
-}
-@media (max-width: 960px) {
-  .app,
-  .app.collapsed {
-    --sw: min(300px, 86vw);
+  .crumbs .crumb-sec {
+    display: none;
+  }
+  .crumbs .crumb-sec + li::before {
+    display: none;
   }
   .sidebar {
     padding-top: var(--safe-top);
-    transform: translateX(calc(-100% - 12px));
-    box-shadow: var(--shadow-lg);
-    border-right: 0;
-  }
-  .app.nav-open .sidebar {
-    transform: none;
   }
   .sb-item,
   .sb-new .sb-item {
@@ -1148,52 +1114,57 @@
   .sb-foot {
     padding-bottom: calc(10px + var(--safe-bottom));
   }
-  .main {
-    margin-left: 0;
-  }
-  .tb-btn.tb-menu {
-    display: grid;
-    margin-left: -6px;
-  }
-  .tb-logo {
-    display: grid;
-  }
-  .tb-search-icon {
-    display: grid !important;
-  }
-  .tb-record {
-    display: flex !important;
+  /* Laci menu menumpang di atas konten */
+  .app.nav-open .sidebar {
+    box-shadow: var(--shadow-lg);
   }
   .nav-scrim {
     position: fixed;
     inset: 0;
     z-index: 59;
     background: var(--overlay);
-    backdrop-filter: blur(2px);
   }
 }
-@media (min-width: 961px) {
+@media (width >= 1024px) {
   .nav-scrim {
     display: none;
   }
 }
-@media (max-width: 1100px) {
-  .crumbs .crumb-sec {
-    display: none;
-  }
-  .crumbs .crumb-sec + li::before {
-    display: none;
+/* Medium: rail ikon tetap; laci penuh dibuka dari tombol di rail tanpa menggeser konten */
+@media (600px <= width < 1024px) {
+  .main {
+    margin-left: var(--sidebar-w-collapsed);
   }
 }
-/* Ponsel: navigasi bawah menggantikan menu hamburger & tombol catat di atas */
+/* Compact: sidebar hanya berupa laci yang digeser masuk dari kiri */
+@media (width < 600px) {
+  .app,
+  .app.collapsed {
+    --sw: min(300px, 86vw);
+  }
+  .sidebar {
+    transform: translateX(calc(-100% - 12px));
+    box-shadow: var(--shadow-lg);
+    border-right: 0;
+  }
+  .app.nav-open .sidebar {
+    transform: none;
+  }
+  .main {
+    margin-left: 0;
+  }
+  .tb-logo {
+    display: grid;
+  }
+  .topbar .tb-search-icon {
+    display: grid;
+  }
+}
+/* Compact: navigasi bawah dengan tombol catat di tengah */
 .tabbar {
   display: none;
 }
-@media (max-width: 760px) {
-  .tb-btn.tb-menu,
-  .tb-record {
-    display: none !important;
-  }
+@media (width < 600px) {
   .crumbs li:not(.current) {
     display: none;
   }
@@ -1460,7 +1431,7 @@
     max-width: calc(100vw - 16px);
   }
 }
-@media (max-width: 640px) {
+@media (width < 600px) {
   :root {
     --page-x: 16px;
   }

@@ -447,7 +447,7 @@
   }
 }
 /* Layar sentuh: garis tidak "digambar" — stroke-dashoffset di-repaint setiap frame. */
-@media (pointer: coarse), (max-width: 960px) {
+@media (pointer: coarse), (width < 1024px) {
   .sp-line {
     animation: none;
   }

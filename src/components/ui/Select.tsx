@@ -5,13 +5,14 @@ import { IconTile, useFieldCtx } from './primitives';
 import { normalize } from '../../lib/format';
 import { focusField, focusNext, focusNoScroll, scrollChildIntoContainer } from '../../lib/focus';
 import { isImeComposing } from '../../lib/layers';
+import { currentWindowClass } from '../../app/breakpoints';
 
 /** Sentuhan / layar sempit: jangan autofokus search (keyboard + zoom + vv loncat). */
 function preferTouchUi() {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(pointer: coarse)').matches ||
-    window.matchMedia('(max-width: 560px)').matches ||
+    currentWindowClass() === 'compact' ||
     (navigator.maxTouchPoints ?? 0) > 0
   );
 }

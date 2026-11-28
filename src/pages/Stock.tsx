@@ -13,7 +13,7 @@ import {
   NotebookPen,
   Search,
 } from '../lib/glyphs';
-import { useBooks, useNarrow, useToday } from '../hooks/useApp';
+import { useBooks, useToday, useWindowClass } from '../hooks/useApp';
 import {
   addPurchaseOrder,
   addStockItem,
@@ -73,7 +73,7 @@ function marginPct(cost?: number, sell?: number): number | null {
 export default function Stock() {
   useBooks();
   const data = useData((s) => s.data);
-  const narrow = useNarrow();
+  const narrow = useWindowClass() !== 'expanded';
   const [tab, setTab] = useState<Tab>('items');
   const [itemModal, setItemModal] = useState<{ editing?: StockItem } | null>(null);
   const [detail, setDetail] = useState<StockItem | null>(null);

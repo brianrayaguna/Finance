@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { currentWindowClass, WINDOW_MEDIA, type WindowClass } from '../app/breakpoints';
 import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 import { useData } from '../store/data';
 import { usePrefs } from '../store/ui';
@@ -83,19 +84,16 @@ export function useIsDark() {
   return dark;
 }
 
-export function useMediaQuery(q: string) {
-  const [m, setM] = useState(() => window.matchMedia(q).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(q);
-    const f = () => setM(mq.matches);
-    mq.addEventListener('change', f);
-    return () => mq.removeEventListener('change', f);
-  }, [q]);
-  return m;
+function subscribeWindowClass(onChange: () => void) {
+  const mqs = [window.matchMedia(WINDOW_MEDIA.compact), window.matchMedia(WINDOW_MEDIA.belowExpanded)];
+  mqs.forEach((mq) => mq.addEventListener('change', onChange));
+  return () => mqs.forEach((mq) => mq.removeEventListener('change', onChange));
 }
 
-/** Layar sempit (< 960px): sidebar tampil sebagai laci penuh menggantikan kolom samping. */
-export const useNarrow = () => useMediaQuery('(max-width: 960px)');
+/** Kelas ukuran jendela aktif (compact / medium / expanded), lihat `src/app/breakpoints.ts`. */
+export function useWindowClass(): WindowClass {
+  return useSyncExternalStore(subscribeWindowClass, currentWindowClass, () => 'expanded');
+}
 
 export function useScrolled(threshold = 24) {
   const [s, setS] = useState(false);

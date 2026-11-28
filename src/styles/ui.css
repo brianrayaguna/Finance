@@ -1704,7 +1704,7 @@ dialog[open] > .popover {
 /* ───────── Target sentuh ─────────
    Di layar sentuh/sempit, area ketuk kontrol kecil diperluas hingga ≥ 44 px (pedoman iOS/Android)
    lewat elemen tak terlihat — tampilan tidak membesar. */
-@media (pointer: coarse), (max-width: 960px) {
+@media (pointer: coarse), (width < 1024px) {
   .tb-btn,
   .tabbed-tab,
   .ms-btn,

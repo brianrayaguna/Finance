@@ -67,7 +67,7 @@ import { Select } from '../components/ui/Select';
 import { Segmented } from '../components/ui/Segmented';
 import { LogoMark } from '../components/brand/Logo';
 import { DiagnosticsPanel } from '../components/settings/DiagnosticsPanel';
-import { useIsDark, useMediaQuery } from '../hooks/useApp';
+import { useIsDark, useWindowClass } from '../hooks/useApp';
 import { isImeComposing, modKey } from '../lib/layers';
 
 const SECTIONS = SETTINGS_SECTIONS;
@@ -437,7 +437,7 @@ export default function Settings() {
   const [entity, setEntity] = useState(profile.entityName);
   const { bagian } = useParams();
   const { hash } = useLocation();
-  const isPhone = useMediaQuery('(max-width: 760px)');
+  const isPhone = useWindowClass() === 'compact';
   const active = bagian ?? SECTIONS[0].id;
   const fileRef = useRef<HTMLInputElement>(null);
 

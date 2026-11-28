@@ -31,7 +31,8 @@ import { downloadBackup } from '../../app/backup';
 import { usePrefs, useUI, type ThemeMode } from '../../store/ui';
 import { useData } from '../../store/data';
 import { useReminders } from '../../hooks/useReminders';
-import { useBooks, useNarrow, useToday } from '../../hooks/useApp';
+import { useBooks, useToday, useWindowClass } from '../../hooks/useApp';
+import { sidebarRail } from '../../app/breakpoints';
 import { walletBalances } from '../../accounting/reports';
 import { formatMoney, initials } from '../../lib/format';
 import { Tooltip } from '../ui/Tooltip';
@@ -324,15 +325,17 @@ function ProfileMenu({ collapsed, onNavigate }: { collapsed: boolean; onNavigate
 
 export function Sidebar() {
   const collapsedPref = usePrefs((s) => s.sidebarCollapsed);
-  const narrow = useNarrow();
-  // hanya ikon saat desktop + diciutkan; di laci ponsel label & lipatan tetap berfungsi
-  const collapsed = collapsedPref && !narrow;
+  const windowClass = useWindowClass();
   const setPrefs = usePrefs((s) => s.set);
   const setNav = usePrefs((s) => s.setNav);
   const navPrefs = usePrefs((s) => s.nav);
   const mode = usePrefs((s) => s.mode);
   const mobileNav = useUI((s) => s.mobileNav);
   const setMobileNav = useUI((s) => s.setMobileNav);
+  // Laci: di bawah expanded sidebar penuh hanya tampil menumpang di atas konten.
+  const drawer = windowClass !== 'expanded';
+  // Rail ikon: medium (selama laci tertutup) dan expanded yang diciutkan; laci compact selalu penuh.
+  const collapsed = sidebarRail(windowClass, collapsedPref, mobileNav);
   const setPalette = useUI((s) => s.setPalette);
   const openTx = useUI((s) => s.openTx);
   const templates = useData((s) => s.data.templates);
@@ -344,8 +347,8 @@ export function Sidebar() {
   const folded = new Set(navPrefs.folded);
 
   const toggleHeader = (fromKeyboard: boolean) => {
-    if (narrow) {
-      setMobileNav(false);
+    if (drawer) {
+      setMobileNav(!mobileNav);
       return;
     }
     const next = !collapsedPref;
@@ -375,10 +378,10 @@ export function Sidebar() {
     <aside
       id="main-sidebar"
       className="sidebar"
-      role={narrow ? 'dialog' : undefined}
-      aria-modal={narrow && mobileNav ? true : undefined}
+      role={drawer && mobileNav ? 'dialog' : undefined}
+      aria-modal={drawer && mobileNav ? true : undefined}
       aria-label="Panel menu"
-      inert={narrow && !mobileNav ? true : undefined}
+      inert={windowClass === 'compact' && !mobileNav ? true : undefined}
     >
       <div className="sb-head">
         {/* Merek di kiri & tombol ciut/tutup di kanan; saat desktop diciutkan, tombol buka digabung di logo */}
@@ -401,15 +404,15 @@ export function Sidebar() {
               <LogoMark size={26} className="brand-mark" />
               <span className="brand-name">Keuanganku</span>
             </Link>
-            <Tooltip label={narrow ? 'Tutup menu' : 'Ciutkan bilah sisi'} side="bottom">
+            <Tooltip label={drawer ? 'Tutup menu' : 'Ciutkan bilah sisi'} side="bottom">
               <button
                 type="button"
                 className="sb-icon sb-toggle"
                 onClick={(e) => toggleHeader(e.detail === 0)}
-                aria-expanded={narrow ? mobileNav : true}
-                aria-label={narrow ? 'Tutup menu' : 'Ciutkan bilah sisi'}
+                aria-expanded={drawer ? mobileNav : true}
+                aria-label={drawer ? 'Tutup menu' : 'Ciutkan bilah sisi'}
               >
-                {narrow ? <X aria-hidden /> : <PanelLeftClose aria-hidden />}
+                {drawer ? <X aria-hidden /> : <PanelLeftClose aria-hidden />}
               </button>
             </Tooltip>
           </>

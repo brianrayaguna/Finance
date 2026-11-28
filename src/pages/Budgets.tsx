@@ -18,7 +18,7 @@ import {
   Trash2,
   TriangleAlert,
 } from '../lib/glyphs';
-import { useBooks, useMediaQuery, useToday } from '../hooks/useApp';
+import { useBooks, useToday, useWindowClass } from '../hooks/useApp';
 import { deleteBudget, upsertBudget, useData } from '../store/data';
 import { notify } from '../store/history';
 import { activity, debtInfos } from '../accounting/reports';
@@ -78,7 +78,7 @@ export default function Budgets() {
   const [removing, setRemoving] = useState<BudgetLine | null>(null);
   const goals = useData((s) => s.data.goals);
   const goalModal = useGoalModal();
-  const phone = useMediaQuery('(max-width: 760px)');
+  const phone = useWindowClass() === 'compact';
   const goalList = useMemo(() => goals.map((g) => goalProgress(b, g, today)), [b, goals, today]);
 
   const currentMonth = today.slice(0, 7);

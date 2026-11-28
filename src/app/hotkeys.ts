@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ALL_NAV } from './nav';
+import { currentWindowClass } from './breakpoints';
 import { isTypingTarget, layerCount } from '../lib/layers';
 import { usePrefs, useUI } from '../store/ui';
 import { undo, redo } from '../store/history';
@@ -25,7 +26,7 @@ export function useGlobalHotkeys() {
       if (layerCount() > 0) return;
       if (mod && (k === 'b' || k === '\\') && !e.shiftKey && !e.altKey) {
         e.preventDefault();
-        if (window.matchMedia('(max-width: 960px)').matches) ui.setMobileNav(!ui.mobileNav);
+        if (currentWindowClass() !== 'expanded') ui.setMobileNav(!ui.mobileNav);
         else prefs.set({ sidebarCollapsed: !prefs.sidebarCollapsed });
         return;
       }

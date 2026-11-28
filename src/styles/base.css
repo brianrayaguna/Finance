@@ -354,7 +354,7 @@ html {
 /* Ponsel & layar sentuh: tanpa efek kaca, apa pun mode hematnya. Tab bar (fixed) dan topbar (sticky)
    ber-backdrop-filter dihitung ulang setiap frame saat menggulir — sumber utama gulir patah-patah di
    WebView Android. Token --glass disamakan dengan --canvas agar latar topbar solid 100%. */
-@media (pointer: coarse), (max-width: 960px) {
+@media (pointer: coarse), (width < 1024px) {
   :root,
   :root[data-theme='light'],
   :root[data-theme='dark'] {

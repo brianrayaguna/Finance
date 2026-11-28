@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { X } from "../../lib/glyphs";
 import { focusField, focusNoScroll } from "../../lib/focus";
 import { layerCount, useLayer } from "../../lib/layers";
+import { currentWindowClass } from "../../app/breakpoints";
 
 export function useFocusTrap(
   active: boolean,
@@ -117,7 +118,7 @@ export function useDialogTopLayer(open: boolean) {
 let frozen = 0;
 function useFreezeBackground(open: boolean) {
   useEffect(() => {
-    if (!open || !window.matchMedia('(max-width: 760px)').matches) return;
+    if (!open || currentWindowClass() !== 'compact') return;
     let on = false;
     // Setelah animasi masuk: dialog sudah menutupi layar, jadi pembekuan tidak terlihat.
     const t = window.setTimeout(() => {

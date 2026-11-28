@@ -5,25 +5,29 @@ import { Plus } from '../../lib/glyphs';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { usePrefs, useUI } from '../../store/ui';
-import { useNarrow } from '../../hooks/useApp';
+import { useWindowClass } from '../../hooks/useApp';
 import { useGlobalHotkeys } from '../../app/hotkeys';
+import { sidebarRail } from '../../app/breakpoints';
 import { navLabel, resolveTabBar } from '../../app/nav';
 import { useLayer } from '../../lib/layers';
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const collapsed = usePrefs((s) => s.sidebarCollapsed);
-  const narrow = useNarrow();
+  const collapsedPref = usePrefs((s) => s.sidebarCollapsed);
+  const windowClass = useWindowClass();
   const mobileNav = useUI((s) => s.mobileNav);
   const setMobileNav = useUI((s) => s.setMobileNav);
-  const drawerOpen = narrow && mobileNav;
+  // Di bawah expanded, sidebar penuh hanya tampil sebagai laci di atas konten (compact: dari logo,
+  // medium: dari tombol di rail).
+  const drawerOpen = windowClass !== 'expanded' && mobileNav;
+  const rail = sidebarRail(windowClass, collapsedPref, mobileNav);
   const { pathname, hash } = useLocation();
   const landing = usePrefs((s) => s.landing);
   const nav = useNavigate();
   useGlobalHotkeys();
 
   useEffect(() => {
-    if (!narrow && mobileNav) setMobileNav(false);
-  }, [narrow, mobileNav, setMobileNav]);
+    if (windowClass === 'expanded' && mobileNav) setMobileNav(false);
+  }, [windowClass, mobileNav, setMobileNav]);
 
   const prevDrawer = useRef(false);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -31,19 +35,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     const wasOpen = prevDrawer.current;
     prevDrawer.current = drawerOpen;
     if (drawerOpen && !wasOpen) {
-      openerRef.current = document.activeElement as HTMLElement | null;
+      // Tombol rail di medium sudah dilepas saat efek ini berjalan, sehingga yang aktif adalah body.
+      const active = document.activeElement;
+      openerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
       const raf = requestAnimationFrame(() => {
         document.querySelector<HTMLElement>('#main-sidebar .sb-toggle')?.focus();
       });
       return () => cancelAnimationFrame(raf);
     }
     if (!drawerOpen && wasOpen) {
-      const target = openerRef.current;
+      const opener = openerRef.current;
       openerRef.current = null;
-      if (target && document.contains(target)) {
-        const raf = requestAnimationFrame(() => target.focus());
-        return () => cancelAnimationFrame(raf);
-      }
+      // Tanpa pembuka yang masih terpasang, fokus kembali ke tombol rail yang dipasang ulang (medium).
+      const raf = requestAnimationFrame(() => {
+        const target =
+          opener && document.contains(opener) ? opener : document.querySelector<HTMLElement>('#main-sidebar .brand-toggle');
+        target?.focus();
+      });
+      return () => cancelAnimationFrame(raf);
     }
   }, [drawerOpen]);
 
@@ -78,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     document.title = label === 'Keuanganku' ? 'Keuanganku' : `${label} – Keuanganku`;
   }, [pathname]);
   return (
-    <div className={`app${collapsed ? ' collapsed' : ''}${drawerOpen ? ' nav-open' : ''}`}>
+    <div className={`app${rail ? ' collapsed' : ''}${drawerOpen ? ' nav-open' : ''}`}>
       <a href="#main-content" className="skip-link">
         Lewati ke konten utama
       </a>
