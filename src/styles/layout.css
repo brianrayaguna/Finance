@@ -1360,6 +1360,15 @@
   .pa-toolbar > .seg:not(.seg-block) {
     flex: none;
   }
+  /* Tanpa kontrol periode/filter tetapi ada tab: aksi menumpang di ujung kanan baris tab,
+     sehingga tidak ada baris yang hanya berisi satu tombol. */
+  .page-head:has(.page-tabs-row):not(:has(.pa-toolbar)) .page-actions {
+    order: 1;
+    width: auto;
+  }
+  .page-head:has(.page-tabs-row):not(:has(.pa-toolbar)) .page-tabs-row {
+    flex: 1 1 0;
+  }
   .btn-collapse {
     width: var(--ctl-h);
     padding: 0;

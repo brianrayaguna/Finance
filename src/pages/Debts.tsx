@@ -8,7 +8,7 @@ import { notify } from '../store/history';
 import { debtInfos, AGING_BUCKETS, type DebtInfo } from '../accounting/reports';
 import { formatDate, formatMoney, initials, normalize, relativeDay } from '../lib/format';
 import { PALETTE } from '../lib/icons';
-import { PageHeader } from '../components/layout/Page';
+import { PageHeader, PageTabs } from '../components/layout/Page';
 import { Badge, Button, EmptyState, Money, Progress, TextInput, IconTile } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { Menu } from '../components/ui/Popover';
@@ -77,11 +77,12 @@ export default function Debts() {
     }
     return buckets;
   }, [open]);
-  const agingColors = ['var(--pos)', '#B8912A', '#C8792C', '#B8603C', 'var(--neg)'];
+  const overdueOf = (k: DebtInfo['kind']) => all.filter((d) => d.kind === k && d.status === 'overdue').length;
 
   const word = kind === 'payable' ? 'hutang' : 'piutang';
   const payLabel = kind === 'payable' ? 'Bayar' : 'Terima';
   const act = (d: DebtInfo) => openTx({ type: kind === 'payable' ? 'payable_pay' : 'receivable_collect', parentId: d.tx.id, amount: d.remaining });
+  const addNew = () => openTx({ type: kind === 'payable' ? 'payable_new' : 'receivable_new' });
 
   const remove = async (d: DebtInfo) => {
     const kids = childCount([d.tx.id]);
@@ -105,21 +106,19 @@ export default function Debts() {
       <PageHeader
         title="Hutang & Piutang"
         subtitle="Buku pembantu per kontak dengan jadwal jatuh tempo"
+        primaryAction={{ label: kind === 'payable' ? 'Hutang baru' : 'Piutang baru', icon: Plus, onSelect: addNew }}
+        tabs={
+          <PageTabs
+            value={kind}
+            onChange={setKind}
+            ariaLabel="Jenis catatan"
+            tabs={[
+              { value: 'payable', label: 'Hutang', count: overdueOf('payable') },
+              { value: 'receivable', label: 'Piutang', count: overdueOf('receivable') },
+            ]}
+          />
+        }
       />
-
-      <div className="debt-switch">
-        <Segmented
-          value={kind}
-          onChange={(v) => setKind(v)}
-          options={[
-            { value: 'payable', label: `Hutang (${all.filter((d) => d.kind === 'payable' && d.status !== 'paid').length})`, icon: Handshake },
-            { value: 'receivable', label: `Piutang (${all.filter((d) => d.kind === 'receivable' && d.status !== 'paid').length})`, icon: HandCoins },
-          ]}
-        />
-        <Button variant="primary" icon={Plus} collapse onClick={() => openTx({ type: kind === 'payable' ? 'payable_new' : 'receivable_new' })}>
-          {kind === 'payable' ? 'Hutang baru' : 'Piutang baru'}
-        </Button>
-      </div>
 
       <div className="debt-summary">
         <div className="card ds-main">
@@ -129,18 +128,18 @@ export default function Debts() {
             {aging.map((v, i) =>
               v > 0 ? (
                 <Tooltip key={i} label={`${AGING_BUCKETS[i]}: ${formatMoney(v)}`}>
-                  <span style={{ flex: v, background: agingColors[i] }} />
+                  <span className={`aging-${i}`} style={{ flex: v }} />
                 </Tooltip>
               ) : null,
             )}
-            {total === 0 && <span style={{ flex: 1, background: 'var(--fill-2)' }} />}
+            {total === 0 && <span className="aging-empty" />}
           </div>
           {total > 0 && (
             <div className="aging-legend">
               {AGING_BUCKETS.map((l, i) =>
                 aging[i] > 0 ? (
                   <span key={l}>
-                    <i style={{ background: agingColors[i] }} />
+                    <i className={`aging-${i}`} />
                     {l}
                   </span>
                 ) : null,
@@ -165,7 +164,7 @@ export default function Debts() {
         </div>
       </div>
 
-      <div className="card debt-list" style={{ marginTop: 16 }}>
+      <div className="card debt-list">
         <div className="list-toolbar">
           <div className="lt-row">
             <Segmented
@@ -178,7 +177,7 @@ export default function Debts() {
                 { value: 'all', label: 'Semua' },
               ]}
             />
-            <div className="fb-search" style={{ maxWidth: 340, marginLeft: 'auto' }}>
+            <div className="fb-search debt-search">
               <TextInput value={q} onChange={setQ} icon={Search} placeholder="Cari kontak atau keterangan…" clearable sunken />
             </div>
           </div>
@@ -189,7 +188,7 @@ export default function Debts() {
             title={status === 'paid' ? 'Belum ada yang lunas' : kind === 'payable' ? 'Tidak ada hutang berjalan' : 'Tidak ada piutang berjalan'}
             text={kind === 'payable' ? 'Catat pinjaman yang Anda terima atau pembelian secara kredit.' : 'Catat uang yang Anda pinjamkan atau penjualan secara kredit.'}
             action={
-              <Button variant="primary" icon={Plus} onClick={() => openTx({ type: kind === 'payable' ? 'payable_new' : 'receivable_new' })}>
+              <Button variant="primary" icon={Plus} onClick={addNew}>
                 {kind === 'payable' ? 'Catat hutang' : 'Catat piutang'}
               </Button>
             }
@@ -209,7 +208,7 @@ export default function Debts() {
                 >
                   <Avatar name={d.tx.contact || '?'} />
                   <div className="dr-main">
-                    <div className="row" style={{ gap: 8 }}>
+                    <div className="row">
                       <strong>
                         <button
                           type="button"
@@ -222,19 +221,19 @@ export default function Debts() {
                       </strong>
                       <StatusBadge d={d} />
                     </div>
-                    <div className="muted truncate" style={{ fontSize: 13 }} title={d.tx.ref}>
+                    <div className="muted truncate dr-sub" title={d.tx.ref}>
                       {d.tx.description || '—'}, {formatDate(d.tx.date)}
                     </div>
                   </div>
                   <div className="dr-progress">
                     <Progress value={pct} thin label="Porsi terbayar" color={d.status === 'paid' ? 'var(--pos)' : kind === 'payable' ? 'var(--tone-payable)' : 'var(--tone-receivable)'} />
-                    <span className="muted num" style={{ fontSize: 12 }}>
+                    <span className="muted num dr-meta">
                       {Math.round(pct * 100)}%, {d.payments.length}× {kind === 'payable' ? 'bayar' : 'terima'}
                     </span>
                   </div>
                   <div className="dr-amt">
                     <Money value={d.remaining} className={d.status === 'overdue' ? 'neg' : ''} />
-                    <span className="muted num money-val" style={{ fontSize: 12 }}>
+                    <span className="muted num money-val dr-meta">
                       dari {formatMoney(d.tx.amount)}
                     </span>
                   </div>
@@ -281,9 +280,9 @@ export default function Debts() {
           <div className="debt-sheet">
             <div className="dsh-head">
               <Avatar name={current.tx.contact || '?'} />
-              <div className="grow" style={{ minWidth: 0 }}>
+              <div className="grow">
                 <div className="modal-title truncate">{current.tx.contact}</div>
-                <div className="muted" style={{ fontSize: 13 }}>
+                <div className="muted dsh-sub">
                   {current.kind === 'payable' ? 'Hutang' : 'Piutang'} {current.tx.ref}
                 </div>
               </div>
@@ -316,7 +315,7 @@ export default function Debts() {
                     </div>
                   )}
                 </div>
-                <div className="row" style={{ gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                <div className="row dsh-badges">
                   <StatusBadge d={current} />
                   {current.tx.dueDate && (
                     <Badge icon={CalendarClock}>
@@ -326,7 +325,7 @@ export default function Debts() {
                 </div>
               </div>
 
-              <div className="label-caps" style={{ margin: '20px 0 10px' }}>
+              <div className="label-caps dsh-section">
                 Riwayat
               </div>
               <div className="timeline">
@@ -334,7 +333,7 @@ export default function Debts() {
                   <span className="tl-dot" />
                   <div className="grow">
                     <strong>{current.tx.description || (current.kind === 'payable' ? 'Hutang dicatat' : 'Piutang dicatat')}</strong>
-                    <div className="muted" style={{ fontSize: 12 }}>
+                    <div className="muted tl-meta">
                       {formatDate(current.tx.date, 'long')}, {current.tx.ref}
                     </div>
                   </div>
@@ -343,9 +342,9 @@ export default function Debts() {
                 {current.payments.map((p) => (
                   <button type="button" key={p.id} className={`tl-item${p.type === 'receivable_writeoff' ? ' wo' : ''}`} onClick={() => editTx(p)}>
                     <span className="tl-dot" />
-                    <div className="grow" style={{ textAlign: 'left' }}>
+                    <div className="grow">
                       <strong>{p.type === 'receivable_writeoff' ? 'Hapus buku' : current.kind === 'payable' ? 'Pembayaran' : 'Penerimaan'}</strong>
-                      <div className="muted" style={{ fontSize: 12 }}>
+                      <div className="muted tl-meta">
                         {formatDate(p.date, 'long')}
                         {p.interest ? `, termasuk bunga ${formatMoney(p.interest)}` : `, ${p.ref}`}
                       </div>
@@ -353,7 +352,7 @@ export default function Debts() {
                     <Money value={-p.amount} className={p.type === 'receivable_writeoff' ? 'neg' : 'pos'} sign="always" />
                   </button>
                 ))}
-                {current.payments.length === 0 && <div className="muted" style={{ fontSize: 13, padding: '4px 0 0 28px' }}>Belum ada pembayaran.</div>}
+                {current.payments.length === 0 && <div className="muted tl-empty">Belum ada pembayaran.</div>}
               </div>
               {current.tx.note && (
                 <div className="note-box">
