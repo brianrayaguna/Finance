@@ -11,8 +11,9 @@
     "uicons": "node scripts/uicons.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "check": "node scripts/uicons.mjs --check && tsc --noEmit -p tsconfig.json && vitest run",
-    "android:build": "npm run check && vite build --mode native && npx cap sync android && cd android && ./gradlew assembleRelease"
+    "check": "node scripts/uicons.mjs --check && node scripts/css-guard.mjs && tsc --noEmit -p tsconfig.json && vitest run",
+    "android:build": "npm run check && vite build --mode native && npx cap sync android && cd android && ./gradlew assembleRelease",
+    "css-guard": "node scripts/css-guard.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

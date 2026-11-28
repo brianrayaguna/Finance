@@ -31,7 +31,7 @@
 - **Token tahan pembesaran teks:** ukuran huruf memakai `rem`; kontrol, baris, dan pil memakai `min-height` + padding; spasi memakai skala `--space-*`.
 - **Lapisan CSS:** `reset, tokens, base, layout, components, pages, overrides`. Gaya halaman disimpan di berkas per halaman dan diimpor oleh halaman yang di-lazy-load. Penyesuaian ponsel ditulis di samping aturan komponennya.
 - **Gaya inline** hanya untuk nilai dinamis, dan itu pun lewat variabel CSS.
-- **Penjaga CSS** di `npm run check`: lebar media query hanya 600/1024, dan jumlah `!important` serta gaya inline tidak boleh naik.
+- **Penjaga CSS** (`scripts/css-guard.mjs`) di `npm run check` membandingkan empat jumlah dengan angka dasar `scripts/css-guard.baseline.json`: media query lebar di luar sintaks rentang 600/1024, `!important`, `height: Npx`, dan `style={{` di TSX. Jumlah yang naik menggagalkan pemeriksaan; jumlah yang turun harus dikunci dengan `npm run css-guard -- --update` agar tidak bisa naik lagi.
 
 ## Verifikasi
 
