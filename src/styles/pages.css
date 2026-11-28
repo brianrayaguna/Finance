@@ -2634,6 +2634,23 @@ i.ym-cell {
 .report-main {
   min-width: 0;
 }
+/* Daftar laporan tampil sebagai kolom kiri bila halaman cukup lebar, dan sebagai tab
+   di kepala halaman bila tidak. Ukurannya mengikuti lebar halaman, bukan layar,
+   sehingga ikut berubah saat sidebar diciutkan. */
+.reports-page .page-tabs-row {
+  display: none;
+}
+@container page (width < 800px) {
+  .reports-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-nav {
+    display: none;
+  }
+  .reports-page .page-tabs-row {
+    display: block;
+  }
+}
 .report-controls {
   display: flex;
   align-items: center;
@@ -2892,6 +2909,9 @@ i.ym-cell {
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 10px;
 }
+.rc-head {
+  justify-content: space-between;
+}
 .ratio-card {
   position: relative;
   display: flex;
@@ -2943,9 +2963,15 @@ i.ym-cell {
 .xls-badge .fi {
   font-size: 22px;
 }
+.pack-controls {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* Kolom grup menyesuaikan lebar dialog: empat kolom di layar lebar, dua di ponsel,
+   satu bila huruf diperbesar. */
 .pack-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
   gap: 18px;
   padding: 16px;
   border-radius: var(--radius-md);
@@ -2964,105 +2990,84 @@ i.ym-cell {
   font-size: var(--fs-sm);
   cursor: pointer;
 }
-@media (max-width: 1100px) {
-  .reports-layout {
-    grid-template-columns: 1fr;
-  }
-  .report-nav {
-    position: static;
-    flex-direction: row;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-right: 32px;
-    /* Tab laporan meluap: tepi kanan memudar sebagai petunjuk geser */
-    mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent);
-  }
-  .rn-item {
-    flex: none;
-  }
-  .rn-desc {
-    display: none;
-  }
-  .pack-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-@media screen and (max-width: 640px) {
-  .paper,
-  .paper.wide {
-    padding: 18px 12px 16px;
-  }
-  .paper::before,
-  .paper.wide::before {
-    left: 12px;
-    right: 12px;
-  }
-  /* Kop kertas: jenis laporan sudah tampil di tab aktif & nama buku di profil —
-     di layar ponsel cukup satu baris periode. Kop lengkap tetap ada saat dicetak. */
-  .paper-head {
-    margin-bottom: 12px;
-    text-align: left;
-  }
-  .ph-entity,
-  .ph-unit {
-    display: none;
-  }
-  .ph-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
-  .ph-period {
-    margin-top: 0;
-    font-size: var(--fs-sm);
-  }
-  /* Tabel laporan muat di 320–375px: tanpa lebar minimum desktop, nominal tak terpotong */
-  .stmt {
-    font-size: var(--fs-sm);
-  }
-  .stmt th,
-  .stmt td {
-    padding-left: 6px;
-    padding-right: 6px;
-  }
-  .stmt td {
-    height: auto;
-    padding-top: 6px;
-    padding-bottom: 6px;
-  }
-  .stmt .st-label,
-  .stmt.cols-10 .st-label,
-  .stmt.cols-4 .st-label,
-  .stmt.cols-5 .st-label {
-    min-width: 0;
-  }
-  .stmt td.r {
-    min-width: 0;
-    padding-left: 10px;
-    padding-right: 4px;
-  }
-  /* Satu kolom angka: judul kolom = baris periode di atasnya, cukup untuk pembaca layar */
-  .stmt.cols-1 thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
-  /* Kode akun di baris sendiri, kecil, agar tidak patah "6–/1120" */
-  .st-code {
-    display: block;
-    margin: 0 0 1px;
-    font-size: 11px;
-    line-height: 1.2;
-    white-space: nowrap;
-  }
-  .report-controls {
-    gap: 8px 10px;
-    padding: 8px 10px;
+@media screen {
+  @container page (width < 600px) {
+    .paper,
+    .paper.wide {
+      padding: 18px 12px 16px;
+    }
+    .paper::before,
+    .paper.wide::before {
+      left: 12px;
+      right: 12px;
+    }
+    /* Kop kertas: jenis laporan sudah tampil di tab aktif & nama buku di profil —
+       di layar ponsel cukup satu baris periode. Kop lengkap tetap ada saat dicetak. */
+    .paper-head {
+      margin-bottom: 12px;
+      text-align: left;
+    }
+    .ph-entity,
+    .ph-unit {
+      display: none;
+    }
+    .ph-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+    .ph-period {
+      margin-top: 0;
+      font-size: var(--fs-sm);
+    }
+    /* Tabel laporan muat di 320–375px: tanpa lebar minimum desktop, nominal tak terpotong */
+    .stmt {
+      font-size: var(--fs-sm);
+    }
+    .stmt th,
+    .stmt td {
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+    .stmt td {
+      height: auto;
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+    .stmt .st-label,
+    .stmt.cols-10 .st-label,
+    .stmt.cols-4 .st-label,
+    .stmt.cols-5 .st-label {
+      min-width: 0;
+    }
+    .stmt td.r {
+      min-width: 0;
+      padding-left: 10px;
+      padding-right: 4px;
+    }
+    /* Satu kolom angka: judul kolom = baris periode di atasnya, cukup untuk pembaca layar */
+    .stmt.cols-1 thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+    /* Kode akun di baris sendiri, kecil, agar tidak patah "6–/1120" */
+    .st-code {
+      display: block;
+      margin: 0 0 1px;
+      font-size: 11px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+    .report-controls {
+      gap: 8px 10px;
+      padding: 8px 10px;
+    }
   }
 }
 @media print {

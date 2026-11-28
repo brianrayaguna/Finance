@@ -28,7 +28,7 @@ import {
 import { makeDates, makePeriods } from '../accounting/periods';
 import type { Report } from '../accounting/types';
 import { formatDate, formatRatio, periodLabel } from '../lib/format';
-import { PageHeader } from '../components/layout/Page';
+import { PageHeader, PageTabs } from '../components/layout/Page';
 import { Badge, Button, Dots, Switch, Checkbox } from '../components/ui/primitives';
 import { modKey } from '../lib/layers';
 import { PeriodPicker, resolvePreset, type PeriodValue, describePeriod } from '../components/ui/PeriodPicker';
@@ -92,18 +92,9 @@ export default function Reports() {
   const asOf = to;
   const report = useMemo(() => buildReport(b, key, from, asOf, compare && meta.compare), [b, key, from, asOf, compare, meta.compare]);
   const ratioList = useMemo(() => (key === 'rasio' ? ratios(b, { from, to: asOf, label: '' }) : []), [b, key, from, asOf]);
+  const checks = report?.checks ?? [];
 
   const select = (k: ReportKey) => setParams({ r: k }, { replace: true });
-
-  // Tab aktif digeser ke tengah saat daftar tab bergulir mendatar (ponsel/tablet).
-  useEffect(() => {
-    const el = document.querySelector<HTMLElement>('.report-nav .rn-item.active');
-    const nav = el?.parentElement;
-    if (!el || !nav || nav.scrollWidth <= nav.clientWidth) return;
-    const r = el.getBoundingClientRect();
-    const n = nav.getBoundingClientRect();
-    nav.scrollTo({ left: nav.scrollLeft + r.left - n.left - (n.width - r.width) / 2, behavior: 'smooth' });
-  }, [key]);
 
   const exportOne = async () => {
     setExporting(true);
@@ -139,6 +130,7 @@ export default function Reports() {
       <PageHeader
         title="Laporan Keuangan"
         subtitle={`${b.data.profile.entityName || 'Buku keuangan'}, ${periodLabel(from, asOf)}`}
+        toolbar={<PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />}
         primaryAction={{
           label: 'Unduh',
           icon: Download,
@@ -151,6 +143,7 @@ export default function Reports() {
             { label: 'Cetak', icon: Printer, kbd: modKey('P'), onSelect: () => window.print() },
           ],
         }}
+        tabs={<PageTabs value={key} onChange={select} ariaLabel="Jenis laporan" tabs={REPORTS.map((r) => ({ value: r.key, label: r.label }))} />}
       />
 
       <div className="reports-layout">
@@ -159,7 +152,7 @@ export default function Reports() {
             <button key={r.key} type="button" className={`rn-item${r.key === key ? ' active' : ''}`} onClick={() => select(r.key)}>
               {r.key === key && <SlidePill group="rn-pill" className="rn-pill" />}
               <r.icon />
-              <span className="col" style={{ minWidth: 0 }}>
+              <span className="col grow">
                 <span className="rn-label">{r.label}</span>
                 <span className="rn-desc truncate">{r.desc}</span>
               </span>
@@ -168,29 +161,28 @@ export default function Reports() {
         </nav>
 
         <section className="report-main">
-          <div className="report-controls card no-print">
-            <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
-            {meta.compare && (
-              <label className="row compare-toggle">
-                <Switch checked={compare} onChange={setCompare} label="Bandingkan periode" />
-                <span>Bandingkan dengan periode sebelumnya</span>
-              </label>
-            )}
-            <span className="spacer" />
-            {report?.checks?.length ? (
-              report.checks.every((c) => c.ok) ? (
+          {(meta.compare || checks.length > 0) && (
+            <div className="report-controls card no-print">
+              {meta.compare && (
+                <label className="row compare-toggle">
+                  <Switch checked={compare} onChange={setCompare} label="Bandingkan periode" />
+                  <span>Bandingkan dengan periode sebelumnya</span>
+                </label>
+              )}
+              <span className="spacer" />
+              {checks.length === 0 ? null : checks.every((c) => c.ok) ? (
                 <Badge tone="pos" icon={CircleCheck}>
                   Semua uji keseimbangan lolos
                 </Badge>
               ) : (
                 <Link to="/pengaturan/data#integritas" className="badge-link">
                   <Badge tone="neg" icon={TriangleAlert}>
-                    {report.checks.filter((c) => !c.ok).length} uji keseimbangan gagal. Periksa integritas buku di Pengaturan.
+                    {checks.filter((c) => !c.ok).length} uji keseimbangan gagal. Periksa integritas buku di Pengaturan.
                   </Badge>
                 </Link>
-              )
-            ) : null}
-          </div>
+              )}
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             <motion.div key={key + from + asOf + compare} initial={{ opacity: 0, transform: tf('translateY(8px)', 'translateY(0px)') }} animate={{ opacity: 1, transform: 'translateY(0px)' }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
@@ -230,7 +222,7 @@ function RatiosView({ list, from, to, entity }: { list: Ratio[]; from: string; t
               .filter((r) => r.group === g)
               .map((r) => (
                 <div key={r.name} className={`ratio-card st-${r.status}`}>
-                  <div className="row" style={{ justifyContent: 'space-between' }}>
+                  <div className="row rc-head">
                     <span className="rc-name">{r.name}</span>
                     <Badge tone={r.status === 'good' ? 'pos' : r.status === 'warn' ? 'warn' : r.status === 'bad' ? 'neg' : 'default'} dot>
                       {statusLabel[r.status]}
@@ -320,7 +312,7 @@ function PackModal({ onClose, initialPeriod }: { onClose: () => void; initialPer
       }
     >
       <div className="stack">
-        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+        <div className="row pack-controls">
           <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
           <label className="row compare-toggle">
             <Switch checked={compare} onChange={setCompare} label="Komparatif" />
