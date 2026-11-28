@@ -8,7 +8,7 @@ import { closingEntries } from '../accounting/reports';
 import type { JournalEntry } from '../accounting/types';
 import { formatDate, formatMoney, normalize, round2, isZero } from '../lib/format';
 import { rowAction } from '../lib/focus';
-import { PageHeader } from '../components/layout/Page';
+import { PageHeader, PageTabs } from '../components/layout/Page';
 import { Badge, Button, EmptyState, TextInput, TableWrap } from '../components/ui/primitives';
 import { Segmented } from '../components/ui/Segmented';
 import { PeriodPicker, resolvePreset, type PeriodValue } from '../components/ui/PeriodPicker';
@@ -90,22 +90,27 @@ export default function Journal() {
       <PageHeader
         title="Jurnal Umum"
         subtitle="Seluruh jurnal berpasangan yang terbentuk dari transaksi, aset, dan jurnal manual"
-        toolbar={tab === 'general' ? <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} /> : undefined}
+        toolbar={
+          tab === 'general' ? (
+            <PeriodPicker value={period} onChange={setPeriod} fyStartMonth={b.fyStartMonth} />
+          ) : (
+            <PeriodPicker value={closingPeriod} onChange={setClosingPeriod} fyStartMonth={b.fyStartMonth} exclude={['all']} />
+          )
+        }
         secondaryActions={tab === 'general' ? [{ label: 'Ekspor Excel', icon: Download, onSelect: doExport, busy: exporting }] : []}
         primaryAction={{ label: 'Jurnal baru', icon: Plus, onSelect: () => openTx({ type: 'journal' }) }}
+        tabs={
+          <PageTabs
+            value={tab}
+            onChange={setTab}
+            ariaLabel="Jenis jurnal"
+            tabs={[
+              { value: 'general', label: 'Jurnal umum' },
+              { value: 'closing', label: 'Jurnal penutup' },
+            ]}
+          />
+        }
       />
-
-      <div className="row" style={{ marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-        <Segmented
-          className="tabs-fill"
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: 'general', label: 'Jurnal umum', icon: NotebookPen },
-            { value: 'closing', label: 'Jurnal penutup', icon: Lock },
-          ]}
-        />
-      </div>
 
       {tab === 'general' ? (
         <>
@@ -136,12 +141,12 @@ export default function Journal() {
                 <table className="table journal-table">
                   <thead>
                     <tr>
-                      <th style={{ width: 110 }}>Tanggal</th>
-                      <th style={{ width: 150 }}>No. Bukti</th>
+                      <th className="jc-date">Tanggal</th>
+                      <th className="jc-ref">No. Bukti</th>
                       <th>Akun & Keterangan</th>
-                      <th style={{ width: 90 }}>Kode</th>
-                      <th className="r" style={{ width: 150 }}>Debit</th>
-                      <th className="r" style={{ width: 150 }}>Kredit</th>
+                      <th className="jc-code">Kode</th>
+                      <th className="r jc-amt">Debit</th>
+                      <th className="r jc-amt">Kredit</th>
                     </tr>
                   </thead>
                   {entries.slice(0, limit).map((e) => {
@@ -155,13 +160,13 @@ export default function Journal() {
                               <td>{i === 0 ? formatDate(e.date) : ''}</td>
                               <td>
                                 {i === 0 && (
-                                  <span className="row" style={{ gap: 6 }}>
+                                  <span className="row je-ref">
                                     <span className="code">{e.ref}</span>
                                     {e.adjusting && <Badge tone="accent">AJP</Badge>}
                                   </span>
                                 )}
                               </td>
-                              <td style={{ paddingLeft: l.credit ? 40 : 14 }}>
+                              <td className={l.credit ? 'je-acc je-cr' : 'je-acc'}>
                                 {a?.name ?? '—'}
                                 {l.memo && <span className="muted">, {l.memo}</span>}
                               </td>
@@ -182,7 +187,7 @@ export default function Journal() {
                   <tfoot>
                     <tr>
                       <td colSpan={4}>
-                        <span className="row" style={{ gap: 8 }}>
+                        <span className="row">
                           Jumlah ({entries.length.toLocaleString('id-ID')} jurnal)
                           {isZero(totals.d - totals.c) ? (
                             <Badge tone="pos" icon={CircleCheck}>Seimbang</Badge>
@@ -207,14 +212,7 @@ export default function Journal() {
         </>
       ) : (
         <>
-          <div className="filter-bar card">
-            <div className="grow muted" style={{ fontSize: 13 }}>
-              Jurnal penutup menutup akun pendapatan, beban, dan prive ke saldo laba pada akhir periode.
-            </div>
-            <div className="fb-right">
-              <PeriodPicker value={closingPeriod} onChange={setClosingPeriod} fyStartMonth={b.fyStartMonth} exclude={['all']} />
-            </div>
-          </div>
+          <p className="closing-note">Jurnal penutup menutup akun pendapatan, beban, dan prive ke saldo laba pada akhir periode.</p>
           <div className="card journal-card">
             {closing.length === 0 ? (
               <EmptyState icon={Lock} title="Tidak ada akun nominal" text="Tidak ada pendapatan atau beban pada periode ini." />
@@ -223,12 +221,12 @@ export default function Journal() {
                 <table className="table journal-table">
                   <thead>
                     <tr>
-                      <th style={{ width: 110 }}>Tanggal</th>
-                      <th style={{ width: 60 }}>No.</th>
+                      <th className="jc-date">Tanggal</th>
+                      <th className="jc-no">No.</th>
                       <th>Akun & Keterangan</th>
-                      <th style={{ width: 90 }}>Kode</th>
-                      <th className="r" style={{ width: 150 }}>Debit</th>
-                      <th className="r" style={{ width: 150 }}>Kredit</th>
+                      <th className="jc-code">Kode</th>
+                      <th className="r jc-amt">Debit</th>
+                      <th className="r jc-amt">Kredit</th>
                     </tr>
                   </thead>
                   {closing.map((e) => (
@@ -237,7 +235,7 @@ export default function Journal() {
                         <tr key={i}>
                           <td>{i === 0 ? formatDate(closingPeriod.to) : ''}</td>
                           <td>{i === 0 ? <span className="code">JPT-{e.no}</span> : ''}</td>
-                          <td style={{ paddingLeft: l.credit ? 40 : 14 }}>{l.name}</td>
+                          <td className={l.credit ? 'je-acc je-cr' : 'je-acc'}>{l.name}</td>
                           <td className="code">{l.code}</td>
                           <td className="r num money-val">{l.debit ? formatMoney(l.debit, { symbol: false }) : ''}</td>
                           <td className="r num money-val">{l.credit ? formatMoney(l.credit, { symbol: false }) : ''}</td>

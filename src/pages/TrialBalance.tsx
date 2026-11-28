@@ -69,13 +69,13 @@ export default function TrialBalance() {
       </div>
       <div className="card">
         <TableWrap label="Neraca saldo">
-          <table className="table">
+          <table className="table trial-table">
             <thead>
               <tr>
-                <th style={{ width: 100 }}>Kode</th>
+                <th className="tc-code">Kode</th>
                 <th>Nama akun</th>
-                <th className="r" style={{ width: 200 }}>Debit</th>
-                <th className="r" style={{ width: 200 }}>Kredit</th>
+                <th className="r tc-amt">Debit</th>
+                <th className="r tc-amt">Kredit</th>
               </tr>
             </thead>
             <tbody>
@@ -107,7 +107,7 @@ export default function TrialBalance() {
             </tbody>
             <tfoot>
               <tr>
-                <td />
+                <td className="code" />
                 <td>JUMLAH</td>
                 <td className="r num money-val double-rule">{formatMoney(total?.values[0] ?? 0, { symbol: false })}</td>
                 <td className="r num money-val double-rule">{formatMoney(total?.values[1] ?? 0, { symbol: false })}</td>

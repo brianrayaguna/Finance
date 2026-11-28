@@ -2412,6 +2412,33 @@ i.ym-cell {
   height: 32px;
   border-bottom: 0;
 }
+.journal-table .jc-date {
+  width: 110px;
+}
+.journal-table .jc-ref {
+  width: 150px;
+}
+.journal-table .jc-no {
+  width: 60px;
+}
+.journal-table .jc-code {
+  width: 90px;
+}
+.journal-table .jc-amt {
+  width: 150px;
+}
+.je-ref {
+  gap: 6px;
+}
+/* Akun kredit menjorok ke kanan (konvensi penulisan jurnal) */
+.journal-table td.je-cr {
+  padding-left: 40px;
+}
+.closing-note {
+  margin: 0 2px 14px;
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+}
 .je-block {
   cursor: pointer;
   transition: background var(--dur-1);
@@ -2425,12 +2452,12 @@ i.ym-cell {
 .table .je-block tr:hover {
   background: transparent;
 }
-.je-desc td {
+.journal-table .je-desc td {
   height: 28px;
   font-size: var(--fs-sm);
   font-style: italic;
   color: var(--text-3);
-  border-bottom: 1px solid var(--line) !important;
+  border-bottom: 1px solid var(--line);
   padding-bottom: 6px;
 }
 .ledger-layout {
@@ -2446,6 +2473,9 @@ i.ym-cell {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.la-search {
+  padding: 10px;
 }
 .la-list {
   flex: 1;
@@ -2502,6 +2532,10 @@ i.ym-cell {
   letter-spacing: -0.02em;
   margin-bottom: 4px;
 }
+.lm-badges {
+  gap: 6px;
+  flex-wrap: wrap;
+}
 .lm-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2531,8 +2565,22 @@ i.ym-cell {
 .ledger-table td {
   height: 52px;
 }
-.lg-desc {
-  white-space: normal !important;
+.ledger-table .lc-date {
+  width: 108px;
+}
+.ledger-table .lc-amt {
+  width: 132px;
+}
+.ledger-table .lc-bal {
+  width: 146px;
+}
+.ledger-table .lg-desc {
+  white-space: normal;
+}
+.ledger-table .lg-empty {
+  height: auto;
+  padding: 1.5rem 14px;
+  text-align: center;
 }
 .lg-desc > span {
   display: block;
@@ -2549,9 +2597,10 @@ i.ym-cell {
   background: var(--surface-2);
   color: var(--text-2);
 }
-@media (max-width: 1000px) {
+/* Daftar akun di samping hanya bila halaman cukup lebar untuk tabel mutasi; selebihnya di atasnya */
+@container page (width < 900px) {
   .ledger-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .ledger-accounts {
     position: static;
@@ -2578,6 +2627,35 @@ i.ym-cell {
 .balance-banner.bad {
   color: var(--neg);
   background: var(--neg-soft);
+}
+.trial-table .tc-code {
+  width: 100px;
+}
+.trial-table .tc-amt {
+  width: 200px;
+}
+/* Halaman sempit: debit & kredit harus terlihat tanpa menggeser tabel. Kode akun (tetap ada di Buku Besar)
+   dan ikon disembunyikan, nama akun boleh turun baris. */
+@container page (width < 600px) {
+  .trial-table .tc-code,
+  .trial-table td.code,
+  .trial-table .icon-tile {
+    display: none;
+  }
+  .trial-table .tc-amt {
+    width: auto;
+  }
+  .trial-table th,
+  .trial-table td {
+    padding: 0 8px;
+  }
+  .trial-table td {
+    white-space: normal;
+  }
+  .trial-table td.r {
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+  }
 }
 .tb-group td {
   height: 32px;
@@ -3721,11 +3799,14 @@ i.ym-cell {
   }
 }
 
-@media (max-width: 760px) {
-  /* Buku besar: kolom keterangan menjaga lebar minimum; tabel menggulir horizontal */
+/* Buku besar: kolom keterangan menjaga lebar minimum; tabel menggulir horizontal */
+@container page (width < 640px) {
   .ledger-table {
     min-width: 720px;
   }
+}
+
+@container page (width < 760px) {
   /* Laporan: angka tidak terpotong di layar sempit */
   .stmt {
     font-size: var(--fs-sm);
@@ -3956,7 +4037,7 @@ body.dragging-nav .navset-row {
   font-weight: 700;
 }
 
-/* ═══════════ Ponsel: Dompet, Jurnal, Hutang lebih ringkas ═══════════ */
+/* ═══════════ Ponsel: Dompet lebih ringkas ═══════════ */
 @media screen and (max-width: 640px) {
   /* Dompet: nama di atas, saldo + statistik di kiri, sparkline di kanan — ±3 akun per layar */
   .wallet-grid {
@@ -4002,79 +4083,85 @@ body.dragging-nav .navset-row {
     width: 84px;
     height: 30px;
   }
+}
 
-  /* Jurnal umum: tabel → kartu per jurnal (tanggal & bukti di atas, baris akun di bawah) */
-  .journal-table,
-  .journal-table tbody,
-  .journal-table tfoot {
-    display: block;
-    width: 100%;
+/* Jurnal umum di halaman sempit: tabel → kartu per jurnal (tanggal & bukti di atas, baris akun di bawah).
+   Hanya di layar; saat dicetak tabel tetap utuh. */
+@media screen {
+  @container page (width < 600px) {
+    .journal-table,
+    .journal-table tbody,
+    .journal-table tfoot {
+      display: block;
+      width: 100%;
+    }
+    .journal-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+    .journal-table .je-block {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .journal-table tr {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      column-gap: 8px;
+    }
+    .journal-table td {
+      height: auto;
+      padding: 2px 0;
+      border: 0;
+      white-space: normal;
+    }
+    .journal-table td:empty,
+    .journal-table td.code {
+      display: none;
+    }
+    .journal-table .je-block td:nth-child(1) {
+      grid-area: 1 / 1;
+      font-weight: 600;
+      font-size: var(--fs-sm);
+    }
+    .journal-table .je-block td:nth-child(2) {
+      grid-area: 1 / 2 / 2 / 4;
+      padding-bottom: 4px;
+    }
+    .journal-table .je-block td:nth-child(3) {
+      grid-area: 2 / 1 / 3 / 3;
+      padding-left: 0;
+      font-size: var(--fs-sm);
+    }
+    /* Akun kredit tetap menjorok (konvensi jurnal), cukup 18px di ponsel */
+    .journal-table .je-block td.je-cr {
+      padding-left: 18px;
+    }
+    .journal-table .je-block td:nth-child(5),
+    .journal-table .je-block td:nth-child(6) {
+      grid-area: 2 / 3;
+      font-size: var(--fs-sm);
+    }
+    .journal-table .je-desc {
+      display: block;
+    }
+    .journal-table .je-desc td {
+      padding-top: 4px;
+      font-size: var(--fs-xs);
+      border: 0;
+    }
+    .journal-table tfoot tr {
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      padding: 10px 12px;
+      font-weight: 600;
+    }
+    .journal-table tfoot td {
+      font-size: var(--fs-sm);
+      border: 0;
+    }
   }
-  .journal-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-  }
-  .journal-table .je-block {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--line);
-  }
-  .journal-table tr {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    column-gap: 8px;
-  }
-  .journal-table td {
-    height: auto;
-    padding: 2px 0;
-    border: 0 !important;
-    white-space: normal;
-  }
-  .journal-table td:empty,
-  .journal-table td.code {
-    display: none;
-  }
-  .journal-table .je-block td:nth-child(1) {
-    grid-area: 1 / 1;
-    font-weight: 600;
-    font-size: var(--fs-sm);
-  }
-  .journal-table .je-block td:nth-child(2) {
-    grid-area: 1 / 2 / 2 / 4;
-    padding-bottom: 4px;
-  }
-  .journal-table .je-block td:nth-child(3) {
-    grid-area: 2 / 1 / 3 / 3;
-    padding-left: 0 !important;
-    font-size: var(--fs-sm);
-  }
-  /* Akun kredit tetap menjorok (konvensi jurnal), cukup 18px di ponsel */
-  .journal-table .je-block td:nth-child(3)[style*='40px'] {
-    padding-left: 18px !important;
-  }
-  .journal-table .je-block td:nth-child(5),
-  .journal-table .je-block td:nth-child(6) {
-    grid-area: 2 / 3;
-    font-size: var(--fs-sm);
-  }
-  .journal-table .je-desc {
-    display: block;
-  }
-  .journal-table .je-desc td {
-    padding-top: 4px;
-    font-size: var(--fs-xs);
-  }
-  .journal-table tfoot tr {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    padding: 10px 12px;
-    font-weight: 600;
-  }
-  .journal-table tfoot td {
-    font-size: var(--fs-sm);
-  }
-
 }
 
 /* Pintasan keyboard tidak relevan di layar sentuh */

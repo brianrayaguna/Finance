@@ -90,7 +90,7 @@ export default function Ledger() {
       />
       <div className="ledger-layout">
         <aside className="card ledger-accounts">
-          <div style={{ padding: 10 }}>
+          <div className="la-search">
             <TextInput value={q} onChange={setQ} icon={Search} placeholder="Cari akun…" clearable sunken />
           </div>
           <div className="la-list">
@@ -102,7 +102,7 @@ export default function Ledger() {
                   return (
                     <button key={acc.id} type="button" className={`la-item${acc.id === sel ? ' active' : ''}${acc.archived ? ' archived' : ''}`} onClick={() => choose(acc.id)}>
                       <IconTile icon={acc.icon} color={acc.color} size="xs" />
-                      <span className="col grow" style={{ minWidth: 0 }}>
+                      <span className="col grow">
                         <span className="truncate">{acc.name}</span>
                         <span className="la-code">{acc.code}</span>
                       </span>
@@ -122,9 +122,9 @@ export default function Ledger() {
             <>
               <div className="lm-head">
                 <IconTile icon={a.icon} color={a.color} size="lg" solid />
-                <div className="grow" style={{ minWidth: 0 }}>
+                <div className="grow">
                   <div className="lm-title">{a.name}</div>
-                  <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <div className="row lm-badges">
                     <span className="code">{a.code}</span>
                     <Badge>{TYPE_LABEL[a.type]}</Badge>
                     <Badge>{SUBTYPE_META[a.subtype].label}</Badge>
@@ -154,11 +154,11 @@ export default function Ledger() {
                 <table className="table ledger-table">
                   <thead>
                     <tr>
-                      <th style={{ width: 108 }}>Tanggal</th>
+                      <th className="lc-date">Tanggal</th>
                       <th>Keterangan</th>
-                      <th className="r" style={{ width: 132 }}>Debit</th>
-                      <th className="r" style={{ width: 132 }}>Kredit</th>
-                      <th className="r" style={{ width: 146 }}>Saldo</th>
+                      <th className="r lc-amt">Debit</th>
+                      <th className="r lc-amt">Kredit</th>
+                      <th className="r lc-bal">Saldo</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -196,7 +196,7 @@ export default function Ledger() {
                     })}
                     {view.rows.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="muted" style={{ textAlign: 'center', height: 64 }}>
+                        <td colSpan={5} className="muted lg-empty">
                           Tidak ada mutasi pada periode ini
                         </td>
                       </tr>
