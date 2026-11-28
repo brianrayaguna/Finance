@@ -3,8 +3,22 @@ import { addMonths, formatMonth } from '../../lib/format';
 import { useToday } from '../../hooks/useApp';
 import { Tooltip } from './Tooltip';
 
-export function MonthSwitcher({ value, onChange, compact, className }: { value: string; onChange: (v: string) => void; compact?: boolean; className?: string }) {
+export function MonthSwitcher({
+  value,
+  onChange,
+  compact,
+  className,
+  max,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  compact?: boolean;
+  className?: string;
+  /** Bulan terjauh yang boleh dipilih (YYYY-MM). Bawaan: bulan berjalan. */
+  max?: string;
+}) {
   const cur = useToday().slice(0, 7);
+  const last = max ?? cur;
   const shift = (n: number) => onChange(addMonths(value + '-01', n).slice(0, 7));
   return (
     <div className={['month-switch', compact && 'compact', className].filter(Boolean).join(' ')}>
@@ -17,7 +31,7 @@ export function MonthSwitcher({ value, onChange, compact, className }: { value: 
         {formatMonth(value)}
       </button>
       <Tooltip label="Bulan berikutnya">
-        <button type="button" className="ms-btn" onClick={() => shift(1)} aria-label="Bulan berikutnya" disabled={value >= cur}>
+        <button type="button" className="ms-btn" onClick={() => shift(1)} aria-label="Bulan berikutnya" disabled={value >= last}>
           <ChevronRight />
         </button>
       </Tooltip>

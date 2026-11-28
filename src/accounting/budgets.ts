@@ -8,6 +8,7 @@ import { SYS, WALLET_SUBTYPES } from './coa';
 import type {
   Account,
   AccountSubtype,
+  Budget,
   BudgetKind,
   BudgetTarget,
   EntrySource,
@@ -18,10 +19,15 @@ import { activity, debtInfos, type Books, type DebtInfo } from './reports';
 
 export type BudgetStatusCode = 'safe' | 'warn' | 'over';
 
+/** Asal nominal anggaran satu bulan: anggaran khusus bulan itu, atau versi rutin yang berlaku. */
+export type BudgetSource = 'month' | 'recurring';
+
 export interface BudgetLineBase {
-  budgetId: string;
   key: string;
+  target: BudgetTarget;
   kind: BudgetKind;
+  /** Hanya untuk rentang dalam satu bulan kalender. */
+  source?: BudgetSource;
   label: string;
   sublabel?: string;
   icon: string;
@@ -89,25 +95,73 @@ export function budgetStatus(used: number, pace: number): BudgetStatusCode {
   return 'safe';
 }
 
-export function prorateMonths(from: string, to: string): number {
-  if (!from || !to || from > to) return 1;
-  const months = monthsBetween(from, to);
-  if (!months.length) return 1;
-  let total = 0;
-  for (const m of months) {
-    const ms = `${m}-01`;
-    const me = endOfMonth(ms);
-    if (from <= ms && to >= me) {
-      total += 1;
+export function budgetKind(b: Pick<Budget, 'kind'>): BudgetKind {
+  return b.kind === 'debt' ? 'debt' : 'expense';
+}
+
+export function budgetTargetKey(b: Pick<Budget, 'kind' | 'categoryId' | 'debtId'>): string {
+  if (budgetKind(b) === 'debt') return `debt:${b.debtId || 'all'}`;
+  return `expense:${b.categoryId ?? ''}`;
+}
+
+export function budgetTargetOf(b: Pick<Budget, 'kind' | 'categoryId' | 'debtId'>): BudgetTarget {
+  if (budgetKind(b) === 'debt') return b.debtId ? { kind: 'debt', debtId: b.debtId } : { kind: 'debt' };
+  return { kind: 'expense', categoryId: b.categoryId ?? '' };
+}
+
+/**
+ * Nominal anggaran satu target untuk bulan `month` (YYYY-MM): anggaran khusus bulan itu,
+ * lalu versi rutin dengan `from` terbesar yang ≤ bulan itu (tanpa `from` = sejak awal). Null bila tidak ada.
+ */
+export function resolveBudgetAmount(
+  budgets: Budget[],
+  key: string,
+  month: string,
+): { amount: number; source: BudgetSource } | null {
+  let special: Budget | undefined;
+  let recurring: Budget | undefined;
+  for (const bg of budgets) {
+    if (budgetTargetKey(bg) !== key) continue;
+    if (bg.month) {
+      if (bg.month === month) special = bg;
       continue;
     }
+    const from = bg.from ?? '';
+    if (from > month) continue;
+    if (!recurring || from >= (recurring.from ?? '')) recurring = bg;
+  }
+  if (special) return { amount: special.amount, source: 'month' };
+  if (recurring) return { amount: recurring.amount, source: 'recurring' };
+  return null;
+}
+
+/** Porsi tiap bulan kalender (0–1, menurut jumlah hari) yang tercakup rentang tanggal `from`–`to`. */
+function monthPortions(from: string, to: string): { month: string; portion: number }[] {
+  if (!from || !to || from > to) return [];
+  return monthsBetween(from, to).map((m) => {
+    const ms = `${m}-01`;
+    const me = endOfMonth(ms);
+    if (from <= ms && to >= me) return { month: m, portion: 1 };
     const dim = daysBetween(ms, me) + 1;
     const s = from > ms ? from : ms;
     const e = to < me ? to : me;
-    const overlap = Math.max(0, daysBetween(s, e) + 1);
-    total += overlap / dim;
-  }
+    return { month: m, portion: Math.max(0, daysBetween(s, e) + 1) / dim };
+  });
+}
+
+export function prorateMonths(from: string, to: string): number {
+  const total = monthPortions(from, to).reduce((sum, p) => sum + p.portion, 0);
   return total || 1;
+}
+
+/** Total anggaran satu target pada rentang `from`–`to`: nominal tiap bulan dikali porsi harinya. */
+export function budgetAmountOver(budgets: Budget[], key: string, from: string, to: string): number {
+  let total = 0;
+  for (const { month, portion } of monthPortions(from, to)) {
+    const r = resolveBudgetAmount(budgets, key, month);
+    if (r) total += r.amount * portion;
+  }
+  return round2(total);
 }
 
 interface DebtContribution {
@@ -181,7 +235,8 @@ export function matchesDebtPaymentBudget(b: Books, tx: Transaction, debtId?: str
 }
 
 export function budgetVsActual(b: Books, from: string, to: string, actualTo = to): BudgetLine[] {
-  const months = prorateMonths(from, to);
+  const budgets = b.data.budgets;
+  const singleMonth = from.slice(0, 7) === to.slice(0, 7) ? from.slice(0, 7) : null;
   const act = activity(b, from, actualTo);
   const txById = new Map(b.data.transactions.map((t) => [t.id, t]));
   const hasDebtBudget = b.data.budgets.some((bg) => bg.kind === 'debt');
@@ -199,8 +254,13 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
   }
 
   const lines: BudgetLine[] = [];
+  // Satu baris per target; nominal tiap bulan dipilih dari versi rutin / anggaran khusus yang berlaku.
+  const targets = new Map<string, Budget>();
+  for (const bg of budgets) if (!targets.has(budgetTargetKey(bg))) targets.set(budgetTargetKey(bg), bg);
+  const sourceOf = (key: string) => (singleMonth ? resolveBudgetAmount(budgets, key, singleMonth)?.source : undefined);
 
-  for (const bg of b.data.budgets) {
+  for (const [key, bg] of targets) {
+    const target = budgetTargetOf(bg);
     if (bg.kind === 'debt') {
       if (bg.debtId) {
         const origin = txById.get(bg.debtId);
@@ -226,8 +286,8 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
           const paidMonthEnd = endOfMonth(debtAsOf.lastPayment);
           if (paidMonthEnd < effTo && paidMonthEnd >= effFrom) effTo = paidMonthEnd;
         }
-        const effMonths = activeInPeriod ? prorateMonths(effFrom, effTo) : months;
-        const budget = round2(bg.amount * effMonths);
+        const budget = activeInPeriod ? budgetAmountOver(budgets, key, effFrom, effTo) : budgetAmountOver(budgets, key, from, to);
+        if (budget <= 0.005) continue;
 
         const rawContact = origin.contact?.trim() || 'Hutang';
         const dup = (contactCount.get(rawContact.toLowerCase()) ?? 0) > 1;
@@ -236,8 +296,9 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
         const sublabel = dup && desc ? formatDate(origin.date) : desc || formatDate(origin.date);
 
         lines.push({
-          budgetId: bg.id,
-          key: `debt:${origin.id}`,
+          key,
+          target,
+          source: sourceOf(key),
           kind: 'debt',
           debtId: origin.id,
           debt: debtAsOf,
@@ -255,11 +316,13 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
           used: budget ? actual / budget : 0,
         });
       } else {
+        const budget = budgetAmountOver(budgets, key, from, to);
+        if (budget <= 0.005) continue;
         const actual = sumDebtActual(b, txById, from, actualTo);
-        const budget = round2(bg.amount * months);
         lines.push({
-          budgetId: bg.id,
-          key: 'debt:all',
+          key,
+          target,
+          source: sourceOf(key),
           kind: 'debt',
           isCreditPurchase: false,
           isPaidOff: false,
@@ -281,12 +344,14 @@ export function budgetVsActual(b: Books, from: string, to: string, actualTo = to
     if (!bg.categoryId) continue;
     const a = b.acc.get(bg.categoryId);
     if (!a) continue;
+    const budget = budgetAmountOver(budgets, key, from, to);
+    if (budget <= 0.005) continue;
     const x = act.get(a.id);
     const actual = round2(x ? x.d - x.c : 0);
-    const budget = round2(bg.amount * months);
     lines.push({
-      budgetId: bg.id,
-      key: `expense:${a.id}`,
+      key,
+      target,
+      source: sourceOf(key),
       kind: 'expense',
       categoryId: a.id,
       account: a,

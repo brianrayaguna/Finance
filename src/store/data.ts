@@ -2,12 +2,13 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { defaultAccounts, nextCode, SUBTYPE_META, SYS, SYSTEM_IDS } from '../accounting/coa';
 import { nextRef, refPrefix, TX_META } from '../accounting/engine';
+import { budgetKind, budgetTargetKey } from '../accounting/budgets';
 import type {
   Account,
   AccountSubtype,
   AppData,
   Budget,
-  BudgetKind,
+  BudgetScopeOptions,
   BudgetTarget,
   FixedAsset,
   Goal,
@@ -22,13 +23,18 @@ import type {
   TxTemplate,
 } from '../accounting/types';
 
-export function budgetKind(b: Pick<Budget, 'kind'>): BudgetKind {
-  return b.kind === 'debt' ? 'debt' : 'expense';
-}
+export { budgetKind, budgetTargetKey };
 
-export function budgetTargetKey(b: Pick<Budget, 'kind' | 'categoryId' | 'debtId'>): string {
-  if (budgetKind(b) === 'debt') return `debt:${b.debtId || 'all'}`;
-  return `expense:${b.categoryId ?? ''}`;
+/** Bulan YYYY-MM yang sah, atau undefined. */
+const yearMonth = (v: unknown): string | undefined =>
+  typeof v === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : undefined;
+
+/** Cakupan bulan sebuah catatan anggaran; `month` diutamakan bila keduanya terisi. */
+function budgetMonthScope(b: Pick<Budget, 'from' | 'month'>): { month: string } | { from: string } | Record<string, never> {
+  const month = yearMonth(b.month);
+  if (month) return { month };
+  const from = yearMonth(b.from);
+  return from ? { from } : {};
 }
 import { lockViolations } from '../accounting/lock';
 import { DEFAULT_LOCATION_ID, defaultLocations } from '../accounting/stock';
@@ -131,21 +137,30 @@ export function normalizeData(input: AppData): AppData {
 
   const budgets: Budget[] = uniqBy(
     list<Budget>(d.budgets).filter((b) => {
-      if (!(num(b.amount) > 0)) return false;
+      // Bulan yang diisi tetapi formatnya tidak sah membuat catatan tidak dapat ditempatkan: buang.
+      if (b.month !== undefined && !yearMonth(b.month)) return false;
+      if (b.from !== undefined && !yearMonth(b.from) && !yearMonth(b.month)) return false;
+      const amount = num(b.amount);
+      const scoped = 'month' in budgetMonthScope(b) || 'from' in budgetMonthScope(b);
+      if (!(amount > 0) && !(scoped && amount === 0)) return false;
       if (budgetKind(b) === 'debt') return b.debtId === undefined || b.debtId === '' || typeof b.debtId === 'string';
       return typeof b.categoryId === 'string' && b.categoryId.trim().length > 0;
     }),
-    (b) => budgetTargetKey(b),
+    (b) => {
+      const scope = budgetMonthScope(b);
+      return `${budgetTargetKey(b)}@${'month' in scope ? `m${scope.month}` : 'from' in scope ? `f${scope.from}` : ''}`;
+    },
     'last',
   ).map((b) => {
     const id = b.id || uid('bg');
     const amount = round2(num(b.amount));
     const createdAt = num(b.createdAt, Date.now());
+    const scope = budgetMonthScope(b);
     if (budgetKind(b) === 'debt') {
       const debtId = typeof b.debtId === 'string' && b.debtId.trim() ? b.debtId.trim() : undefined;
-      return debtId ? { id, kind: 'debt', debtId, amount, createdAt } : { id, kind: 'debt', amount, createdAt };
+      return debtId ? { id, kind: 'debt', debtId, ...scope, amount, createdAt } : { id, kind: 'debt', ...scope, amount, createdAt };
     }
-    return { id, categoryId: b.categoryId!.trim(), amount, createdAt };
+    return { id, categoryId: b.categoryId!.trim(), ...scope, amount, createdAt };
   });
 
   const assets: FixedAsset[] = uniqBy(
@@ -911,25 +926,73 @@ export function createWallet(
 
 /* Anggaran */
 
-export function upsertBudget(target: string | BudgetTarget, amount: number) {
+function newBudget(spec: BudgetTarget, amount: number, scope: { from: string } | { month: string } | Record<string, never> = {}): Budget {
+  const base: Omit<Budget, 'id' | 'amount' | 'createdAt'> =
+    spec.kind === 'debt' ? (spec.debtId ? { kind: 'debt', debtId: spec.debtId } : { kind: 'debt' }) : { categoryId: spec.categoryId };
+  return { id: uid('bg'), ...base, ...scope, amount, createdAt: Date.now() };
+}
+
+/** Ganti (atau tambahkan) satu catatan target yang cocok dengan `match`, tanpa menggeser urutan. */
+function putBudget(list: Budget[], match: (b: Budget) => boolean, make: () => Budget, amount: number): Budget[] {
+  let placed = false;
+  const out = list.map((b) => {
+    if (placed || !match(b)) return b;
+    placed = true;
+    return { ...b, amount };
+  });
+  return placed ? out : [...out, make()];
+}
+
+/**
+ * Simpan nominal anggaran bulanan sebuah target.
+ * - `scope: 'only'`  → anggaran khusus bulan `month`.
+ * - `scope: 'onward'` → versi rutin mulai `month`; versi rutin sesudahnya dan anggaran khusus bulan itu diganti.
+ * - tanpa opsi → satu anggaran rutin yang berlaku untuk semua bulan (seluruh catatan target lain dibuang).
+ */
+export function upsertBudget(target: string | BudgetTarget, amount: number, opts?: BudgetScopeOptions) {
   const spec: BudgetTarget = typeof target === 'string' ? { kind: 'expense', categoryId: target } : target;
   const key = budgetTargetKey(spec);
+  const amt = round2(amount);
+  const mine = (b: Budget) => budgetTargetKey(b) === key;
   return commit('Simpan anggaran', (s) => {
-    const ex = s.budgets.find((b) => budgetTargetKey(b) === key);
-    const amt = round2(amount);
-    if (ex) return { ...s, budgets: s.budgets.map((b) => (b.id === ex.id ? { ...b, amount: amt } : b)) };
-    const nb: Budget =
-      spec.kind === 'debt'
-        ? spec.debtId
-          ? { id: uid('bg'), kind: 'debt', debtId: spec.debtId, amount: amt, createdAt: Date.now() }
-          : { id: uid('bg'), kind: 'debt', amount: amt, createdAt: Date.now() }
-        : { id: uid('bg'), categoryId: spec.categoryId, amount: amt, createdAt: Date.now() };
-    return { ...s, budgets: [...s.budgets, nb] };
+    if (!opts) {
+      const rest = s.budgets.filter((b) => !mine(b) || (!b.from && !b.month));
+      return { ...s, budgets: putBudget(rest, mine, () => newBudget(spec, amt), amt) };
+    }
+    const { month, scope } = opts;
+    if (scope === 'only') {
+      return { ...s, budgets: putBudget(s.budgets, (b) => mine(b) && b.month === month, () => newBudget(spec, amt, { month }), amt) };
+    }
+    const rest = s.budgets.filter((b) => !mine(b) || !((b.from && b.from > month) || b.month === month));
+    return { ...s, budgets: putBudget(rest, (b) => mine(b) && b.from === month, () => newBudget(spec, amt, { from: month }), amt) };
   });
 }
 
-export function deleteBudget(id: string) {
-  return commit('Hapus anggaran', (s) => ({ ...s, budgets: s.budgets.filter((b) => b.id !== id) }));
+/**
+ * Hapus anggaran sebuah target.
+ * - `scope: 'only'`  → tidak dianggarkan pada bulan `month` saja.
+ * - `scope: 'onward'` → tidak dianggarkan mulai bulan `month`; catatan sesudahnya dibuang.
+ * - tanpa opsi → seluruh catatan target dibuang.
+ */
+export function deleteBudget(target: BudgetTarget, opts?: BudgetScopeOptions) {
+  const key = budgetTargetKey(target);
+  const mine = (b: Budget) => budgetTargetKey(b) === key;
+  return commit('Hapus anggaran', (s) => {
+    if (!opts) return { ...s, budgets: s.budgets.filter((b) => !mine(b)) };
+    const { month, scope } = opts;
+    let next =
+      scope === 'only'
+        ? putBudget(s.budgets, (b) => mine(b) && b.month === month, () => newBudget(target, 0, { month }), 0)
+        : putBudget(
+            s.budgets.filter((b) => !mine(b) || !((b.from && b.from > month) || (b.month && b.month >= month))),
+            (b) => mine(b) && b.from === month,
+            () => newBudget(target, 0, { from: month }),
+            0,
+          );
+    // Target yang tidak lagi punya nominal di bulan mana pun tidak perlu disimpan.
+    if (!next.some((b) => mine(b) && b.amount > 0)) next = next.filter((b) => !mine(b));
+    return { ...s, budgets: next };
+  });
 }
 
 /* Aset tetap */

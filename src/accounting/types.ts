@@ -131,6 +131,11 @@ export interface Budget {
   categoryId?: string;
   /** Opsional untuk kind === 'debt': id transaksi payable_new; kosong berarti semua pembayaran hutang. */
   debtId?: string;
+  /** Versi anggaran rutin yang berlaku mulai bulan ini (YYYY-MM). Kosong: berlaku sejak awal. */
+  from?: string;
+  /** Anggaran khusus satu bulan (YYYY-MM). Tidak dipakai bersama `from`. */
+  month?: string;
+  /** Nominal per bulan. 0 hanya sah bersama `from`/`month`: tidak dianggarkan mulai/pada bulan itu. */
   amount: number;
   createdAt: number;
 }
@@ -138,6 +143,15 @@ export interface Budget {
 export type BudgetTarget =
   | { kind: 'expense'; categoryId: string }
   | { kind: 'debt'; debtId?: string };
+
+/** Cakupan perubahan anggaran dari sebuah bulan: hanya bulan itu, atau mulai bulan itu dan seterusnya. */
+export type BudgetScope = 'only' | 'onward';
+
+export interface BudgetScopeOptions {
+  /** Bulan acuan (YYYY-MM). */
+  month: string;
+  scope: BudgetScope;
+}
 
 /* ───────── Persediaan (stok barang) ───────── */
 /* Backlog: multi-varian, konversi multi-satuan, PPN/HSN, foto produk, bin/rak, impor CSV */

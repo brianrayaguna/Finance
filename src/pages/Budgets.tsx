@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { enter } from '../lib/motion';
 import {
+  CalendarClock,
+  CalendarPlus,
   ChevronRight,
   CircleCheck,
   Ellipsis,
@@ -23,14 +25,16 @@ import { activity, debtInfos } from '../accounting/reports';
 import {
   budgetStatus,
   budgetSummary,
+  budgetTargetKey,
   budgetThreeMonthAverage,
   budgetVsActual,
+  resolveBudgetAmount,
   type BudgetLine,
   type DebtBudgetLine,
   type ExpenseBudgetLine,
 } from '../accounting/budgets';
-import type { BudgetKind, BudgetTarget } from '../accounting/types';
-import { daysBetween, endOfMonth, formatMoney, formatMonth, formatPercent, round2 } from '../lib/format';
+import type { BudgetKind, BudgetScope, BudgetTarget } from '../accounting/types';
+import { addMonths, daysBetween, endOfMonth, formatDate, formatMoney, formatMonth, formatPercent, round2 } from '../lib/format';
 import { useSubmitRef } from '../lib/focus';
 import { isImeComposing } from '../lib/layers';
 import { PageHeader } from '../components/layout/Topbar';
@@ -53,7 +57,11 @@ interface EditDraft {
   debtId?: string;
   amount?: number;
   lockedKind?: boolean;
+  scope?: BudgetScope;
 }
+
+/** Batas perencanaan ke depan pada pemilih bulan halaman Anggaran. */
+const PLAN_AHEAD_MONTHS = 12;
 
 const STATUS_META = {
   over: { tone: 'neg' as const, label: 'Melebihi', icon: Flame },
@@ -67,12 +75,15 @@ export default function Budgets() {
   const [month, setMonth] = useState(today.slice(0, 7));
   const [edit, setEdit] = useState<EditDraft | null>(null);
   const [detailKey, setDetailKey] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<BudgetLine | null>(null);
   const goals = useData((s) => s.data.goals);
   const goalModal = useGoalModal();
   const phone = useMediaQuery('(max-width: 760px)');
   const goalList = useMemo(() => goals.map((g) => goalProgress(b, g, today)), [b, goals, today]);
 
   const currentMonth = today.slice(0, 7);
+  const nextMonth = addMonths(`${currentMonth}-01`, 1).slice(0, 7);
+  const maxMonth = addMonths(`${currentMonth}-01`, PLAN_AHEAD_MONTHS).slice(0, 7);
   const from = `${month}-01`;
   const to = endOfMonth(from);
   const isCur = month === currentMonth;
@@ -104,18 +115,20 @@ export default function Budgets() {
   }, [b, from, actualTo, expLines]);
 
   const openEditFor = (l: BudgetLine) => {
+    const scope: BudgetScope = l.source === 'month' ? 'only' : 'onward';
     if (l.kind === 'debt') {
-      setEdit({ kind: 'debt', debtId: l.debtId ?? '__all__', amount: l.budget, lockedKind: true });
+      setEdit({ kind: 'debt', debtId: l.debtId ?? '__all__', amount: l.budget, lockedKind: true, scope });
     } else {
-      setEdit({ kind: 'expense', categoryId: l.categoryId, amount: l.budget, lockedKind: true });
+      setEdit({ kind: 'expense', categoryId: l.categoryId, amount: l.budget, lockedKind: true, scope });
     }
   };
 
-  const removeBudget = (l: BudgetLine) => {
-    const hid = deleteBudget(l.budgetId);
+  const removeBudget = (l: BudgetLine, scope: BudgetScope) => {
+    const hid = deleteBudget(l.target, { month, scope });
     if (hid) {
       if (detailKey === l.key) setDetailKey(null);
-      notify(`Anggaran ${l.label} dihapus`, hid, { tone: 'danger' });
+      const when = scope === 'only' ? `untuk ${formatMonth(month)}` : `mulai ${formatMonth(month)}`;
+      notify(`Anggaran ${l.label} ${when} dihapus`, hid, { tone: 'danger' });
     }
   };
 
@@ -160,7 +173,7 @@ export default function Budgets() {
                   label: 'Hapus anggaran',
                   icon: Trash2,
                   danger: true,
-                  onSelect: () => removeBudget(l),
+                  onSelect: () => setRemoving(l),
                 },
               ]}
               trigger={(p) => (
@@ -180,7 +193,11 @@ export default function Budgets() {
           </div>
         </div>
         <div className="bc-badges">
-          {l.kind === 'debt' && l.isPaidOff ? (
+          {isFuture ? (
+            <Badge tone="info" icon={CalendarClock}>
+              Direncanakan
+            </Badge>
+          ) : l.kind === 'debt' && l.isPaidOff ? (
             <Badge tone="pos" icon={CircleCheck}>
               Lunas
             </Badge>
@@ -190,6 +207,7 @@ export default function Budgets() {
             </Badge>
           )}
           {l.kind === 'debt' && !l.debtId && <Badge>Semua hutang</Badge>}
+          {l.source === 'month' && <Badge tone="accent">Khusus {formatMonth(month, true)}</Badge>}
         </div>
         <div className="bc-meter">
           <div className="bc-amounts">
@@ -221,7 +239,7 @@ export default function Budgets() {
         subtitle={`Batas pengeluaran, pembayaran hutang, dan target tabungan, ${formatMonth(month)}`}
         actions={
           <>
-            <MonthSwitcher value={month} onChange={setMonth} className="ms-stretch" />
+            <MonthSwitcher value={month} onChange={setMonth} max={maxMonth} className="ms-stretch" />
             <Button variant="primary" icon={Plus} collapse onClick={() => setEdit({})}>
               Tambah anggaran
             </Button>
@@ -251,15 +269,21 @@ export default function Budgets() {
                 <span className="muted bh-ring-cap">terpakai</span>
               </Ring>
               <div className="bh-main">
-                <span className="kpi-label">{sum.remaining >= 0 ? 'Sisa anggaran' : 'Melebihi anggaran'}</span>
-                <strong className={`bh-val num money-val${sum.remaining < 0 ? ' neg' : ''}`}>
-                  {formatMoney(Math.abs(sum.remaining))}
-                </strong>
-                <span className="muted">
-                  Terpakai <span className="money-val">{formatMoney(sum.totalActual)}</span> dari{' '}
-                  <span className="money-val">{formatMoney(sum.totalBudget)}</span>
+                <span className="kpi-label">
+                  {isFuture ? 'Total anggaran' : sum.remaining >= 0 ? 'Sisa anggaran' : 'Melebihi anggaran'}
                 </span>
-                {sum.hasExpense && sum.hasDebt && (
+                <strong className={`bh-val num money-val${!isFuture && sum.remaining < 0 ? ' neg' : ''}`}>
+                  {formatMoney(isFuture ? sum.totalBudget : Math.abs(sum.remaining))}
+                </strong>
+                {isFuture ? (
+                  <span className="muted">Belum berjalan, dimulai {formatDate(from, 'long')}</span>
+                ) : (
+                  <span className="muted">
+                    Terpakai <span className="money-val">{formatMoney(sum.totalActual)}</span> dari{' '}
+                    <span className="money-val">{formatMoney(sum.totalBudget)}</span>
+                  </span>
+                )}
+                {!isFuture && sum.hasExpense && sum.hasDebt && (
                   <div className="bh-split">
                     <span>
                       Pengeluaran <strong className="num money-val">{formatMoney(sum.expenseActual)}</strong>
@@ -269,29 +293,52 @@ export default function Budgets() {
                     </span>
                   </div>
                 )}
-                <div className="bh-pace">
-                  <Progress value={totalUsed} color={ringColor} marker={pace} label="Total anggaran terpakai" />
-                  <span className="muted bh-hint">Garis penanda waktu berjalan {formatPercent(pace, 0)}</span>
-                </div>
+                {!isFuture && (
+                  <div className="bh-pace">
+                    <Progress value={totalUsed} color={ringColor} marker={pace} label="Total anggaran terpakai" />
+                    <span className="muted bh-hint">Garis penanda waktu berjalan {formatPercent(pace, 0)}</span>
+                  </div>
+                )}
               </div>
               <div className="bh-side">
                 <div>
-                  <span className="muted">Sisa per hari</span>
+                  <span className="muted">{isFuture ? 'Batas per hari' : 'Sisa per hari'}</span>
                   <strong className="num money-val">
-                    {isCur && daysLeft > 0 ? formatMoney(Math.floor(Math.max(0, sum.remaining) / daysLeft)) : '—'}
+                    {isFuture
+                      ? formatMoney(Math.floor(sum.totalBudget / totalDays))
+                      : isCur && daysLeft > 0
+                        ? formatMoney(Math.floor(Math.max(0, sum.remaining) / daysLeft))
+                        : '—'}
                   </strong>
                   <span className="muted bh-hint">
-                    {isCur ? `${daysLeft} hari tersisa` : isFuture ? 'Periode mendatang' : 'Periode selesai'}
+                    {isCur ? `${daysLeft} hari tersisa` : isFuture ? `${totalDays} hari` : 'Periode selesai'}
                   </span>
                 </div>
                 <div>
-                  <span className="muted">{sum.hasDebt ? 'Anggaran melebihi' : 'Kategori melebihi'}</span>
-                  <strong className={sum.overCount ? 'neg' : 'pos'}>
-                    {sum.overCount} dari {sum.activeCount}
-                  </strong>
+                  {isFuture ? (
+                    <>
+                      <span className="muted">Jumlah anggaran</span>
+                      <strong>{sum.activeCount}</strong>
+                    </>
+                  ) : (
+                    <>
+                      <span className="muted">{sum.hasDebt ? 'Anggaran melebihi' : 'Kategori melebihi'}</span>
+                      <strong className={sum.overCount ? 'neg' : 'pos'}>
+                        {sum.overCount} dari {sum.activeCount}
+                      </strong>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
+          )}
+
+          {isCur && (
+            <button type="button" className="suggest-box budget-plan-next" onClick={() => setMonth(nextMonth)}>
+              <CalendarPlus size={16} aria-hidden />
+              <span className="grow">Siapkan anggaran {formatMonth(nextMonth)}</span>
+              <span className="link">Rencanakan</span>
+            </button>
           )}
 
           {expLines.length > 0 && (
@@ -448,10 +495,21 @@ export default function Budgets() {
           setDetailKey(null);
           openEditFor(l);
         }}
-        onDelete={removeBudget}
+        onDelete={setRemoving}
       />
 
       {edit && <BudgetModal initial={edit} onClose={() => setEdit(null)} month={month} />}
+      {removing && (
+        <BudgetDeleteModal
+          line={removing}
+          month={month}
+          onClose={() => setRemoving(null)}
+          onConfirm={(scope) => {
+            removeBudget(removing, scope);
+            setRemoving(null);
+          }}
+        />
+      )}
       {goalModal.node}
     </div>
   );
@@ -482,14 +540,13 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
         ? { kind: 'expense', categoryId: cat }
         : null;
 
+  const targetKey = target ? budgetTargetKey(target) : '';
   const existing = useMemo(() => {
-    if (!target) return undefined;
-    return b.data.budgets.find((x) =>
-      target.kind === 'debt'
-        ? x.kind === 'debt' && (x.debtId ?? '') === (target.debtId ?? '')
-        : x.kind !== 'debt' && x.categoryId === target.categoryId,
-    );
-  }, [b.data.budgets, target]);
+    if (!targetKey) return null;
+    const r = resolveBudgetAmount(b.data.budgets, targetKey, month);
+    return r && r.amount > 0 ? r : null;
+  }, [b.data.budgets, targetKey, month]);
+  const [scope, setScope] = useState<BudgetScope>(initial.scope ?? 'onward');
 
   const avg = useMemo(() => {
     if (!target) return { average: 0, activeMonths: 0 };
@@ -505,9 +562,14 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
           ? selectedDebtTx?.contact || 'Pembayaran hutang'
           : 'Semua pembayaran hutang'
         : b.acc.get(target.categoryId)?.name ?? '';
-    const hid = upsertBudget(target, amount);
+    const hid = upsertBudget(target, amount, { month, scope });
     if (!hid) return;
-    notify(`Anggaran ${label} ${formatMoney(amount)}/bulan disimpan`, hid);
+    notify(
+      scope === 'only'
+        ? `Anggaran ${label} ${formatMoney(amount)} untuk ${formatMonth(month)} disimpan`
+        : `Anggaran ${label} ${formatMoney(amount)}/bulan mulai ${formatMonth(month)} disimpan`,
+      hid,
+    );
     onClose();
   };
   const submitRef = useSubmitRef(submit);
@@ -518,7 +580,7 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
       onClose={onClose}
       size="sm"
       title={existing ? 'Ubah anggaran' : 'Anggaran baru'}
-      subtitle="Berlaku setiap bulan"
+      subtitle={formatMonth(month)}
       icon={
         <IconTile
           icon={kind === 'debt' ? Handshake : Target}
@@ -600,6 +662,8 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
           </div>
         )}
 
+        <BudgetScopeField month={month} value={scope} onChange={setScope} />
+
         <Field label="Batas per bulan" error={tried && !amount && 'Masukkan nominal'}>
           <AmountInput
             value={amount}
@@ -625,6 +689,67 @@ function BudgetModal({ initial, onClose, month }: { initial: EditDraft; onClose:
             <span className="link">Gunakan</span>
           </button>
         )}
+      </div>
+    </Modal>
+  );
+}
+
+function BudgetScopeField({ month, value, onChange }: { month: string; value: BudgetScope; onChange: (v: BudgetScope) => void }) {
+  return (
+    <Field
+      label="Berlaku"
+      hint={
+        value === 'only'
+          ? 'Bulan lain tetap memakai anggaran rutin.'
+          : `Bulan sebelum ${formatMonth(month)} tidak berubah.`
+      }
+    >
+      <Segmented
+        block
+        ariaLabel="Cakupan bulan"
+        value={value}
+        onChange={onChange}
+        options={[
+          { value: 'only', label: `Hanya ${formatMonth(month, true)}` },
+          { value: 'onward', label: `Mulai ${formatMonth(month, true)} dst.` },
+        ]}
+      />
+    </Field>
+  );
+}
+
+function BudgetDeleteModal({
+  line,
+  month,
+  onClose,
+  onConfirm,
+}: {
+  line: BudgetLine;
+  month: string;
+  onClose: () => void;
+  onConfirm: (scope: BudgetScope) => void;
+}) {
+  const [scope, setScope] = useState<BudgetScope>(line.source === 'month' ? 'only' : 'onward');
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="sm"
+      title={`Hapus anggaran ${line.label}?`}
+      subtitle={formatMonth(month)}
+      icon={<IconTile icon={Trash2} color="var(--neg)" size="lg" />}
+      footer={
+        <>
+          <span className="spacer" />
+          <Button onClick={onClose}>Batal</Button>
+          <Button variant="danger" onClick={() => onConfirm(scope)}>
+            Hapus
+          </Button>
+        </>
+      }
+    >
+      <div className="stack">
+        <BudgetScopeField month={month} value={scope} onChange={setScope} />
       </div>
     </Modal>
   );
