@@ -1,11 +1,50 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-export default defineConfig({
+/**
+ * Pengganti `sw.js` untuk bundle APK. Tidak didaftarkan oleh index.html; berkas ini hanya diambil oleh
+ * service worker lama yang masih terpasang dari versi APK sebelumnya saat browser memeriksa pembaruan.
+ * Service worker lama menyajikan index.html dari cache sehingga kode baru tidak pernah berjalan — versi
+ * pengganti ini langsung aktif, mengosongkan cache, mencabut registrasinya, lalu memuat ulang halaman.
+ */
+const RETIRING_SERVICE_WORKER = `self.addEventListener('install', function () {
+  self.skipWaiting();
+});
+self.addEventListener('activate', function (event) {
+  event.waitUntil(
+    caches
+      .keys()
+      .then(function (keys) {
+        return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+      })
+      .then(function () { return self.registration.unregister(); })
+      .then(function () { return self.clients.matchAll({ type: 'window' }); })
+      .then(function (clients) {
+        clients.forEach(function (client) { client.navigate(client.url); });
+      })
+  );
+});
+`;
+
+function retireServiceWorker(): Plugin {
+  return {
+    name: 'keuanganku:retire-service-worker',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'sw.js', source: RETIRING_SERVICE_WORKER });
+    },
+  };
+}
+
+// `vite build --mode native` menghasilkan bundle untuk APK: tanpa service worker, karena aset sudah
+// dikemas di dalam aplikasi dan service worker justru bisa menyajikan versi lama setelah pembaruan.
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    mode === 'native' && retireServiceWorker(),
     VitePWA({
+      disable: mode === 'native',
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
@@ -50,7 +89,8 @@ export default defineConfig({
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         // exceljs (±1 MB) hanya untuk ekspor; diambil saat dibutuhkan, bukan saat instal pertama.
-        globIgnores: ['**/excel-*.js'],
+        // webview-update.html hanya dipakai APK (server.errorPath di capacitor.config.ts).
+        globIgnores: ['**/excel-*.js', 'webview-update.html'],
         runtimeCaching: [
           {
             urlPattern: /\/assets\/excel-.*\.js$/,
@@ -63,8 +103,10 @@ export default defineConfig({
   ],
   server: { port: 5173, host: true },
   build: {
-    target: ['es2020', 'chrome100', 'safari15', 'firefox100', 'edge100'],
-    cssTarget: ['chrome100', 'safari15', 'firefox100', 'edge100'],
+    // Batas bawah mengikuti fitur CSS yang dipakai (color-mix, oklch, :has, container query).
+    // APK menolak WebView di bawah 111 lewat android.minWebViewVersion di capacitor.config.ts.
+    target: ['es2020', 'chrome111', 'safari16.4', 'firefox113', 'edge111'],
+    cssTarget: ['chrome111', 'safari16.4', 'firefox113', 'edge111'],
     chunkSizeWarningLimit: 2000,
     sourcemap: false,
     rollupOptions: {
@@ -80,4 +122,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

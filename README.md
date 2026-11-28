@@ -92,6 +92,36 @@ npm run build
 npm run preview
 ```
 
+Build web menghasilkan PWA lengkap dengan service worker untuk penggunaan luring di peramban.
+
+---
+
+## Build APK
+
+Prasyarat: JDK 21 dan Android SDK (platform 36). Arahkan Gradle ke SDK lewat variabel `ANDROID_HOME` atau `sdk.dir` di `android/local.properties`.
+
+```bash
+npm run android:build
+```
+
+Skrip ini menjalankan berurutan:
+
+1. `npm run check` — pemeriksaan ikon, typecheck, dan tes.
+2. `vite build --mode native` — bundle web untuk APK **tanpa service worker**, karena aset sudah dikemas di dalam APK. `index.html` tidak mendaftarkan service worker apa pun; satu-satunya `sw.js` di bundle ini adalah pengganti yang mengosongkan cache lalu mencabut service worker peninggalan versi APK sebelumnya.
+3. `npx cap sync android` — menyalin `dist/` dan `capacitor.config.ts` ke proyek `android/`.
+4. `./gradlew assembleRelease` — APK rilis di `android/app/build/outputs/apk/release/`.
+
+Proyek belum menyertakan konfigurasi penandatanganan, sehingga hasilnya `app-release-unsigned.apk`. Tanda tangani dengan keystore rilis (`zipalign` lalu `apksigner` dari build-tools Android SDK) sebelum dipasang. Untuk uji cepat di HP, `cd android && ./gradlew assembleDebug` menghasilkan APK debug yang langsung bisa dipasang.
+
+Setiap rilis, naikkan `versionCode` (harus selalu lebih besar) dan `versionName` di `android/app/build.gradle`, serta `version` di `package.json` dan `APP_VERSION` di `src/app/backup.ts`.
+
+Perilaku APK yang berbeda dari versi web:
+
+- **Ukuran huruf** mengikuti pengaturan HP, dibatasi maksimal 130% (`MainActivity.java`). Mengubah ukuran huruf sistem membuat ulang activity sehingga batas ini dihitung ulang.
+- **Edge-to-edge**: konten digambar di bawah status bar dan bilah navigasi; CSS membaca area aman lewat `--safe-top`, `--safe-right`, `--safe-bottom`, dan `--safe-left` di `src/styles/tokens.css`.
+- **WebView minimum 111** (`android.minWebViewVersion`, selaras `build.target`). Di bawah versi itu, atau bila halaman utama gagal dimuat, APK menampilkan `public/webview-update.html` yang meminta pengguna memperbarui WebView Sistem Android.
+- **Diagnostik** di Pengaturan › Tentang (hanya di APK): versi WebView, ukuran jendela dan viewport visual, rasio piksel, area aman, zoom teks efektif, dan status mode hemat, dengan tombol *Salin* untuk dilampirkan pada laporan masalah tampilan.
+
 ---
 
 ## Deploy ke Vercel

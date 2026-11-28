@@ -66,6 +66,7 @@ import { Button, Field, Switch, TextInput } from '../components/ui/primitives';
 import { Select } from '../components/ui/Select';
 import { Segmented } from '../components/ui/Segmented';
 import { LogoMark } from '../components/brand/Logo';
+import { DiagnosticsPanel } from '../components/settings/DiagnosticsPanel';
 import { useIsDark, useMediaQuery } from '../hooks/useApp';
 import { isImeComposing, modKey } from '../lib/layers';
 
@@ -851,6 +852,7 @@ export default function Settings() {
                   </p>
                 </div>
               </div>
+              {isNativeApp() && <DiagnosticsPanel appVersion={APP_VERSION} />}
             </div>
           </section>
           )}

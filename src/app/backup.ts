@@ -3,7 +3,7 @@ import { BACKUP_PREF_KEYS, usePrefs } from '../store/ui';
 import { saveFile } from '../lib/saveFile';
 import { todayISO } from '../lib/format';
 
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.5.0';
 
 /** Unduh seluruh buku + preferensi tampilan (tata letak dasbor, menu, mode) sebagai berkas JSON. */
 export function downloadBackup() {

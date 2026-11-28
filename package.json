@@ -1,7 +1,7 @@
 {
   "name": "keuanganku",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "description": "Keuanganku — catatan keuangan pribadi dengan mesin akuntansi double-entry, laporan keuangan lengkap, dan ekspor Excel profesional.",
   "scripts": {
@@ -11,7 +11,8 @@
     "uicons": "node scripts/uicons.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "check": "node scripts/uicons.mjs --check && tsc --noEmit -p tsconfig.json && vitest run"
+    "check": "node scripts/uicons.mjs --check && tsc --noEmit -p tsconfig.json && vitest run",
+    "android:build": "npm run check && vite build --mode native && npx cap sync android && cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",
